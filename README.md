@@ -1,95 +1,186 @@
-# linguamaxima
+<div align="center">
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, and more.
+# 🌍 LinguaMaxima
 
-## Features
+### AI-Powered Multi-Language Reader & Spaced Repetition Learning Platform
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Start** - SSR framework with TanStack Router
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-- **Nx** - Smart monorepo task orchestration and caching
-- **Oxlint** - Oxlint + Oxfmt (linting & formatting)
+<p align="center">
+  <img src="docs/assets/home-linguamaxima.png" alt="LinguaMaxima Home & Story Library" width="100%" />
+  <br />
+  <em>Interactive Story Library with CEFR Filtering, Progress Tracking, and Dynamic Language Pair Support</em>
+</p>
 
-## Getting Started
+<p align="center">
+  <img src="docs/assets/languages-linguamaxima.png" alt="LinguaMaxima Language Learning Center" width="100%" />
+  <br />
+  <em>Multi-Language Learning Center: Configure native origin and target learning paths</em>
+</p>
 
-First, install the dependencies:
+---
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![React](https://img.shields.io/badge/React-19.0+-61DAFB?logo=react&logoColor=black)](https://react.dev/) [![TanStack Start](https://img.shields.io/badge/TanStack-Start-FF4154?logo=tanstack&logoColor=white)](https://tanstack.com/start) [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/) [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38B2AC?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/) [![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-Base%20UI-000000?logo=shadcnui&logoColor=white)](https://ui.shadcn.com/) [![Ultracite](https://img.shields.io/badge/Code_Quality-Ultracite-8A2BE2)](https://github.com/oxc-project/oxc)
+
+</div>
+
+---
+
+## 📖 Overview
+
+**LinguaMaxima** is an AI-powered language acquisition platform inspired by the proven pedagogy of graded readers (e.g. Readle), but engineered with modern AI generation pipelines to support **any arbitrary language pair** at zero marginal content cost.
+
+Whether you are an Indonesian speaker learning German, an English speaker mastering Japanese, or a French speaker learning Spanish, LinguaMaxima produces CEFR-graded stories (A1–C2) with native-tongue translations, contextual grammar explanations, comprehension quizzes, neural audio pronunciation, and an integrated SuperMemo SM-2 spaced repetition flashcard system.
+
+---
+
+## ✨ Key Features
+
+- **📚 AI-Generated CEFR Graded Stories (A1 to C2)** Calibrated short stories across diverse topics (Travel, Culture, Food, Daily Life, Technology, Science, History, Nature) tailored to exact CEFR proficiency levels.
+- **🔄 Universal Language Pair Engine** Learn any target language from any native language (e.g., German from Indonesian, Japanese from English, French from Spanish). All stories, definitions, grammar tips, and quizzes adapt symmetrically.
+- **⚡ Interactive Tap-to-Translate & Parallel Reader** Tap any word in a story to open an instant breakdown with grammatical gender (`der`/`die`/`das`, `el`/`la`, `le`/`la`), part of speech, definition in your native tongue, and example sentences. Toggle full parallel bilingual translations at any time.
+- **🧠 SuperMemo SM-2 Spaced Repetition Flashcards** Save new vocabulary directly from stories into your personal review deck. Review daily with the SM-2 algorithm (Again, Hard, Good, Easy) for long-term retention.
+- **📝 Interactive Comprehension Quizzes** Test your reading comprehension with multiple-choice, fill-in-the-blank, article practice, and true/false quizzes with instant grading and explanations.
+- **🎧 Neural Audio Pronunciation** Listen to authentic, native-speaker audio for every story with playback speed controls (0.75x, 1x, 1.25x), progress scrubbing, and quick 5-second rewind.
+- **📊 Comprehensive Learning Dashboard & Streaks** Track read stories, learned vocabulary count, daily learning streaks, average quiz scores, and saved favorites.
+- **🌐 100% Internationalization (i18n)** Complete interface localization across 7 languages: **English (`en`)**, **German (`de`)**, **Spanish (`es`)**, **French (`fr`)**, **Indonesian (`id`)**, **Japanese (`ja`)**, and **Chinese (`zh`)**.
+
+---
+
+## 🏗️ Architecture & Tech Stack
+
+```
+linguamaxima/
+├── apps/
+│   ├── web/                     # Full-stack React + TanStack Start SSR web application
+│   └── api/                     # High-performance FastAPI Python backend
+├── packages/
+│   ├── ui/                      # Shared shadcn/ui primitives & Tailwind design tokens
+│   ├── env/                     # Type-safe environment variable validation (T3 Env)
+│   └── config/                  # Shared base TypeScript configurations
+└── docs/                        # PRD, Architecture Design, and Research documentation
+```
+
+### Frontend (`apps/web`)
+
+- **Framework**: [TanStack Start](https://tanstack.com/start) + [React 19](https://react.dev/)
+- **Routing & Data Fetching**: [TanStack Router](https://tanstack.com/router) & [TanStack Query](https://tanstack.com/query)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) + `@linguamaxima/ui` (shadcn/ui + Base UI primitives)
+- **Internationalization**: Custom typed i18n engine with full parameter interpolation and 7 localized dictionaries
+
+### Backend (`apps/api`)
+
+- **API Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.12+)
+- **Database & ORM**: [SQLAlchemy 2.0](https://www.sqlalchemy.org/) async with SQLite (or PostgreSQL) & [Alembic](https://alembic.sqlalchemy.org/) migrations
+- **AI Story Pipeline**: LLM story generator (Google Gemini 2.5 Flash / LiteLLM)
+- **Neural TTS Engine**: Edge-TTS integration for fast, authentic multi-language audio synthesis
+- **Image Integration**: Automated royalty-free thematic story illustrations
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js** >= 20.x
+- **pnpm** >= 9.x
+- **Python** >= 3.12 (managed via `uv` or `venv`)
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/puruhitaaa/linguamaxima.git
+cd linguamaxima
+```
+
+### 2. Setup Frontend & Monorepo Dependencies
 
 ```bash
 pnpm install
 ```
 
-Then, run the development server:
+### 3. Setup Python Backend (`apps/api`)
 
 ```bash
-pnpm run dev
+cd apps/api
+
+# Create virtual environment and install dependencies
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv pip install -e .
+
+# Run database migrations and seed initial data
+alembic upgrade head
+python -m app.initial_data
+
+cd ../..
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
+### 4. Start Development Servers
 
-## UI Customization
-
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
-
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
-
-### Add more shared components
-
-Run this from the project root to add more primitives to the shared UI package:
+To start both frontend and backend concurrently:
 
 ```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
+# Start frontend web app (http://localhost:3001)
+pnpm run dev:web
+
+# Start backend API (http://localhost:8000)
+cd apps/api && uvicorn app.main:app --reload --port 8000
 ```
 
-Import shared components like this:
+Open [http://localhost:3001](http://localhost:3001) in your browser.
 
-```tsx
-import { Button } from "@linguamaxima/ui/components/button";
+---
+
+## 🐳 Docker Deployment
+
+You can build and run the entire stack with Docker Compose:
+
+```bash
+# Build Docker images
+pnpm run docker:build
+
+# Start containers
+pnpm run docker:up
+
+# View logs
+pnpm run docker:logs
+
+# Stop containers
+pnpm run docker:down
 ```
 
-### Add app-specific blocks
+---
 
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
+## 🛠️ Code Quality & Formatting
 
-## Deployment
+This project enforces strict code quality and formatting via **Ultracite** (powered by Oxlint and Oxfmt):
 
-### Docker Compose
+```bash
+# Run linting and formatting check
+pnpm dlx ultracite check
 
-- Target: web
-- Config: `docker-compose.yml` (app Dockerfiles live in `apps/*/Dockerfile`)
-- Build images: pnpm run docker:build
-- Start: pnpm run docker:up
-- Logs: pnpm run docker:logs
-- Stop: pnpm run docker:down
+# Automatically fix formatting and lint issues
+pnpm dlx ultracite fix
 
-Environment variables are read from each app's `.env` file (baked into web builds for public variables) and overridden in `docker-compose.yml` for container networking.
-
-For more details, see the guide on [Deploying with Docker Compose](https://www.better-t-stack.dev/docs/guides/docker).
-
-## Git Hooks and Formatting
-
-- Run checks: `pnpm run check`
-
-## Project Structure
-
-```
-linguamaxima/
-├── apps/
-│   ├── web/         # Frontend application (React + TanStack Start)
-├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
+# Check TypeScript types across all workspaces
+pnpm run check-types
 ```
 
-## Available Scripts
+---
 
-- `pnpm run dev`: Start all applications in development mode
-- `pnpm run build`: Build all applications
-- `pnpm run dev:web`: Start only the web application
-- `pnpm run check-types`: Check TypeScript types across all apps
-- `pnpm run check`: Run Oxlint and Oxfmt
-- `pnpm run docker:build`: Build the Docker Compose images
-- `pnpm run docker:up`: Build and start the Docker Compose stack
-- `pnpm run docker:logs`: Tail logs from the Docker Compose stack
-- `pnpm run docker:down`: Stop the Docker Compose stack
+## 📜 Available Scripts
+
+| Command | Description |
+| --- | --- |
+| `pnpm run dev` | Start development servers |
+| `pnpm run dev:web` | Start the web application |
+| `pnpm run build` | Build all packages and applications |
+| `pnpm run check-types` | Type-check TypeScript across the monorepo |
+| `pnpm dlx ultracite check` | Run Oxlint + Oxfmt linter and format verification |
+| `pnpm dlx ultracite fix` | Auto-format and fix linting violations |
+| `pnpm run docker:up` | Launch production containers with Docker Compose |
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
