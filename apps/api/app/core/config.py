@@ -36,6 +36,18 @@ class Settings(BaseSettings):
     db_max_overflow: int = 20
     db_use_null_pool: bool = False
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def assemble_database_url(cls, v: str) -> str:
+        if isinstance(v, str):
+            if v.startswith("postgres://"):
+                return v.replace("postgres://", "postgresql+asyncpg://", 1)
+            if v.startswith("postgresql://") and not v.startswith("postgresql+"):
+                return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+            if v.startswith("sqlite://") and not v.startswith("sqlite+"):
+                return v.replace("sqlite://", "sqlite+aiosqlite://", 1)
+        return v
+
     # CORS
     cors_origins: Union[List[str], str] = [
         "http://localhost:3001",
