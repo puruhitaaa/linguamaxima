@@ -46,6 +46,7 @@ The frontend integrates with the backend via a versioned REST API (`/api/v1/`). 
 4. User taps a story card to navigate to the reading screen.
 
 **Edge cases:**
+
 - No stories exist yet → display empty state with a prompt to generate stories (admin/generate action).
 - Filter combination yields zero results → display "No stories found" message with suggestion to broaden filters.
 - Story image fails to load → fall back to a category-appropriate placeholder or gradient.
@@ -60,6 +61,7 @@ The frontend integrates with the backend via a versioned REST API (`/api/v1/`). 
 6. Story view has tabs: **Story** | **Vocabulary** | **Grammar** | **Quiz**.
 
 **Edge cases:**
+
 - Tapped word is not in the pre-generated vocabulary list → the popup shows the word with a "translation unavailable" message. Future improvement: on-demand LLM lookup.
 - Compound German words (e.g., "Handschuh") → attempt to match the full compound first, then longest prefix.
 - Punctuation attached to word → strip punctuation before vocabulary lookup.
@@ -73,6 +75,7 @@ The frontend integrates with the backend via a versioned REST API (`/api/v1/`). 
 5. In the Vocabulary tab, each word has a small speaker icon → taps play the individual word pronunciation.
 
 **Edge cases:**
+
 - Audio file has not been generated yet (story was created without TTS) → show "Audio unavailable" with a generate button.
 - edge-tts service is temporarily unreachable (it's an online service) → show "Audio generation failed, try again later" toast.
 - Slow network → stream audio rather than waiting for full download; show loading spinner on play button.
@@ -90,6 +93,7 @@ The frontend integrates with the backend via a versioned REST API (`/api/v1/`). 
 5. Quiz is retakeable unlimited times. Best score is recorded.
 
 **Edge cases:**
+
 - Quiz has zero questions (AI generation failed partially) → show "Quiz not available for this story."
 - User navigates away mid-quiz → progress is not saved (quiz restarts on return). This is acceptable for MVP.
 - All answers are wrong → encouraging message, link back to story to re-read.
@@ -105,6 +109,7 @@ The frontend integrates with the backend via a versioned REST API (`/api/v1/`). 
 7. Session ends when all due cards are reviewed → "All caught up!" screen.
 
 **Edge cases:**
+
 - No flashcards saved yet → empty state: "Save words from stories to build your deck."
 - No cards due today → "All caught up! Next review in X days."
 - User saves the same word from multiple stories → deduplicate by word text within the same language pair; link to latest occurrence.
@@ -120,6 +125,7 @@ The frontend integrates with the backend via a versioned REST API (`/api/v1/`). 
 7. All data is persisted to PostgreSQL. Story is marked `is_published = true`.
 
 **Edge cases:**
+
 - LLM returns malformed JSON → retry once with a stricter prompt. If still malformed, log error and mark story as failed.
 - LLM returns content in wrong language or wrong CEFR level → validate by checking vocabulary complexity heuristics (word frequency lists). Flag for manual review if suspicious.
 - Pixabay returns zero image results → use a default category placeholder image.
@@ -135,6 +141,7 @@ The frontend integrates with the backend via a versioned REST API (`/api/v1/`). 
 4. Progress data is per the single implicit user (no auth for MVP).
 
 **Edge cases:**
+
 - Progress data is lost if database is reset → acceptable for personal MVP. Document backup procedure.
 - Streak resets at midnight → define timezone in config (default: user's local tz or UTC).
 
@@ -229,6 +236,7 @@ class GeneratedStoryBundle(BaseModel):
 **Existing stack is preserved**: React 19, TanStack Start (SSR), TanStack Router (file-based routing), TanStack Query, TailwindCSS v4, shadcn/ui, Lucide icons, Vite, dark mode via next-themes. No framework migration.
 
 **New routes to add**:
+
 - `/` — Home/story library with level filters and category filters.
 - `/stories/:id` — Story reading screen with tabs: Story, Vocabulary, Grammar, Quiz.
 - `/flashcards` — Flashcard review session.
@@ -251,7 +259,7 @@ The existing `docker-compose.yml` is extended to add two new services: `api` (Fa
 ### API Contract (Key Endpoints)
 
 | Method | Path | Description |
-|---|---|---|
+| --- | --- | --- |
 | GET | `/api/v1/stories` | List stories with filters: `cefr_level`, `category_slug`, `language_pair_id`. Paginated. |
 | GET | `/api/v1/stories/:id` | Full story with vocabulary, grammar_tips, and quiz questions. |
 | POST | `/api/v1/stories/generate` | Trigger AI story generation. Body: `cefr_level`, `category_slug`, `topic_hint?`. |

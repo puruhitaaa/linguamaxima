@@ -6,16 +6,34 @@ node_modules
 # Build outputs
 dist
 build
+.output
+.nitro
 *.tsbuildinfo
 
 # Generated files
 apps/web/src/routeTree.gen.ts
 local.db
 local.db-*
+linguamaxima.db
+linguamaxima.db-*
+*.db
+*.db-journal
 
 # Environment variables
 .env
 .env*.local
+
+# Python & UV
+.venv
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+apps/api/media/audio/*.mp3
+apps/api/media/images/*
+!apps/api/media/audio/.gitkeep
+!apps/api/media/images/.gitkeep
 
 # IDEs and editors
 .vscode/*
@@ -39,7 +57,7 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
-# Turbo
+# Turbo & Nx
 .turbo
 .nx
 

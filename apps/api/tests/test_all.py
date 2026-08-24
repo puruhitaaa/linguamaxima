@@ -1,0 +1,150 @@
+import pytest
+from datetime import datetime, timezone
+from app.models import CEFRLevel
+from app.services.srs_service import calculate_sm2
+
+@pytest.mark.asyncio
+async def test_health_check(client):
+    res = await client.get("/health")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] in ["healthy", "degraded"]
+    assert "database" in data
+    assert "version" in data
+
+@pytest.mark.asyncio
+async def test_list_stories(client):
+    res = await client.get("/api/v1/stories")
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data) >= 3
+    assert data[0]["title"] is not None
+    assert data[0]["cefr_level"] in ["A1", "A2", "B1", "B2", "C1", "C2"]
+
+@pytest.mark.asyncio
+async def test_filter_stories_by_level(client):
+    res = await client.get("/api/v1/stories?cefr_level=A1")
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data) >= 1
+    assert all(item["cefr_level"] == "A1" for item in data)
+
+@pytest.mark.asyncio
+async def test_get_story_detail(client):
+    stories_res = await client.get("/api/v1/stories")
+    story_id = stories_res.json()[0]["id"]
+
+    res = await client.get(f"/api/v1/stories/{story_id}")
+    assert res.status_code == 200
+    detail = res.json()
+    assert detail["id"] == story_id
+    assert "vocabulary" in detail
+    assert len(detail["vocabulary"]) > 0
+    assert "grammar_tips" in detail
+    assert "quizzes" in detail
+
+@pytest.mark.asyncio
+async def test_toggle_favorite(client):
+    stories_res = await client.get("/api/v1/stories")
+    story_id = stories_res.json()[0]["id"]
+
+    res1 = await client.patch(f"/api/v1/stories/{story_id}/favorite")
+    assert res1.status_code == 200
+    assert res1.json()["is_favorite"] is True
+
+    res2 = await client.patch(f"/api/v1/stories/{story_id}/favorite")
+    assert res2.status_code == 200
+    assert res2.json()["is_favorite"] is False
+
+@pytest.mark.asyncio
+async def test_save_and_review_flashcard(client):
+    # 1. Get a story and vocabulary id
+    stories_res = await client.get("/api/v1/stories")
+    story_id = stories_res.json()[0]["id"]
+    detail = (await client.get(f"/api/v1/stories/{story_id}")).json()
+    vocab_id = detail["vocabulary"][0]["id"]
+
+    # 2. Save to flashcards
+    save_res = await client.post("/api/v1/flashcards", json={"vocabulary_id": vocab_id})
+    assert save_res.status_code == 200
+    fc = save_res.json()
+    assert fc["vocabulary_id"] == vocab_id
+    assert fc["ease_factor"] == 2.5
+    fc_id = fc["id"]
+
+    # 3. Check due flashcards
+    due_res = await client.get("/api/v1/flashcards/due")
+    assert due_res.status_code == 200
+    due_cards = due_res.json()
+    assert any(card["id"] == fc_id for card in due_cards)
+
+    # 4. Review flashcard with Good (4)
+    rev_res = await client.patch(f"/api/v1/flashcards/{fc_id}/review", json={"quality": 4})
+    assert rev_res.status_code == 200
+    rev_data = rev_res.json()
+    assert rev_data["repetitions"] == 1
+    assert rev_data["interval_days"] == 1
+
+@pytest.mark.asyncio
+async def test_submit_quiz(client):
+    stories_res = await client.get("/api/v1/stories")
+    story_id = stories_res.json()[0]["id"]
+    detail = (await client.get(f"/api/v1/stories/{story_id}")).json()
+    quiz = detail["quizzes"][0]
+
+    # Submit answer
+    sub_res = await client.post(
+        f"/api/v1/quizzes/{story_id}/submit",
+        json={"answers": [{"question_id": quiz["id"], "selected_answer": "wrong"}]}
+    )
+    assert sub_res.status_code == 200
+    result = sub_res.json()
+    assert result["story_id"] == story_id
+    assert result["total_questions"] >= 1
+    assert len(result["results"]) >= 1
+
+@pytest.mark.asyncio
+async def test_progress_summary(client):
+    res = await client.get("/api/v1/progress")
+    assert res.status_code == 200
+    summary = res.json()
+    assert "total_stories_available" in summary
+    assert "total_stories_read" in summary
+    assert "total_words_learned" in summary
+
+@pytest.mark.asyncio
+async def test_story_generation(client):
+    res = await client.post(
+        "/api/v1/stories/generate",
+        json={
+            "cefr_level": "A1",
+            "category_slug": "travel",
+            "topic_hint": "Train ride",
+            "target_language_code": "de",
+            "origin_language_code": "id"
+        }
+    )
+    assert res.status_code == 200
+    new_story = res.json()
+    assert new_story["title"] is not None
+    assert len(new_story["vocabulary"]) > 0
+    assert len(new_story["quizzes"]) > 0
+
+def test_srs_sm2_algorithm():
+    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    
+    # 1. First review with Perfect (5)
+    r1 = calculate_sm2(quality=5, current_ease_factor=2.5, current_interval=0, current_repetitions=0, now=now)
+    assert r1.repetitions == 1
+    assert r1.interval_days == 1
+    assert r1.ease_factor >= 2.5
+
+    # 2. Second review with Good (4)
+    r2 = calculate_sm2(quality=4, current_ease_factor=r1.ease_factor, current_interval=r1.interval_days, current_repetitions=r1.repetitions, now=now)
+    assert r2.repetitions == 2
+    assert r2.interval_days == 6
+
+    # 3. Third review with Again (0) -> reset
+    r3 = calculate_sm2(quality=0, current_ease_factor=r2.ease_factor, current_interval=r2.interval_days, current_repetitions=r2.repetitions, now=now)
+    assert r3.repetitions == 0
+    assert r3.interval_days == 1

@@ -41,7 +41,7 @@ Readle (formerly Langster) is the **world's first CEFR-graded language-learning 
 ### 1.3 Feature Breakdown
 
 | Feature | Description | MVP Priority |
-|---|---|---|
+| --- | --- | --- |
 | **CEFR-Graded Stories** | Stories organized by A1, A2, B1, B2, C1 levels | ✅ Must |
 | **Tap-to-Translate** | Tap any word → instant translation + explanation | ✅ Must |
 | **Audio Playback** | Native speaker audio, sentence-by-sentence. Speed: 1x / 0.75x | ✅ Must |
@@ -86,7 +86,7 @@ Readle (formerly Langster) is the **world's first CEFR-graded language-learning 
 ### 2.1 Provider Pricing Overview (August 2026)
 
 | Provider | Best Model | Input/1M | Output/1M | Free Tier | Multilingual (DE+ID) | JSON Mode |
-|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- |
 | **Google Gemini** | Gemini 2.5 Flash | $0.30 | $2.50 | ✅ Flash free: 10-15 RPM | ⭐ Excellent | ✅ |
 | **Groq** | Llama 4 Scout | $0.11 | $0.34 | ✅ 30 RPM, 500K tok/day | 🟡 Good | ✅ |
 | **Mistral** | Mistral Small 3.2 | $0.10 | $0.30 | ✅ 2 RPM, 1B tok/mo | 🟡 Good (EU focus) | ✅ |
@@ -101,6 +101,7 @@ Readle (formerly Langster) is the **world's first CEFR-graded language-learning 
 **LiteLLM** is the clear winner for provider swapping. It provides a unified `completion()` interface for 100+ LLMs using the OpenAI format.
 
 **Key features:**
+
 - Single `completion()` function — change provider by changing model string
 - OpenAI-compatible responses across all providers
 - Built-in retry/fallback logic via Router
@@ -118,6 +119,7 @@ response = completion(model="deepseek/deepseek-v4-flash", messages=[...])
 ```
 
 **Why LiteLLM over alternatives?**
+
 - **vs LangChain**: LangChain is overkill for this use case — too many abstractions. LiteLLM is a thin, focused layer.
 - **vs Instructor**: Instructor is for structured output extraction — can be used **alongside** LiteLLM, not a replacement.
 - **vs direct SDKs**: Direct SDKs lock you into a single provider.
@@ -125,7 +127,7 @@ response = completion(model="deepseek/deepseek-v4-flash", messages=[...])
 ### 2.3 ✅ CONFIRMED: AI Provider Selection
 
 | Role | Provider | Model String (LiteLLM) | Cost | Why |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | **Primary** | Google Gemini | `gemini/gemini-2.5-flash` | **$0/mo** (free tier: 10-15 RPM) | Best multilingual quality, 1M context, excellent German + Indonesian |
 | **Fallback** | Groq | `groq/llama-4-scout` | **$0/mo** (free tier: 30 RPM, 500K tok/day) | Blazing fast (594 tok/s), generous free tier |
 
@@ -142,7 +144,7 @@ response = completion(model="deepseek/deepseek-v4-flash", messages=[...])
 #### 🏆 Top Recommendation: edge-tts (FREE, unlimited)
 
 | Option | Cost | German | Indonesian | Quality | Python SDK | Notes |
-|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- |
 | **edge-tts** | **FREE** ♾️ | ✅ de-DE voices | ✅ id-ID voices | ⭐⭐⭐⭐ Neural | `pip install edge-tts` | Uses Microsoft Edge's online TTS. No API key needed. Best free option. |
 | **gTTS** | **FREE** ♾️ | ✅ de | ✅ id | ⭐⭐⭐ Good | `pip install gTTS` | Google Translate TTS. Lower quality than edge-tts. |
 | **Piper TTS** | **FREE** (self-host) | ✅ de_DE voices | ❌ No ID voices | ⭐⭐⭐⭐ Good | `pip install piper-tts` | Offline, fast. German voices available (Thorsten). No Indonesian. |
@@ -155,6 +157,7 @@ response = completion(model="deepseek/deepseek-v4-flash", messages=[...])
 **MVP Recommendation**: Use **edge-tts** as primary (completely free, neural quality, supports both German AND Indonesian). Fall back to **gTTS** as backup. If you want premium quality later, add **Google Cloud TTS** (permanent 1M chars/mo free).
 
 **edge-tts usage example:**
+
 ```python
 import edge_tts
 import asyncio
@@ -170,13 +173,14 @@ asyncio.run(generate_audio("Halo, apa kabar?", "id-ID-ArdiNeural", "id.mp3"))
 ```
 
 **Available edge-tts voices for our languages:**
+
 - **German**: `de-DE-ConradNeural`, `de-DE-KatjaNeural`, `de-DE-AmalaNeural`, `de-DE-KillianNeural`
 - **Indonesian**: `id-ID-ArdiNeural`, `id-ID-GadisNeural`
 
 ### 3.2 Images (Stock Photo APIs)
 
 | Provider | Free Tier | Rate Limit | API | License | Quality |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | **Unsplash** | ✅ Free | Demo: 50 req/hr, Prod: 1,000 req/hr | REST JSON | Free for commercial use, attribute photographer | ⭐⭐⭐⭐⭐ |
 | **Pexels** | ✅ Free | 200 req/hr, 20K req/mo | REST JSON | Free, attribute Pexels + photographer | ⭐⭐⭐⭐⭐ |
 | **Pixabay** | ✅ Free | 100 req/min | REST JSON | Free commercial, no attribution required | ⭐⭐⭐⭐ |
@@ -184,6 +188,7 @@ asyncio.run(generate_audio("Halo, apa kabar?", "id-ID-ArdiNeural", "id.mp3"))
 **MVP Recommendation**: Use **Pixabay** (no attribution required, generous limits) for story illustrations. Use search terms from story topics to find relevant images. Supplement with **Pexels** for variety.
 
 **Compliance reminders:**
+
 - **Unsplash**: Must hotlink (don't rehost), fire download endpoint, UTM attribution
 - **Pexels**: Show photographer + Pexels attribution
 - **Pixabay**: Cache images locally (don't hotlink), cache API responses 24h
@@ -191,7 +196,7 @@ asyncio.run(generate_audio("Halo, apa kabar?", "id-ID-ArdiNeural", "id.mp3"))
 ### 3.3 Icons & UI Assets
 
 | Resource | Type | License | URL |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Lucide React** | Icon library (already in project) | MIT | lucide.dev |
 | **Heroicons** | SVG icons | MIT | heroicons.com |
 | **Noto Emoji** | Google emoji set | Apache 2.0 | fonts.google.com/noto/emoji |
@@ -202,7 +207,7 @@ asyncio.run(generate_audio("Halo, apa kabar?", "id-ID-ArdiNeural", "id.mp3"))
 Both German and Indonesian use Latin script — any standard Latin font works.
 
 | Font | Style | Notes |
-|---|---|---|
+| --- | --- | --- |
 | **Inter** (already in project) | Sans-serif, clean | Perfect for UI. Already configured. |
 | **Noto Sans** | Sans-serif | Google's universal font, explicit Indonesian support. |
 | **Merriweather** | Serif | Good for story reading body text. |
@@ -210,7 +215,7 @@ Both German and Indonesian use Latin script — any standard Latin font works.
 ### 3.5 Audio Effects & Sounds
 
 | Resource | Type | License | URL |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Freesound.org** | Sound effects library | CC0/CC-BY | freesound.org |
 | **Mixkit** | Sound effects + music | Free license | mixkit.co |
 | **Pixabay Audio** | Music + SFX | Free commercial | pixabay.com/music |
@@ -222,7 +227,7 @@ Both German and Indonesian use Latin script — any standard Latin font works.
 ### 4.1 Recommended Stack (2026 Best Practices)
 
 | Layer | Technology | Why |
-|---|---|---|
+| --- | --- | --- |
 | **Framework** | FastAPI (latest) | Async-first, auto OpenAPI docs, Pydantic v2 validation |
 | **Database** | PostgreSQL 16+ (Docker, port 5433) | Robust, proven, JSON support |
 | **ORM** | SQLAlchemy 2.0+ (async) | Production standard, mature, async support |
@@ -449,7 +454,13 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health')"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import httpx; httpx.get('http://localhost:8000/health')",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -459,7 +470,7 @@ services:
   db:
     image: postgres:16-alpine
     ports:
-      - "5433:5432"  # Host port 5433 → Container port 5432
+      - "5433:5432" # Host port 5433 → Container port 5432
     environment:
       POSTGRES_DB: linguamaxima
       POSTGRES_USER: linguamaxima
@@ -554,7 +565,7 @@ package = false
 ### 5.1 Current Monorepo Structure
 
 | Component | Stack | Status |
-|---|---|---|
+| --- | --- | --- |
 | `apps/web` | React + TanStack Start (SSR) + TailwindCSS | ✅ Scaffolded |
 | `packages/ui` | Shared shadcn/ui components | ✅ Set up |
 | `packages/env` | Shared env config (Zod + dotenv) | ✅ Set up |
@@ -664,19 +675,19 @@ User requests "Generate A1 German story about Travel"
 
 ### 6.3 MVP Feature Scope
 
-| Feature | Status | Tech |
-|---|---|---|
-| Browse stories by CEFR level & category | MVP | FastAPI + React |
-| Read story with tap-to-translate | MVP | React (frontend logic) |
-| Listen to story audio | MVP | edge-tts + HTML5 audio |
-| Story vocabulary list | MVP | AI-generated + DB |
-| Comprehension quiz | MVP | AI-generated + DB |
-| Flashcard review (SRS) | MVP | SM-2 algorithm |
-| Grammar tips per story | MVP | AI-generated |
-| AI story generation | MVP | LiteLLM + Gemini/Groq |
-| Progress tracking | MVP | Local DB (single user) |
-| Multi-language backend | MVP | language_pairs table |
-| Dark theme | MVP | Already in design tokens |
+| Feature                                 | Status | Tech                     |
+| --------------------------------------- | ------ | ------------------------ |
+| Browse stories by CEFR level & category | MVP    | FastAPI + React          |
+| Read story with tap-to-translate        | MVP    | React (frontend logic)   |
+| Listen to story audio                   | MVP    | edge-tts + HTML5 audio   |
+| Story vocabulary list                   | MVP    | AI-generated + DB        |
+| Comprehension quiz                      | MVP    | AI-generated + DB        |
+| Flashcard review (SRS)                  | MVP    | SM-2 algorithm           |
+| Grammar tips per story                  | MVP    | AI-generated             |
+| AI story generation                     | MVP    | LiteLLM + Gemini/Groq    |
+| Progress tracking                       | MVP    | Local DB (single user)   |
+| Multi-language backend                  | MVP    | language_pairs table     |
+| Dark theme                              | MVP    | Already in design tokens |
 
 ### 6.4 Key Design Decisions
 
