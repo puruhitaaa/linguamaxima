@@ -1,0 +1,36 @@
+{
+  "name": "linguamaxima",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "nx run-many -t dev",
+    "build": "nx run-many -t build",
+    "check-types": "nx run-many -t check-types",
+    "dev:web": "nx run-many -t dev --projects=web",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "check": "ultracite check",
+    "fix": "ultracite fix"
+  },
+  "dependencies": {
+    "@linguamaxima/env": "workspace:*",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@linguamaxima/config": "workspace:*",
+    "@types/node": "catalog:",
+    "nx": "^23.1.0",
+    "oxfmt": "latest",
+    "oxlint": "latest",
+    "typescript": "catalog:",
+    "ultracite": "7.9.4"
+  },
+  "packageManager": "pnpm@10.33.2"
+}
