@@ -99,14 +99,43 @@ async def health_check():
 @app.get("/api/v1/init-db", tags=["System"])
 async def trigger_init_db():
     try:
-        from app.core.database import get_session_maker, init_db
+        import traceback
+        from sqlalchemy import func, select
+        from app.core.database import Base, get_session_maker, init_db
+        import app.models as models
         from app.seeds.seed_data import seed_database
 
         await init_db()
         session_maker = get_session_maker()
         async with session_maker() as session:
             await seed_database(session)
-        return {"status": "success", "message": "Database initialized and seeded successfully"}
+
+            lang_count = (
+                await session.execute(select(func.count()).select_from(models.Language))
+            ).scalar()
+            cat_count = (
+                await session.execute(select(func.count()).select_from(models.Category))
+            ).scalar()
+            story_count = (
+                await session.execute(select(func.count()).select_from(models.Story))
+            ).scalar()
+
+        return {
+            "counts": {
+                "categories": cat_count,
+                "languages": lang_count,
+                "stories": story_count,
+            },
+            "message": "Database initialized and seeded successfully",
+            "status": "success",
+            "tables": list(Base.metadata.tables.keys()),
+        }
     except Exception as e:
-        logger.error(f"Manual DB initialization failed: {e}")
-        return {"status": "error", "detail": str(e)}
+        import traceback
+        tb = traceback.format_exc()
+        logger.error(f"Manual DB initialization failed: {e}\n{tb}")
+        return {
+            "detail": str(e),
+            "status": "error",
+            "traceback": tb,
+        }
