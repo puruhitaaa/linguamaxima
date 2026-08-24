@@ -11,6 +11,7 @@
     "build": "nx run-many -t build",
     "check-types": "nx run-many -t check-types",
     "dev:web": "nx run-many -t dev --projects=web",
+    "dev:api": "uv run --directory apps/api uvicorn app.main:app --reload --port 8000",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d --build",
     "docker:down": "docker compose down",
