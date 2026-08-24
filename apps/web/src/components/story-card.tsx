@@ -34,7 +34,7 @@ export function StoryCard({ story }: { story: StoryListItem }) {
       params={{ storyId: story.id.toString() }}
       className="block group"
     >
-      <Card className="overflow-hidden border-neutral-800/80 bg-neutral-900/60 hover:bg-neutral-900 transition-all duration-300 hover:border-neutral-700 hover:shadow-lg hover:shadow-sky-500/5 flex flex-col h-full rounded-xl">
+      <Card className="overflow-hidden pt-0 border-neutral-800/80 bg-neutral-900/60 hover:bg-neutral-900 transition-all duration-300 hover:border-neutral-700 hover:shadow-lg hover:shadow-sky-500/5 flex flex-col h-full rounded-xl">
         <div className="relative aspect-video w-full overflow-hidden bg-neutral-950">
           {story.image_url ? (
             <img

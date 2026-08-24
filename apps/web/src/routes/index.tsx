@@ -223,8 +223,9 @@ function HomeComponent() {
                   <Flame className="size-4 fill-orange-400" />
                 </div>
                 <span className="text-xl sm:text-2xl font-black text-white block">
-                  {progress.current_streak_days}
-                  {t("common.days").charAt(0)}
+                  {t("home.streakCount", {
+                    days: progress.current_streak_days,
+                  })}
                 </span>
                 <span className="text-[11px] text-neutral-400 font-medium">
                   {t("home.dailyStreak")}

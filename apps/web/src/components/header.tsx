@@ -98,9 +98,9 @@ export default function Header() {
               >
                 <Flame className="size-3.5 fill-orange-400" />
                 <span>
-                  {progress.current_streak_days}
-                  {t("common.days").charAt(0)}{" "}
-                  {t("common.days") !== "days" ? "" : "streak"}
+                  {t("header.streakBadge", {
+                    days: progress.current_streak_days,
+                  })}
                 </span>
               </div>
               {progress.flashcards_due_today > 0 && (
@@ -111,13 +111,9 @@ export default function Header() {
                 >
                   <Layers className="size-3.5" />
                   <span>
-                    {progress.flashcards_due_today}{" "}
-                    {t("flashcards.dueReviewTab", {
+                    {t("header.dueBadge", {
                       count: progress.flashcards_due_today,
-                    })
-                      .split("(")[0]
-                      ?.trim()
-                      .toLowerCase() || "due"}
+                    })}
                   </span>
                 </Link>
               )}

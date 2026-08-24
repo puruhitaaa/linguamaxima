@@ -18,37 +18,13 @@ import { useCreateLanguagePair } from "../lib/queries";
 import type { Language } from "../types/api";
 
 const PRESETS = [
-  {
-    label: "German from Indonesian",
-    origin: "id",
-    target: "de",
-  },
-  {
-    label: "German from English",
-    origin: "en",
-    target: "de",
-  },
-  {
-    label: "Spanish from English",
-    origin: "en",
-    target: "es",
-  },
-  {
-    label: "French from English",
-    origin: "en",
-    target: "fr",
-  },
-  {
-    label: "Japanese from Indonesian",
-    origin: "id",
-    target: "ja",
-  },
-  {
-    label: "English from Indonesian",
-    origin: "id",
-    target: "en",
-  },
-];
+  { origin: "id", target: "de" },
+  { origin: "en", target: "de" },
+  { origin: "en", target: "es" },
+  { origin: "en", target: "fr" },
+  { origin: "id", target: "ja" },
+  { origin: "id", target: "en" },
+] as const;
 
 export function LanguagePairModal({
   onOpenChange,
@@ -223,6 +199,16 @@ export function LanguagePairModal({
               const isCurrent =
                 selectedOrigin.code === p.origin &&
                 selectedTarget.code === p.target;
+              const orig = availableLanguages.find((l) => l.code === p.origin);
+              const targ = availableLanguages.find((l) => l.code === p.target);
+              const label =
+                orig && targ
+                  ? t("modal.presetItem", {
+                      origin: orig.name,
+                      target: targ.name,
+                    })
+                  : `${p.target.toUpperCase()} ← ${p.origin.toUpperCase()}`;
+
               return (
                 <button
                   key={`${p.origin}_${p.target}`}
@@ -234,7 +220,7 @@ export function LanguagePairModal({
                       : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
                   }`}
                 >
-                  {getLanguageFlag(p.target)} {p.label}
+                  {getLanguageFlag(p.target)} {label}
                 </button>
               );
             })}

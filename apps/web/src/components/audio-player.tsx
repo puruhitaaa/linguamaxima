@@ -10,6 +10,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { api } from "../lib/api";
+import { useTranslation } from "../lib/i18n";
 
 interface AudioPlayerProps {
   audioUrl?: string;
@@ -26,6 +27,7 @@ function formatTime(secs: number) {
 }
 
 export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
+  const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -144,6 +146,7 @@ export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
             type="button"
             size="sm"
             onClick={togglePlay}
+            title={isPlaying ? t("audio.pause") : t("audio.play")}
             className="rounded-full size-9 p-0 bg-sky-500 hover:bg-sky-600 text-white shrink-0 shadow"
           >
             {renderPlayIcon()}
@@ -159,7 +162,7 @@ export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
               }
             }}
             className="size-8 p-0 text-neutral-400 hover:text-white hover:bg-neutral-800"
-            title="Rewind 5s"
+            title={t("audio.rewindTooltip")}
           >
             <RotateCcw className="size-3.5" />
           </Button>
@@ -169,6 +172,7 @@ export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
             variant="outline"
             size="sm"
             onClick={toggleSpeed}
+            title={t("audio.speed")}
             className="h-7 px-2 text-xs font-semibold rounded-md border-neutral-700 bg-neutral-800/80 text-neutral-200 hover:bg-neutral-700"
           >
             {speed}x
@@ -191,6 +195,7 @@ export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
             variant="ghost"
             size="sm"
             onClick={toggleMute}
+            title={isMuted ? t("audio.unmute") : t("audio.mute")}
             className="size-8 p-0 text-neutral-400 hover:text-white hover:bg-neutral-800"
           >
             {isMuted ? (
