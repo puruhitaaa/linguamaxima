@@ -94,3 +94,19 @@ async def health_check():
         "is_serverless": settings.is_serverless,
         "storage_backend": settings.audio_storage_backend,
     }
+
+@app.post("/api/v1/init-db", tags=["System"])
+@app.get("/api/v1/init-db", tags=["System"])
+async def trigger_init_db():
+    try:
+        from app.core.database import get_session_maker, init_db
+        from app.seeds.seed_data import seed_database
+
+        await init_db()
+        session_maker = get_session_maker()
+        async with session_maker() as session:
+            await seed_database(session)
+        return {"status": "success", "message": "Database initialized and seeded successfully"}
+    except Exception as e:
+        logger.error(f"Manual DB initialization failed: {e}")
+        return {"status": "error", "detail": str(e)}
