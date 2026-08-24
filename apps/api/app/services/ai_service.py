@@ -11,36 +11,37 @@ from app.schemas import GeneratedStoryBundle, GeneratedVocabularyItem, Generated
 
 logger = logging.getLogger("linguamaxima.ai")
 
+# Universal CEFR guidelines applicable to any target language
 CEFR_GUIDELINES = {
     CEFRLevel.A1: {
+        "grammar": "Basic present tense, fundamental verbs (be, have, do, go), simple sentence structures, basic affirmative and interrogative forms.",
+        "vocab": "Extremely common everyday words: greetings, numbers, family, food, daily objects, basic time expressions.",
         "words": "80-120 words",
-        "grammar": "Basic present tense (Präsens), simple sentence structures (SVO), fundamental verbs (sein, haben, gehen, etc.)",
-        "vocab": "Extremely common everyday words: greetings, family, food, numbers, basic objects.",
     },
     CEFRLevel.A2: {
+        "grammar": "Basic past and present tenses, basic modal verbs, simple coordinating and subordinating conjunctions, routine questions and commands.",
+        "vocab": "Routine daily activities, shopping, local geography, employment, hobbies, simple descriptive adjectives.",
         "words": "120-180 words",
-        "grammar": "Present and Perfekt tenses, separable verbs, basic modal verbs (können, müssen, wollen), simple coordinate conjunctions (und, aber, weil).",
-        "vocab": "Routine daily activities, shopping, travel, simple descriptions.",
     },
     CEFRLevel.B1: {
+        "grammar": "Main and subordinate clauses, multiple past tenses, introduction to passive voice, conditional structures, comparative and superlative forms.",
+        "vocab": "Work, school, leisure, travel, expressing thoughts and feelings, personal experiences, connective phrases.",
         "words": "180-250 words",
-        "grammar": "Subordinate clauses (weil, dass, wenn, obwohl), Präteritum of modal verbs, passive voice basics, comparative and superlative adjectives.",
-        "vocab": "Work, hobbies, feelings, personal experiences, current events.",
     },
     CEFRLevel.B2: {
+        "grammar": "Complex syntax, nuanced modal expressions, relative clauses, indirect speech, subjunctive/conditional moods, discourse markers.",
+        "vocab": "Abstract topics, technical and professional vocabulary, idiomatic expressions, thematic collocations.",
         "words": "250-350 words",
-        "grammar": "Complex syntax, Konjunktiv II, relative clauses, extended noun phrases, prepositional objects.",
-        "vocab": "Abstract topics, technical and professional vocabulary, idioms.",
     },
     CEFRLevel.C1: {
+        "grammar": "Full range of complex syntactic structures, stylistic variation, passive/causative subtleties, inversion, advanced discourse markers.",
+        "vocab": "Advanced literary and academic vocabulary, subtle nuances and connotations, wide idiomatic mastery.",
         "words": "350-450 words",
-        "grammar": "Full range of complex German syntax, stylistic nuances, nominal style (Nominalstil), subjunctive forms.",
-        "vocab": "Advanced literary and academic vocabulary, subtle distinctions, idiomatic mastery.",
     },
     CEFRLevel.C2: {
+        "grammar": "Complete mastery of all grammatical nuances, stylistic subtleties, and register shifts with effortless precision.",
+        "vocab": "Native-level expressive, figurative, rhetorical, and domain-specific vocabulary.",
         "words": "400-550 words",
-        "grammar": "Mastery of all German grammatical nuances and stylistic subtleties.",
-        "vocab": "Native-level expressive, figurative, and sophisticated vocabulary.",
     },
 }
 
@@ -198,7 +199,190 @@ Respond with valid JSON only matching the schema:
         target_lang: str = "German",
         origin_lang: str = "Indonesian",
     ) -> GeneratedStoryBundle:
-        """Returns a high-quality educational fallback bundle for offline/mock operation."""
+        """Returns a high-quality educational fallback bundle for offline/mock operation tailored to the target language."""
+        target_clean = target_lang.lower().strip()
+
+        # 1. Spanish Fallback Bundle
+        if target_clean in ["spanish", "español", "es"]:
+            return GeneratedStoryBundle(
+                title="Un día soleado en Madrid",
+                title_translated=f"A Sunny Day in Madrid ({origin_lang} translation)",
+                content=(
+                    "Carlos vive en Madrid. Hoy es sábado y hace mucho sol.\n\n"
+                    "Él va al parque del Retiro y se encuentra con su mejor amiga Sofía. Ellos toman un café juntos y hablan sobre sus planes para el fin de semana.\n\n"
+                    "Por la tarde visitan un museo famoso en el centro de la ciudad. Carlos compra dos entradas y aprenden sobre el arte español."
+                ),
+                content_translated=(
+                    f"Carlos lives in Madrid. Today is Saturday and it is very sunny.\n\n"
+                    f"He goes to Retiro Park and meets his best friend Sofia. They drink coffee together and talk about their weekend plans.\n\n"
+                    f"In the afternoon they visit a famous museum in the city center. Carlos buys two tickets and they learn about Spanish art."
+                ),
+                summary="Carlos and Sofia enjoy a Saturday in Madrid by walking in Retiro Park and visiting an art museum.",
+                vocabulary=[
+                    GeneratedVocabularyItem(
+                        word="sol",
+                        translation="Sun",
+                        part_of_speech="noun",
+                        gender="el",
+                        example_sentence="Hoy hace mucho sol en Madrid.",
+                        example_translation="Today it is very sunny in Madrid.",
+                        difficulty_rank=1,
+                    ),
+                    GeneratedVocabularyItem(
+                        word="amiga",
+                        translation="Friend (female)",
+                        part_of_speech="noun",
+                        gender="la",
+                        example_sentence="Sofía es su mejor amiga.",
+                        example_translation="Sofia is his best friend.",
+                        difficulty_rank=1,
+                    ),
+                    GeneratedVocabularyItem(
+                        word="encontrarse",
+                        translation="To meet / encounter",
+                        part_of_speech="verb",
+                        gender=None,
+                        example_sentence="Él se encuentra con su amiga en el parque.",
+                        example_translation="He meets his friend in the park.",
+                        difficulty_rank=2,
+                    ),
+                    GeneratedVocabularyItem(
+                        word="entrada",
+                        translation="Ticket / Entry pass",
+                        part_of_speech="noun",
+                        gender="la",
+                        example_sentence="Carlos compra dos entradas para el museo.",
+                        example_translation="Carlos buys two tickets for the museum.",
+                        difficulty_rank=2,
+                    ),
+                ],
+                grammar_tips=[
+                    GeneratedGrammarTip(
+                        title="Artículos Definidos en Español (el / la)",
+                        explanation="En español, los sustantivos masculinos suelen llevar el artículo 'el' y los femeninos 'la'.",
+                        explanation_translated="Spanish nouns take 'el' for masculine and 'la' for feminine.",
+                        example="El parque y la amiga.",
+                        example_translation="The park and the friend.",
+                    ),
+                    GeneratedGrammarTip(
+                        title="Verbos de Clima (Hacer + sustantivo)",
+                        explanation="Para describir el clima en presente, usamos el verbo 'hacer': 'hace sol', 'hace calor'.",
+                        explanation_translated="Weather expressions frequently use 'hacer'.",
+                        example="Hoy hace mucho sol.",
+                        example_translation="Today it is very sunny.",
+                    ),
+                ],
+                quiz_questions=[
+                    GeneratedQuizQuestion(
+                        question_type="multiple_choice",
+                        question="¿Qué día de la semana es en la historia?",
+                        question_translated="What day of the week is it in the story?",
+                        correct_answer="Sábado",
+                        wrong_answers=["Lunes", "Domingo", "Viernes"],
+                        explanation="El texto menciona claramente 'Hoy es sábado'.",
+                    ),
+                    GeneratedQuizQuestion(
+                        question_type="article",
+                        question="¿Qué artículo corresponde al sustantivo 'parque'?",
+                        question_translated="Which article matches 'parque'?",
+                        correct_answer="el",
+                        wrong_answers=["la", "los", "las"],
+                        explanation="'Parque' es un sustantivo masculino (el parque).",
+                    ),
+                    GeneratedQuizQuestion(
+                        question_type="fill_blank",
+                        question="Carlos compra dos ___ para el museo.",
+                        question_translated="Carlos buys two ___ for the museum.",
+                        correct_answer="entradas",
+                        wrong_answers=["cafés", "parques", "libros"],
+                        explanation="Carlos compra dos entradas (tickets) para el museo.",
+                    ),
+                    GeneratedQuizQuestion(
+                        question_type="true_false",
+                        question="Carlos y Sofía toman un té en el parque.",
+                        question_translated="Carlos and Sofia drink tea in the park.",
+                        correct_answer="Falso",
+                        wrong_answers=["Verdadero"],
+                        explanation="Ellos toman un café, no té.",
+                    ),
+                ],
+            )
+
+        # 2. English Fallback Bundle
+        if target_clean in ["english", "en"]:
+            return GeneratedStoryBundle(
+                title="A Sunny Day in London",
+                title_translated=f"A Sunny Day in London ({origin_lang} translation)",
+                content=(
+                    "Oliver lives in London. Today is Saturday and the sun is shining brightly.\n\n"
+                    "He goes to the park and meets his best friend Emily. They drink coffee together and chat about their plans for the upcoming holiday.\n\n"
+                    "In the afternoon, they visit a famous art museum in the city center. Oliver buys two tickets and they discover fascinating historical stories."
+                ),
+                content_translated=(
+                    f"Oliver lives in London. Today is Saturday and the sun is shining brightly.\n\n"
+                    f"He goes to the park and meets his best friend Emily. They drink coffee together and chat about their plans for the upcoming holiday.\n\n"
+                    f"In the afternoon, they visit a famous art museum in the city center. Oliver buys two tickets and they discover fascinating historical stories."
+                ),
+                summary="Oliver and his friend Emily enjoy a pleasant Saturday in London visiting a park and an art museum.",
+                vocabulary=[
+                    GeneratedVocabularyItem(
+                        word="brightly",
+                        translation="Terang / Cemerlang",
+                        part_of_speech="adverb",
+                        gender=None,
+                        example_sentence="The sun is shining brightly.",
+                        example_translation="Matahari bersinar dengan terang.",
+                        difficulty_rank=1,
+                    ),
+                    GeneratedVocabularyItem(
+                        word="discover",
+                        translation="Menemukan / Mengetahui",
+                        part_of_speech="verb",
+                        gender=None,
+                        example_sentence="They discover fascinating stories.",
+                        example_translation="Mereka menemukan cerita-cerita menarik.",
+                        difficulty_rank=2,
+                    ),
+                    GeneratedVocabularyItem(
+                        word="fascinating",
+                        translation="Sangat menarik / Mempesona",
+                        part_of_speech="adjective",
+                        gender=None,
+                        example_sentence="The museum has fascinating art.",
+                        example_translation="Museum itu memiliki karya seni yang mempesona.",
+                        difficulty_rank=2,
+                    ),
+                ],
+                grammar_tips=[
+                    GeneratedGrammarTip(
+                        title="Present Continuous Tense",
+                        explanation="Used for actions happening right now at the moment of speaking (e.g. 'the sun is shining').",
+                        explanation_translated="Digunakan untuk menyatakan kejadian yang sedang berlangsung.",
+                        example="The sun is shining brightly.",
+                        example_translation="Matahari sedang bersinar terang.",
+                    ),
+                ],
+                quiz_questions=[
+                    GeneratedQuizQuestion(
+                        question_type="multiple_choice",
+                        question="Where does Oliver live in the story?",
+                        question_translated="Di mana Oliver tinggal dalam cerita?",
+                        correct_answer="London",
+                        wrong_answers=["Paris", "Berlin", "New York"],
+                        explanation="The first sentence states 'Oliver lives in London'.",
+                    ),
+                    GeneratedQuizQuestion(
+                        question_type="fill_blank",
+                        question="Oliver buys two ___ for the museum.",
+                        question_translated="Oliver membeli dua ___ untuk museum.",
+                        correct_answer="tickets",
+                        wrong_answers=["coffees", "parks", "books"],
+                        explanation="Oliver buys two tickets for admission.",
+                    ),
+                ],
+            )
+
+        # 3. Default German Fallback Bundle
         return GeneratedStoryBundle(
             title="Ein sonniger Tag in Berlin",
             title_translated="Hari yang Cerah di Berlin",
@@ -221,7 +405,7 @@ Respond with valid JSON only matching the schema:
                     gender="die",
                     example_sentence="Die Sonne scheint hell.",
                     example_translation="Matahari bersinar terang.",
-                    difficulty_rank=1
+                    difficulty_rank=1,
                 ),
                 GeneratedVocabularyItem(
                     word="Freundin",
@@ -230,7 +414,7 @@ Respond with valid JSON only matching the schema:
                     gender="die",
                     example_sentence="Anna ist seine beste Freundin.",
                     example_translation="Anna adalah sahabatnya.",
-                    difficulty_rank=1
+                    difficulty_rank=1,
                 ),
                 GeneratedVocabularyItem(
                     word="treffen",
@@ -239,7 +423,7 @@ Respond with valid JSON only matching the schema:
                     gender=None,
                     example_sentence="Er trifft seine Freundin im Park.",
                     example_translation="Dia bertemu temannya di taman.",
-                    difficulty_rank=2
+                    difficulty_rank=2,
                 ),
                 GeneratedVocabularyItem(
                     word="Eintrittskarte",
@@ -248,7 +432,7 @@ Respond with valid JSON only matching the schema:
                     gender="die",
                     example_sentence="Lukas kauft zwei Eintrittskarten.",
                     example_translation="Lukas membeli dua tiket masuk.",
-                    difficulty_rank=2
+                    difficulty_rank=2,
                 ),
                 GeneratedVocabularyItem(
                     word="Geschichte",
@@ -257,7 +441,7 @@ Respond with valid JSON only matching the schema:
                     gender="die",
                     example_sentence="Sie lernen viel über die Geschichte.",
                     example_translation="Mereka belajar banyak tentang sejarah.",
-                    difficulty_rank=2
+                    difficulty_rank=2,
                 ),
             ],
             grammar_tips=[
@@ -266,15 +450,15 @@ Respond with valid JSON only matching the schema:
                     explanation="Dalam bahasa Jerman, setiap kata benda memiliki gender gramatikal: maskulin (der), feminin (die), atau netral (das). Contoh: 'die Sonne' (feminin), 'der Kaffee' (maskulin), 'das Museum' (netral).",
                     explanation_translated="Setiap nomina memiliki gender tertentu yang menentukan artikelnya.",
                     example="Die Sonne scheint und Lukas trinkt den Kaffee.",
-                    example_translation="Matahari bersinar dan Lukas meminum kopi."
+                    example_translation="Matahari bersinar dan Lukas meminum kopi.",
                 ),
                 GeneratedGrammarTip(
                     title="Posisi Kata Kerja (Verba) di Kalimat Utama",
                     explanation="Dalam kalimat deklaratif bahasa Jerman, kata kerja terkonjugasi selalu berada di posisi kedua (V2 rule). Contoh: 'Heute ist Samstag' (bukan 'Heute Samstag ist').",
                     explanation_translated="Aturan posisi verba kedua pada kalimat berita.",
                     example="Heute ist Samstag und er geht in den Park.",
-                    example_translation="Hari ini hari Sabtu dan dia pergi ke taman."
-                )
+                    example_translation="Hari ini hari Sabtu dan dia pergi ke taman.",
+                ),
             ],
             quiz_questions=[
                 GeneratedQuizQuestion(
@@ -283,7 +467,7 @@ Respond with valid JSON only matching the schema:
                     question_translated="Hari apa yang diceritakan dalam cerita?",
                     correct_answer="Samstag",
                     wrong_answers=["Montag", "Sonntag", "Freitag"],
-                    explanation="Dalam paragraf pertama disebutkan 'Heute ist Samstag' (Hari ini hari Sabtu)."
+                    explanation="Dalam paragraf pertama disebutkan 'Heute ist Samstag' (Hari ini hari Sabtu).",
                 ),
                 GeneratedQuizQuestion(
                     question_type="article",
@@ -291,7 +475,7 @@ Respond with valid JSON only matching the schema:
                     question_translated="Apa artikel yang tepat untuk kata 'Sonne'?",
                     correct_answer="die",
                     wrong_answers=["der", "das", "dem"],
-                    explanation="'Sonne' adalah kata benda feminin sehingga menggunakan artikel 'die'."
+                    explanation="'Sonne' adalah kata benda feminin sehingga menggunakan artikel 'die'.",
                 ),
                 GeneratedQuizQuestion(
                     question_type="fill_blank",
@@ -299,7 +483,7 @@ Respond with valid JSON only matching the schema:
                     question_translated="Lukas membeli dua ___ untuk museum.",
                     correct_answer="Eintrittskarten",
                     wrong_answers=["Kaffee", "Parks", "Bücher"],
-                    explanation="Lukas membeli dua tiket masuk (Eintrittskarten) untuk mengunjungi museum."
+                    explanation="Lukas membeli dua tiket masuk (Eintrittskarten) untuk mengunjungi museum.",
                 ),
                 GeneratedQuizQuestion(
                     question_type="true_false",
@@ -307,9 +491,9 @@ Respond with valid JSON only matching the schema:
                     question_translated="Lukas dan Anna minum teh bersama di taman.",
                     correct_answer="Falsch",
                     wrong_answers=["Richtig"],
-                    explanation="Mereka meminum kopi ('einen Kaffee'), bukan teh."
-                )
-            ]
+                    explanation="Mereka meminum kopi ('einen Kaffee'), bukan teh.",
+                ),
+            ],
         )
 
 ai_service = AIService()
