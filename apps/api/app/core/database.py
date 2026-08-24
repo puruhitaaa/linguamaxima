@@ -36,9 +36,19 @@ def normalize_db_url(url: str) -> str:
         parsed = urlparse(url)
         if parsed.query:
             query_params = parse_qs(parsed.query)
-            unsupported = {"channel_binding", "target_session_attrs", "gssencmode"}
-            filtered = {k: val for k, val in query_params.items() if k not in unsupported}
-            new_query = urlencode(filtered, doseq=True)
+            clean_params = {}
+            for k, val in query_params.items():
+                if k == "sslmode":
+                    mode = val[0] if isinstance(val, list) and val else str(val)
+                    if mode in ("require", "verify-ca", "verify-full", "prefer"):
+                        clean_params["ssl"] = ["require"]
+                elif k == "ssl":
+                    clean_params["ssl"] = val
+                elif k in {"channel_binding", "target_session_attrs", "gssencmode"}:
+                    continue
+                else:
+                    clean_params[k] = val
+            new_query = urlencode(clean_params, doseq=True)
             url = urlunparse(parsed._replace(query=new_query))
 
     return url
