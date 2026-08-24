@@ -160,11 +160,17 @@ async def init_db() -> None:
 
     # Ensure all ORM models are registered in Base.metadata
     import app.models  # noqa: F401
+    from sqlalchemy.schema import CreateTable
 
     try:
         engine = get_engine()
         async with engine.begin() as conn:
+            # 1. Run standard SQLAlchemy create_all
             await conn.run_sync(Base.metadata.create_all)
+            # 2. Execute explicit IF NOT EXISTS DDL for each table in dependency order
+            for table in Base.metadata.sorted_tables:
+                ddl = CreateTable(table, if_not_exists=True).compile(dialect=conn.dialect)
+                await conn.execute(text(str(ddl)))
         logger.info("Database schema initialized successfully.")
     except Exception as e:
         logger.warning(f"Failed to init primary DB ({e}). Checking fallback...")
