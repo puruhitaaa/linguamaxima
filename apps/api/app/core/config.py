@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import List, Union
 from pydantic import field_validator
@@ -18,10 +19,22 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = False
 
+    # Serverless & Execution Mode
+    is_serverless: bool = bool(
+        os.getenv("VERCEL") == "1"
+        or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
+        or os.getenv("IS_SERVERLESS", "").lower() in ("true", "1")
+    )
+    auto_init_db: bool = True
+    auto_seed_db: bool = True
+
     # Database
     database_url: str = "postgresql+asyncpg://linguamaxima:linguamaxima@localhost:5433/linguamaxima"
     sqlite_fallback_url: str = f"sqlite+aiosqlite:///{BASE_DIR}/linguamaxima.db"
     use_sqlite_fallback: bool = True
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
+    db_use_null_pool: bool = False
 
     # CORS
     cors_origins: Union[List[str], str] = [
@@ -56,7 +69,17 @@ class Settings(BaseSettings):
     default_target_voice: str = "de-DE-ConradNeural"
     default_origin_voice: str = "id-ID-ArdiNeural"
 
-    # Media Storage
+    # Storage Backend Configuration ("local" | "r2" | "s3")
+    audio_storage_backend: str = "local"
+    
+    # Cloudflare R2 / S3 Configuration
+    r2_account_id: str = ""
+    r2_access_key_id: str = ""
+    r2_secret_access_key: str = ""
+    r2_bucket_name: str = "linguamaxima-audio"
+    r2_public_url_prefix: str = ""  # e.g., "https://pub-xxx.r2.dev" or custom domain
+
+    # Local Media Storage
     media_dir: Path = BASE_DIR / "media"
     audio_dir: Path = BASE_DIR / "media" / "audio"
     images_dir: Path = BASE_DIR / "media" / "images"

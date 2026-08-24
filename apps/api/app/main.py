@@ -18,17 +18,34 @@ logger = logging.getLogger("linguamaxima")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup actions
-    logger.info("Initializing LinguaMaxima API...")
-    # Ensure media dirs
-    settings.media_dir.mkdir(parents=True, exist_ok=True)
-    settings.audio_dir.mkdir(parents=True, exist_ok=True)
-    settings.images_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(
+        f"Initializing LinguaMaxima API (Serverless Mode: {settings.is_serverless}, "
+        f"Storage: {settings.audio_storage_backend})..."
+    )
 
-    # Initialize DB & Seed initial data
-    await init_db()
-    session_maker = get_session_maker()
-    async with session_maker() as session:
-        await seed_database(session)
+    # 1. Ensure local media dirs only if local storage or containerized
+    if not settings.is_serverless or settings.audio_storage_backend == "local":
+        try:
+            settings.media_dir.mkdir(parents=True, exist_ok=True)
+            settings.audio_dir.mkdir(parents=True, exist_ok=True)
+            settings.images_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            logger.warning(f"Could not create media directories: {e}")
+
+    # 2. Initialize DB & Seed initial data (skipped or idempotent)
+    if settings.auto_init_db:
+        try:
+            await init_db()
+        except Exception as e:
+            logger.error(f"Error during init_db: {e}")
+
+    if settings.auto_seed_db and not settings.is_serverless:
+        try:
+            session_maker = get_session_maker()
+            async with session_maker() as session:
+                await seed_database(session)
+        except Exception as e:
+            logger.error(f"Error during seed_database: {e}")
 
     logger.info("LinguaMaxima API ready.")
     yield
@@ -52,12 +69,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount media static files
-app.mount(
-    "/api/v1/media",
-    StaticFiles(directory=str(settings.media_dir)),
-    name="media",
-)
+# Mount local media static files if directory exists
+try:
+    settings.media_dir.mkdir(parents=True, exist_ok=True)
+    app.mount(
+        "/api/v1/media",
+        StaticFiles(directory=str(settings.media_dir)),
+        name="media",
+    )
+except Exception as e:
+    logger.info(f"Local static media mount skipped (e.g. serverless environment): {e}")
 
 # Include v1 router
 app.include_router(api_router)
@@ -70,4 +91,6 @@ async def health_check():
         "status": "healthy" if db_ok else "degraded",
         "database": "connected" if db_ok else "unreachable",
         "version": settings.app_version,
+        "is_serverless": settings.is_serverless,
+        "storage_backend": settings.audio_storage_backend,
     }

@@ -1,10 +1,10 @@
 import asyncio
 import hashlib
 import logging
-from pathlib import Path
 from typing import Optional
 import edge_tts
 from app.core.config import settings
+from app.services.storage_service import storage_service
 
 logger = logging.getLogger("linguamaxima.tts")
 
@@ -25,10 +25,6 @@ VOICE_MAP = {
 }
 
 class TTSService:
-    def __init__(self):
-        self.audio_dir: Path = settings.audio_dir
-        self.audio_dir.mkdir(parents=True, exist_ok=True)
-
     def _get_filename(self, text: str, voice: str) -> str:
         # Create stable hash for audio file caching
         content_hash = hashlib.sha256(f"{voice}:{text}".encode("utf-8")).hexdigest()[:16]
@@ -45,8 +41,9 @@ class TTSService:
         language: str = "de"
     ) -> Optional[str]:
         """
-        Generates TTS audio file for text using edge-tts.
-        Returns relative URL path to the generated audio file or None on failure.
+        Generates TTS audio for text using edge-tts.
+        Persists using storage_service (local filesystem or Cloudflare R2).
+        Returns accessible public or relative URL path.
         """
         if not text or not text.strip():
             return None
@@ -55,18 +52,29 @@ class TTSService:
             voice = self.get_voice_for_language(language)
 
         filename = self._get_filename(text.strip(), voice)
-        file_path = self.audio_dir / filename
-        relative_url = f"/api/v1/media/audio/{filename}"
 
-        # If already exists and has content, return existing
-        if file_path.exists() and file_path.stat().st_size > 0:
-            return relative_url
+        # 1. Check if audio already exists in storage cache
+        existing_url = await storage_service.audio_exists(filename)
+        if existing_url:
+            return existing_url
 
+        # 2. Synthesize audio stream into memory
         try:
             communicate = edge_tts.Communicate(text.strip(), voice)
-            await communicate.save(str(file_path))
-            logger.info(f"Generated TTS audio: {filename} for voice {voice}")
-            return relative_url
+            audio_chunks = []
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_chunks.append(chunk["data"])
+
+            audio_data = b"".join(audio_chunks)
+            if not audio_data:
+                logger.error(f"TTS generation returned empty audio data for '{text[:30]}...'")
+                return None
+
+            # 3. Upload/save via storage service
+            uploaded_url = await storage_service.upload_audio(filename, audio_data)
+            logger.info(f"Synthesized TTS audio: {filename} ({len(audio_data)} bytes) -> {uploaded_url}")
+            return uploaded_url
         except Exception as e:
             logger.error(f"TTS generation failed for text '{text[:30]}...' with voice {voice}: {e}")
             return None

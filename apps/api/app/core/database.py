@@ -1,5 +1,6 @@
 import logging
 from typing import AsyncGenerator
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -7,7 +8,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import text
+from sqlalchemy.pool import NullPool
 from app.core.config import settings
 
 logger = logging.getLogger("linguamaxima.database")
@@ -26,11 +27,23 @@ def create_engine_instance(url: str) -> AsyncEngine:
             echo=settings.debug,
             connect_args={"check_same_thread": False},
         )
+
+    # In serverless environments (Vercel/Lambda/Supabase Pooler), use NullPool
+    # to avoid holding persistent connections across stateless function invocations
+    if settings.is_serverless or settings.db_use_null_pool:
+        logger.info("Initializing PostgreSQL engine with NullPool for serverless execution.")
+        return create_async_engine(
+            url,
+            echo=settings.debug,
+            poolclass=NullPool,
+            pool_pre_ping=True,
+        )
+
     return create_async_engine(
         url,
         echo=settings.debug,
-        pool_size=10,
-        max_overflow=20,
+        pool_size=settings.db_pool_size,
+        max_overflow=settings.db_max_overflow,
         pool_pre_ping=True,
     )
 
@@ -89,7 +102,11 @@ async def check_db_health() -> bool:
         return False
 
 async def init_db() -> None:
-    """Create tables on startup."""
+    """Create tables on startup if auto_init_db is enabled."""
+    if not settings.auto_init_db:
+        logger.info("auto_init_db is disabled. Skipping startup table creation.")
+        return
+
     try:
         engine = get_engine()
         async with engine.begin() as conn:
