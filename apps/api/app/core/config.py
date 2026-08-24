@@ -32,8 +32,12 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "postgresql+asyncpg://linguamaxima:linguamaxima@localhost:5433/linguamaxima"
-    sqlite_fallback_url: str = f"sqlite+aiosqlite:///{BASE_DIR}/linguamaxima.db"
-    use_sqlite_fallback: bool = True
+    sqlite_fallback_url: str = f"sqlite+aiosqlite:///{'/tmp' if os.getenv('VERCEL') == '1' else BASE_DIR}/linguamaxima.db"
+    use_sqlite_fallback: bool = not bool(
+        os.getenv("VERCEL") == "1"
+        or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
+        or os.getenv("IS_SERVERLESS", "").lower() in ("true", "1")
+    )
     db_pool_size: int = 10
     db_max_overflow: int = 20
     db_use_null_pool: bool = False

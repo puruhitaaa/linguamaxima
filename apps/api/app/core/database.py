@@ -135,27 +135,22 @@ async def check_db_health() -> bool:
                 return False
         return False
 
-import asyncio
-
 _db_initialized: bool = False
-_db_init_lock = asyncio.Lock()
 
 async def ensure_db_initialized() -> None:
     global _db_initialized
     if _db_initialized:
         return
-    async with _db_init_lock:
-        if not _db_initialized:
-            await init_db()
-            if settings.auto_seed_db:
-                try:
-                    from app.seeds.seed_data import seed_database
-                    session_maker = get_session_maker()
-                    async with session_maker() as session:
-                        await seed_database(session)
-                except Exception as e:
-                    logger.error(f"Error during auto-seeding: {e}")
-            _db_initialized = True
+    await init_db()
+    if settings.auto_seed_db:
+        try:
+            from app.seeds.seed_data import seed_database
+            session_maker = get_session_maker()
+            async with session_maker() as session:
+                await seed_database(session)
+        except Exception as e:
+            logger.error(f"Error during auto-seeding: {e}")
+    _db_initialized = True
 
 async def init_db() -> None:
     """Create tables on startup if auto_init_db is enabled."""
