@@ -71,6 +71,10 @@ def create_engine_instance(url: str) -> AsyncEngine:
             echo=settings.debug,
             poolclass=NullPool,
             pool_pre_ping=True,
+            connect_args={
+                "statement_cache_size": 0,
+                "prepared_statement_cache_size": 0,
+            },
         )
 
     return create_async_engine(
@@ -153,11 +157,7 @@ async def ensure_db_initialized() -> None:
     _db_initialized = True
 
 async def init_db() -> None:
-    """Create tables on startup if auto_init_db is enabled."""
-    if not settings.auto_init_db:
-        logger.info("auto_init_db is disabled. Skipping startup table creation.")
-        return
-
+    """Create tables on startup."""
     # Ensure all ORM models are registered in Base.metadata
     import app.models  # noqa: F401
     from sqlalchemy.schema import CreateTable
