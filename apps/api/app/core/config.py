@@ -6,6 +6,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=str(BASE_DIR / ".env"),
@@ -41,11 +43,20 @@ class Settings(BaseSettings):
     def assemble_database_url(cls, v: str) -> str:
         if isinstance(v, str):
             if v.startswith("postgres://"):
-                return v.replace("postgres://", "postgresql+asyncpg://", 1)
-            if v.startswith("postgresql://") and not v.startswith("postgresql+"):
-                return v.replace("postgresql://", "postgresql+asyncpg://", 1)
-            if v.startswith("sqlite://") and not v.startswith("sqlite+"):
-                return v.replace("sqlite://", "sqlite+aiosqlite://", 1)
+                v = v.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif v.startswith("postgresql://") and not v.startswith("postgresql+"):
+                v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+            elif v.startswith("sqlite://") and not v.startswith("sqlite+"):
+                v = v.replace("sqlite://", "sqlite+aiosqlite://", 1)
+
+            if "asyncpg" in v and "?" in v:
+                parsed = urlparse(v)
+                if parsed.query:
+                    query_params = parse_qs(parsed.query)
+                    unsupported = {"channel_binding", "target_session_attrs", "gssencmode"}
+                    filtered = {k: val for k, val in query_params.items() if k not in unsupported}
+                    new_query = urlencode(filtered, doseq=True)
+                    v = urlunparse(parsed._replace(query=new_query))
         return v
 
     # CORS

@@ -20,13 +20,27 @@ _engine: AsyncEngine | None = None
 _session_maker: async_sessionmaker[AsyncSession] | None = None
 _using_sqlite_fallback: bool = False
 
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
 def normalize_db_url(url: str) -> str:
+    if not url:
+        return url
     if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql+asyncpg://", 1)
-    if url.startswith("postgresql://") and not url.startswith("postgresql+"):
-        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
-    if url.startswith("sqlite://") and not url.startswith("sqlite+"):
-        return url.replace("sqlite://", "sqlite+aiosqlite://", 1)
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgresql://") and not url.startswith("postgresql+"):
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    elif url.startswith("sqlite://") and not url.startswith("sqlite+"):
+        url = url.replace("sqlite://", "sqlite+aiosqlite://", 1)
+
+    if "asyncpg" in url and "?" in url:
+        parsed = urlparse(url)
+        if parsed.query:
+            query_params = parse_qs(parsed.query)
+            unsupported = {"channel_binding", "target_session_attrs", "gssencmode"}
+            filtered = {k: val for k, val in query_params.items() if k not in unsupported}
+            new_query = urlencode(filtered, doseq=True)
+            url = urlunparse(parsed._replace(query=new_query))
+
     return url
 
 def create_engine_instance(url: str) -> AsyncEngine:
