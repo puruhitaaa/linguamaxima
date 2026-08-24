@@ -1,4 +1,5 @@
 import { Card } from "@linguamaxima/ui/components/card";
+import { Tabs, TabsList, TabsTrigger } from "@linguamaxima/ui/components/tabs";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   BookOpen,
@@ -9,152 +10,371 @@ import {
   Layers,
   Trophy,
 } from "lucide-react";
+import { z } from "zod";
 
 import { StoryCard } from "../components/story-card";
 import { useProgress, useStories } from "../lib/queries";
+import type { StoryListItem } from "../types/api";
+
+const CEFR_TABS = ["all", "A1", "A2", "B1", "B2", "C1", "C2"] as const;
+
+const progressSearchSchema = z.object({
+  level: z.enum(CEFR_TABS).optional().default("all"),
+  tab: z
+    .enum(["overview", "favorites", "completed"])
+    .optional()
+    .default("overview"),
+});
 
 export const Route = createFileRoute("/progress")({
   component: ProgressComponent,
+  validateSearch: (search: Record<string, unknown>) =>
+    progressSearchSchema.parse(search),
 });
 
-function ProgressComponent() {
-  const { data: progress } = useProgress();
-  const { data: stories } = useStories();
+function StoryGridSection({
+  emptyMessage,
+  isLoading,
+  stories,
+}: {
+  emptyMessage: string;
+  isLoading: boolean;
+  stories: StoryListItem[];
+}) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-72 rounded-xl bg-neutral-900/60 border border-neutral-800 animate-pulse"
+          />
+        ))}
+      </div>
+    );
+  }
 
-  const favoriteStories = stories?.filter((s) => s.is_favorite) || [];
-  const completedStories = stories?.filter((s) => s.is_completed) || [];
+  if (stories.length > 0) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {stories.map((story) => (
+          <StoryCard key={story.id} story={story} />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-8 rounded-2xl bg-neutral-900/30 border border-neutral-800 text-center text-neutral-400 text-xs">
+      {emptyMessage}
+    </div>
+  );
+}
+
+function MetricsGrid({
+  progress,
+}: {
+  progress?: {
+    average_quiz_score: number;
+    current_streak_days: number;
+    total_stories_available: number;
+    total_stories_read: number;
+    total_words_learned: number;
+  };
+}) {
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <Card className="bg-neutral-900/60 border-neutral-800 p-5 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center">
+            <BookOpen className="size-5" />
+          </div>
+          <div>
+            <span className="text-xs text-neutral-400 font-medium block">
+              Stories Read
+            </span>
+            <span className="text-2xl font-black text-white">
+              {progress?.total_stories_read || 0}
+              <span className="text-xs text-neutral-500 font-normal ml-1">
+                / {progress?.total_stories_available || 0}
+              </span>
+            </span>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="bg-neutral-900/60 border-neutral-800 p-5 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+            <Layers className="size-5" />
+          </div>
+          <div>
+            <span className="text-xs text-neutral-400 font-medium block">
+              Words Saved
+            </span>
+            <span className="text-2xl font-black text-white">
+              {progress?.total_words_learned || 0}
+            </span>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="bg-neutral-900/60 border-neutral-800 p-5 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center">
+            <Flame className="size-5 fill-orange-400" />
+          </div>
+          <div>
+            <span className="text-xs text-neutral-400 font-medium block">
+              Daily Streak
+            </span>
+            <span className="text-2xl font-black text-white">
+              {progress?.current_streak_days || 0} days
+            </span>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="bg-neutral-900/60 border-neutral-800 p-5 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <Trophy className="size-5" />
+          </div>
+          <div>
+            <span className="text-xs text-neutral-400 font-medium block">
+              Average Quiz
+            </span>
+            <span className="text-2xl font-black text-white">
+              {progress?.average_quiz_score
+                ? `${progress.average_quiz_score}%`
+                : "—"}
+            </span>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function OverviewTabContent({
+  compList,
+  favList,
+  isLoadingCompleted,
+  isLoadingFavorites,
+  onViewAllCompleted,
+  onViewAllFavorites,
+}: {
+  compList: StoryListItem[];
+  favList: StoryListItem[];
+  isLoadingCompleted: boolean;
+  isLoadingFavorites: boolean;
+  onViewAllCompleted: () => void;
+  onViewAllFavorites: () => void;
+}) {
+  return (
+    <div className="space-y-8">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Heart className="size-5 text-rose-500 fill-rose-500" />
+            <h2 className="text-lg font-bold text-white">
+              Favorite Stories ({favList.length})
+            </h2>
+          </div>
+          {favList.length > 3 && (
+            <button
+              type="button"
+              onClick={onViewAllFavorites}
+              className="text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
+            >
+              View all favorites →
+            </button>
+          )}
+        </div>
+
+        <StoryGridSection
+          stories={favList}
+          isLoading={isLoadingFavorites}
+          emptyMessage="No favorite stories yet. Click the heart icon on any story to save it here!"
+        />
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-5 text-emerald-400" />
+            <h2 className="text-lg font-bold text-white">
+              Completed Stories ({compList.length})
+            </h2>
+          </div>
+          {compList.length > 3 && (
+            <button
+              type="button"
+              onClick={onViewAllCompleted}
+              className="text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
+            >
+              View all completed →
+            </button>
+          )}
+        </div>
+
+        <StoryGridSection
+          stories={compList}
+          isLoading={isLoadingCompleted}
+          emptyMessage="No completed stories yet. Read a story and complete its quiz to mark it finished!"
+        />
+      </div>
+    </div>
+  );
+}
+
+function ProgressComponent() {
+  const navigate = Route.useNavigate();
+  const searchParams = Route.useSearch();
+  const activeTab = searchParams.tab ?? "overview";
+  const selectedLevel = searchParams.level ?? "all";
+
+  const { data: progress } = useProgress();
+
+  const { data: favoriteStories, isLoading: isLoadingFavorites } = useStories({
+    cefr_level: selectedLevel !== "all" ? selectedLevel : undefined,
+    is_favorite: true,
+  });
+
+  const { data: completedStories, isLoading: isLoadingCompleted } = useStories({
+    cefr_level: selectedLevel !== "all" ? selectedLevel : undefined,
+    is_completed: true,
+  });
+
+  const handleTabChange = (tab: string) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        tab:
+          tab === "overview" ? undefined : (tab as "favorites" | "completed"),
+      }),
+    });
+  };
+
+  const handleLevelChange = (lvl: (typeof CEFR_TABS)[number]) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        level: lvl === "all" ? undefined : lvl,
+      }),
+    });
+  };
+
+  const favList = favoriteStories || [];
+  const compList = completedStories || [];
 
   return (
     <div className="container mx-auto max-w-5xl px-4 py-8 space-y-8">
-      {/* Title */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-          <GraduationCap className="size-6 text-sky-400" />
-          Learning Dashboard
-        </h1>
-        <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-          Track your German reading milestones, vocabulary retention, and quiz
-          achievements.
-        </p>
+      {/* Title & Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
+            <GraduationCap className="size-6 text-sky-400" />
+            Learning Dashboard
+          </h1>
+          <p className="text-xs sm:text-sm text-neutral-400 mt-1">
+            Track your German reading milestones, vocabulary retention, and quiz
+            achievements.
+          </p>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="bg-neutral-900 border border-neutral-800">
+            <TabsTrigger
+              value="overview"
+              className="text-xs font-semibold px-3 py-1.5"
+            >
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="favorites"
+              className="text-xs font-semibold px-3 py-1.5"
+            >
+              Favorites ({favList.length})
+            </TabsTrigger>
+            <TabsTrigger
+              value="completed"
+              className="text-xs font-semibold px-3 py-1.5"
+            >
+              Completed ({compList.length})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Metric Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-neutral-900/60 border-neutral-800 p-5 rounded-2xl">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center">
-              <BookOpen className="size-5" />
-            </div>
-            <div>
-              <span className="text-xs text-neutral-400 font-medium block">
-                Stories Read
-              </span>
-              <span className="text-2xl font-black text-white">
-                {progress?.total_stories_read || 0}
-                <span className="text-xs text-neutral-500 font-normal ml-1">
-                  / {progress?.total_stories_available || 0}
-                </span>
-              </span>
-            </div>
-          </div>
-        </Card>
+      <MetricsGrid progress={progress} />
 
-        <Card className="bg-neutral-900/60 border-neutral-800 p-5 rounded-2xl">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
-              <Layers className="size-5" />
-            </div>
-            <div>
-              <span className="text-xs text-neutral-400 font-medium block">
-                Words Saved
-              </span>
-              <span className="text-2xl font-black text-white">
-                {progress?.total_words_learned || 0}
-              </span>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="bg-neutral-900/60 border-neutral-800 p-5 rounded-2xl">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center">
-              <Flame className="size-5 fill-orange-400" />
-            </div>
-            <div>
-              <span className="text-xs text-neutral-400 font-medium block">
-                Daily Streak
-              </span>
-              <span className="text-2xl font-black text-white">
-                {progress?.current_streak_days || 0} days
-              </span>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="bg-neutral-900/60 border-neutral-800 p-5 rounded-2xl">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
-              <Trophy className="size-5" />
-            </div>
-            <div>
-              <span className="text-xs text-neutral-400 font-medium block">
-                Average Quiz
-              </span>
-              <span className="text-2xl font-black text-white">
-                {progress?.average_quiz_score
-                  ? `${progress.average_quiz_score}%`
-                  : "—"}
-              </span>
-            </div>
-          </div>
-        </Card>
+      {/* CEFR Level Filter Pills (active on all tabs) */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+        {CEFR_TABS.map((lvl) => (
+          <button
+            key={lvl}
+            type="button"
+            onClick={() => handleLevelChange(lvl)}
+            className={`px-3 py-1 text-xs font-bold rounded-xl transition-all border ${
+              selectedLevel === lvl
+                ? "bg-sky-500 border-sky-400 text-white shadow-md shadow-sky-500/20"
+                : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
+            }`}
+          >
+            {lvl === "all" ? "All Levels" : `Level ${lvl}`}
+          </button>
+        ))}
       </div>
 
-      {/* Favorite Stories Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Heart className="size-5 text-rose-500 fill-rose-500" />
-          <h2 className="text-lg font-bold text-white">
-            Favorite Stories ({favoriteStories.length})
-          </h2>
+      {/* Overview Tab: Displays both sections */}
+      {activeTab === "overview" && (
+        <OverviewTabContent
+          favList={favList}
+          compList={compList}
+          isLoadingFavorites={isLoadingFavorites}
+          isLoadingCompleted={isLoadingCompleted}
+          onViewAllFavorites={() => handleTabChange("favorites")}
+          onViewAllCompleted={() => handleTabChange("completed")}
+        />
+      )}
+
+      {/* Favorites Tab */}
+      {activeTab === "favorites" && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Heart className="size-5 text-rose-500 fill-rose-500" />
+            <h2 className="text-lg font-bold text-white">
+              Favorite Stories ({favList.length})
+            </h2>
+          </div>
+
+          <StoryGridSection
+            stories={favList}
+            isLoading={isLoadingFavorites}
+            emptyMessage="No favorite stories found for this filter."
+          />
         </div>
+      )}
 
-        {favoriteStories.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {favoriteStories.map((story) => (
-              <StoryCard key={story.id} story={story} />
-            ))}
+      {/* Completed Tab */}
+      {activeTab === "completed" && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-5 text-emerald-400" />
+            <h2 className="text-lg font-bold text-white">
+              Completed Stories ({compList.length})
+            </h2>
           </div>
-        ) : (
-          <div className="p-8 rounded-2xl bg-neutral-900/30 border border-neutral-800 text-center text-neutral-400 text-xs">
-            No favorite stories yet. Click the heart icon on any story to save
-            it here!
-          </div>
-        )}
-      </div>
 
-      {/* Completed Stories Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="size-5 text-emerald-400" />
-          <h2 className="text-lg font-bold text-white">
-            Completed Stories ({completedStories.length})
-          </h2>
+          <StoryGridSection
+            stories={compList}
+            isLoading={isLoadingCompleted}
+            emptyMessage="No completed stories found for this filter."
+          />
         </div>
-
-        {completedStories.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {completedStories.map((story) => (
-              <StoryCard key={story.id} story={story} />
-            ))}
-          </div>
-        ) : (
-          <div className="p-8 rounded-2xl bg-neutral-900/30 border border-neutral-800 text-center text-neutral-400 text-xs">
-            No completed stories yet. Read a story and complete its quiz to mark
-            it finished!
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

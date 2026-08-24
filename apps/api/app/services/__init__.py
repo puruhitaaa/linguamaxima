@@ -38,6 +38,8 @@ class StoryService:
         cefr_level: Optional[CEFRLevel] = None,
         category_slug: Optional[str] = None,
         search: Optional[str] = None,
+        is_favorite: Optional[bool] = None,
+        is_completed: Optional[bool] = None,
         page: int = 1,
         limit: int = 20,
     ) -> Tuple[List[StoryListItemResponse], int]:
@@ -47,6 +49,8 @@ class StoryService:
             cefr_level=cefr_level,
             category_slug=category_slug,
             search=search,
+            is_favorite=is_favorite,
+            is_completed=is_completed,
             limit=limit,
             offset=offset,
         )
@@ -296,8 +300,10 @@ class FlashcardService:
             for fc in flashcards
         ]
 
-    async def get_all_flashcards(self, session: AsyncSession) -> List[FlashcardResponse]:
-        flashcards = await flashcard_repo.get_all_flashcards(session)
+    async def get_all_flashcards(
+        self, session: AsyncSession, search: Optional[str] = None
+    ) -> List[FlashcardResponse]:
+        flashcards = await flashcard_repo.get_all_flashcards(session, search=search)
         return [
             FlashcardResponse(
                 id=fc.id,

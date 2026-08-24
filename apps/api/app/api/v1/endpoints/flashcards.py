@@ -1,5 +1,5 @@
-from typing import List
-from fastapi import APIRouter, Depends
+from typing import List, Optional
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.schemas import (
@@ -13,8 +13,11 @@ from app.services import flashcard_service
 router = APIRouter(prefix="/flashcards", tags=["Flashcards"])
 
 @router.get("", response_model=List[FlashcardResponse])
-async def list_all_flashcards(db: AsyncSession = Depends(get_db)):
-    return await flashcard_service.get_all_flashcards(db)
+async def list_all_flashcards(
+    search: Optional[str] = Query(None, description="Search vocabulary word or translation"),
+    db: AsyncSession = Depends(get_db),
+):
+    return await flashcard_service.get_all_flashcards(db, search=search)
 
 @router.get("/due", response_model=List[FlashcardResponse])
 async def list_due_flashcards(db: AsyncSession = Depends(get_db)):

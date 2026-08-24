@@ -52,6 +52,8 @@ export const api = {
     cefr_level?: string;
     category_slug?: string;
     search?: string;
+    is_favorite?: boolean;
+    is_completed?: boolean;
     page?: number;
     limit?: number;
   }) => {
@@ -64,6 +66,12 @@ export const api = {
     }
     if (params?.search) {
       query.set("search", params.search);
+    }
+    if (params?.is_favorite !== undefined) {
+      query.set("is_favorite", String(params.is_favorite));
+    }
+    if (params?.is_completed !== undefined) {
+      query.set("is_completed", String(params.is_completed));
     }
     if (params?.page) {
       query.set("page", params.page.toString());
@@ -99,7 +107,14 @@ export const api = {
   getLanguagePairs: () => request<LanguagePair[]>("/api/v1/languages/pairs"),
 
   // Flashcards
-  getAllFlashcards: () => request<Flashcard[]>("/api/v1/flashcards"),
+  getAllFlashcards: (params?: { search?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.search) {
+      query.set("search", params.search);
+    }
+    const qs = query.toString();
+    return request<Flashcard[]>(`/api/v1/flashcards${qs ? `?${qs}` : ""}`);
+  },
 
   getDueFlashcards: () => request<Flashcard[]>("/api/v1/flashcards/due"),
 

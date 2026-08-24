@@ -18,6 +18,8 @@ async def list_stories(
     cefr_level: Optional[CEFRLevel] = Query(None, description="Filter by CEFR level (A1-C2)"),
     category_slug: Optional[str] = Query(None, description="Filter by category slug"),
     search: Optional[str] = Query(None, description="Search by title or keyword"),
+    is_favorite: Optional[bool] = Query(None, description="Filter by favorite status"),
+    is_completed: Optional[bool] = Query(None, description="Filter by completed status"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -27,6 +29,8 @@ async def list_stories(
         cefr_level=cefr_level,
         category_slug=category_slug,
         search=search,
+        is_favorite=is_favorite,
+        is_completed=is_completed,
         page=page,
         limit=limit,
     )

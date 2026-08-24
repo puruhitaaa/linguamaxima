@@ -75,6 +75,8 @@ class StoryRepository:
         cefr_level: Optional[CEFRLevel] = None,
         category_slug: Optional[str] = None,
         search: Optional[str] = None,
+        is_favorite: Optional[bool] = None,
+        is_completed: Optional[bool] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> Tuple[List[Story], int]:
@@ -88,6 +90,19 @@ class StoryRepository:
             query = query.where(
                 (Story.title.ilike(f"%{search}%")) | (Story.title_translated.ilike(f"%{search}%"))
             )
+
+        if is_favorite is True or is_completed is True:
+            query = query.join(UserProgress, UserProgress.story_id == Story.id)
+            if is_favorite is True:
+                query = query.where(UserProgress.is_favorite.is_(True))
+            if is_completed is True:
+                query = query.where(UserProgress.completed_at.isnot(None))
+        elif is_favorite is False or is_completed is False:
+            query = query.outerjoin(UserProgress, UserProgress.story_id == Story.id)
+            if is_favorite is False:
+                query = query.where((UserProgress.is_favorite.is_(False)) | (UserProgress.id.is_(None)))
+            if is_completed is False:
+                query = query.where(UserProgress.completed_at.is_(None))
 
         # Count total
         count_stmt = select(func.count()).select_from(query.subquery())
@@ -273,10 +288,16 @@ class FlashcardRepository:
         res = await session.execute(stmt)
         return list(res.scalars().all())
 
-    async def get_all_flashcards(self, session: AsyncSession) -> List[Flashcard]:
+    async def get_all_flashcards(
+        self, session: AsyncSession, search: Optional[str] = None
+    ) -> List[Flashcard]:
+        stmt = select(Flashcard)
+        if search:
+            stmt = stmt.join(Vocabulary, Flashcard.vocabulary_id == Vocabulary.id).where(
+                (Vocabulary.word.ilike(f"%{search}%")) | (Vocabulary.translation.ilike(f"%{search}%"))
+            )
         stmt = (
-            select(Flashcard)
-            .options(
+            stmt.options(
                 joinedload(Flashcard.vocabulary).joinedload(Vocabulary.story)
             )
             .order_by(desc(Flashcard.created_at))

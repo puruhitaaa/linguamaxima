@@ -30,6 +30,41 @@ async def test_filter_stories_by_level(client):
     assert all(item["cefr_level"] == "A1" for item in data)
 
 @pytest.mark.asyncio
+async def test_filter_stories_by_favorite_and_completed(client):
+    stories_res = await client.get("/api/v1/stories")
+    story_id = stories_res.json()[0]["id"]
+
+    # Toggle favorite to true
+    await client.patch(f"/api/v1/stories/{story_id}/favorite")
+
+    # Filter by favorite
+    fav_res = await client.get("/api/v1/stories?is_favorite=true")
+    assert fav_res.status_code == 200
+    fav_data = fav_res.json()
+    assert any(s["id"] == story_id for s in fav_data)
+
+    # Filter by completed
+    comp_res = await client.get("/api/v1/stories?is_completed=true")
+    assert comp_res.status_code == 200
+
+@pytest.mark.asyncio
+async def test_filter_flashcards_by_search(client):
+    stories_res = await client.get("/api/v1/stories")
+    story_id = stories_res.json()[0]["id"]
+    detail = (await client.get(f"/api/v1/stories/{story_id}")).json()
+    vocab = detail["vocabulary"][0]
+
+    # Save to deck
+    await client.post("/api/v1/flashcards", json={"vocabulary_id": vocab["id"]})
+
+    # Search for this word
+    search_res = await client.get(f"/api/v1/flashcards?search={vocab['word'][:3]}")
+    assert search_res.status_code == 200
+    search_data = search_res.json()
+    assert len(search_data) >= 1
+    assert any(fc["vocabulary_id"] == vocab["id"] for fc in search_data)
+
+@pytest.mark.asyncio
 async def test_get_story_detail(client):
     stories_res = await client.get("/api/v1/stories")
     story_id = stories_res.json()[0]["id"]

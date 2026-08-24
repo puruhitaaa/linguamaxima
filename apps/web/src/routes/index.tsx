@@ -2,30 +2,76 @@ import { Button } from "@linguamaxima/ui/components/button";
 import { Input } from "@linguamaxima/ui/components/input";
 import { createFileRoute } from "@tanstack/react-router";
 import { BookOpen, Flame, Layers, Search, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { z } from "zod";
 
 import { GenerateStoryDialog } from "../components/generate-story-dialog";
 import { StoryCard } from "../components/story-card";
 import { useCategories, useProgress, useStories } from "../lib/queries";
 
-export const Route = createFileRoute("/")({
-  component: HomeComponent,
-});
-
 const CEFR_TABS = ["all", "A1", "A2", "B1", "B2", "C1", "C2"] as const;
 
+const storiesSearchSchema = z.object({
+  category: z.string().optional().default("all"),
+  level: z.enum(CEFR_TABS).optional().default("all"),
+  search: z.string().optional().default(""),
+});
+
+export const Route = createFileRoute("/")({
+  component: HomeComponent,
+  validateSearch: (search: Record<string, unknown>) =>
+    storiesSearchSchema.parse(search),
+});
+
 function HomeComponent() {
-  const [selectedLevel, setSelectedLevel] = useState<string>("all");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const navigate = Route.useNavigate();
+  const searchParams = Route.useSearch();
+  const selectedLevel = searchParams.level ?? "all";
+  const selectedCategory = searchParams.category ?? "all";
+  const searchParam = searchParams.search ?? "";
+
+  const [searchInput, setSearchInput] = useState(searchParam);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== searchParam) {
+        navigate({
+          replace: true,
+          search: (prev) => ({
+            ...prev,
+            search: searchInput.trim() || undefined,
+          }),
+        });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, searchParam, navigate]);
 
   const { data: categories } = useCategories();
   const { data: progress } = useProgress();
   const { data: stories, isLoading } = useStories({
-    cefr_level: selectedLevel !== "all" ? selectedLevel : undefined,
     category_slug: selectedCategory !== "all" ? selectedCategory : undefined,
-    search: searchTerm.trim() || undefined,
+    cefr_level: selectedLevel !== "all" ? selectedLevel : undefined,
+    search: searchParam.trim() || undefined,
   });
+
+  const handleSelectLevel = (lvl: (typeof CEFR_TABS)[number]) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        level: lvl === "all" ? undefined : lvl,
+      }),
+    });
+  };
+
+  const handleSelectCategory = (catSlug: string) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        category: catSlug === "all" ? undefined : catSlug,
+      }),
+    });
+  };
 
   const renderStoriesContent = () => {
     if (isLoading) {
@@ -59,7 +105,9 @@ function HomeComponent() {
         <div className="space-y-1">
           <h3 className="text-lg font-bold text-white">No Stories Found</h3>
           <p className="text-xs text-neutral-400">
-            {searchTerm || selectedLevel !== "all" || selectedCategory !== "all"
+            {searchParam ||
+            selectedLevel !== "all" ||
+            selectedCategory !== "all"
               ? "Try clearing or broadening your search filters."
               : "Generate your first German story using AI!"}
           </p>
@@ -146,7 +194,7 @@ function HomeComponent() {
               <button
                 key={lvl}
                 type="button"
-                onClick={() => setSelectedLevel(lvl)}
+                onClick={() => handleSelectLevel(lvl)}
                 className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all border ${
                   selectedLevel === lvl
                     ? "bg-sky-500 border-sky-400 text-white shadow-md shadow-sky-500/20"
@@ -164,8 +212,8 @@ function HomeComponent() {
             <Input
               type="text"
               placeholder="Search stories..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-9 h-9 text-xs bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 rounded-xl"
             />
           </div>
@@ -175,7 +223,7 @@ function HomeComponent() {
         <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
           <button
             type="button"
-            onClick={() => setSelectedCategory("all")}
+            onClick={() => handleSelectCategory("all")}
             className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
               selectedCategory === "all"
                 ? "bg-neutral-100 text-neutral-900 font-semibold"
@@ -188,7 +236,7 @@ function HomeComponent() {
             <button
               key={cat.slug}
               type="button"
-              onClick={() => setSelectedCategory(cat.slug)}
+              onClick={() => handleSelectCategory(cat.slug)}
               className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
                 selectedCategory === cat.slug
                   ? "bg-neutral-100 text-neutral-900 font-semibold"

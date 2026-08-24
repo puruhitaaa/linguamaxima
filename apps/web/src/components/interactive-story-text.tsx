@@ -6,7 +6,6 @@ import {
 } from "@linguamaxima/ui/components/popover";
 import { Bookmark, Check } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { useSaveFlashcard } from "../lib/queries";
 import type { VocabularyItem } from "../types/api";
@@ -19,9 +18,9 @@ interface InteractiveStoryTextProps {
 }
 
 const GENDER_BADGE_STYLE: Record<string, string> = {
+  das: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   der: "bg-sky-500/15 text-sky-400 border-sky-500/30",
   die: "bg-rose-500/15 text-rose-400 border-rose-500/30",
-  das: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
 };
 
 function cleanWord(raw: string) {
@@ -61,15 +60,8 @@ export function InteractiveStoryText({
     setActiveWordInfo(vocab);
   };
 
-  const handleSaveToDeck = async (vocabId: number) => {
-    try {
-      await saveFlashcardMutation.mutateAsync(vocabId);
-      toast.success("Word saved to Flashcard deck!");
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Could not save word";
-      toast.error(message);
-    }
+  const handleSaveToDeck = (vocabId: number) => {
+    saveFlashcardMutation.mutate(vocabId);
   };
 
   return (
@@ -92,18 +84,16 @@ export function InteractiveStoryText({
                 return (
                   <span key={wIdx} className="inline-block mr-1.5">
                     <Popover>
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={() => handleWordClick(rawWord)}
-                          className={`inline rounded-sm px-0.5 transition-all text-left ${
-                            isVocab
-                              ? "font-medium text-sky-200 underline decoration-sky-500/50 decoration-2 underline-offset-4 hover:text-sky-300 hover:decoration-sky-400 hover:bg-sky-500/10 cursor-pointer"
-                              : "hover:bg-neutral-800/80 hover:text-white cursor-pointer"
-                          }`}
-                        >
-                          {rawWord}
-                        </button>
+                      <PopoverTrigger
+                        type="button"
+                        onClick={() => handleWordClick(rawWord)}
+                        className={`inline rounded-sm px-0.5 transition-all text-left ${
+                          isVocab
+                            ? "font-medium text-sky-200 underline decoration-sky-500/50 decoration-2 underline-offset-4 hover:text-sky-300 hover:decoration-sky-400 hover:bg-sky-500/10 cursor-pointer"
+                            : "hover:bg-neutral-800/80 hover:text-white cursor-pointer"
+                        }`}
+                      >
+                        {rawWord}
                       </PopoverTrigger>
                       <PopoverContent
                         side="top"

@@ -18,7 +18,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { z } from "zod";
 
 import { AudioPlayer } from "../components/audio-player";
 import { InteractiveStoryText } from "../components/interactive-story-text";
@@ -26,8 +26,17 @@ import { QuizSection } from "../components/quiz-section";
 import { useSaveFlashcard, useStory, useToggleFavorite } from "../lib/queries";
 import type { CEFRLevel } from "../types/api";
 
+const storyDetailSearchSchema = z.object({
+  tab: z
+    .enum(["story", "vocabulary", "grammar", "quiz"])
+    .optional()
+    .default("story"),
+});
+
 export const Route = createFileRoute("/stories/$storyId")({
   component: StoryReadingComponent,
+  validateSearch: (search: Record<string, unknown>) =>
+    storyDetailSearchSchema.parse(search),
 });
 
 const LEVEL_COLORS: Record<CEFRLevel, string> = {
@@ -47,12 +56,27 @@ const GENDER_BADGE_STYLE: Record<string, string> = {
 
 function StoryReadingComponent() {
   const { storyId } = Route.useParams();
+  const navigate = Route.useNavigate();
+  const searchParams = Route.useSearch();
+  const activeTab = searchParams.tab ?? "story";
+
   const { data: story, isLoading, error } = useStory(storyId);
   const toggleFavorite = useToggleFavorite();
   const saveFlashcard = useSaveFlashcard();
 
-  const [activeTab, setActiveTab] = useState<string>("story");
   const [showParallelTranslation, setShowParallelTranslation] = useState(false);
+
+  const handleTabChange = (tab: string) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        tab:
+          tab === "story"
+            ? undefined
+            : (tab as "vocabulary" | "grammar" | "quiz"),
+      }),
+    });
+  };
 
   if (isLoading) {
     return (
@@ -81,15 +105,8 @@ function StoryReadingComponent() {
     );
   }
 
-  const handleSaveVocab = async (vocabId: number) => {
-    try {
-      await saveFlashcard.mutateAsync(vocabId);
-      toast.success("Saved to flashcards!");
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Failed to save flashcard";
-      toast.error(message);
-    }
+  const handleSaveVocab = (vocabId: number) => {
+    saveFlashcard.mutate(vocabId);
   };
 
   const levelColorClass = LEVEL_COLORS[story.cefr_level] || LEVEL_COLORS.A1;
@@ -173,7 +190,7 @@ function StoryReadingComponent() {
       {/* Main Content Tabs */}
       <Tabs
         value={activeTab}
-        onValueChange={setActiveTab}
+        onValueChange={handleTabChange}
         className="space-y-6"
       >
         <div className="flex items-center justify-between flex-wrap gap-4 border-b border-neutral-800 pb-2">

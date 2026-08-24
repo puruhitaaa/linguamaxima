@@ -1,9 +1,17 @@
 import { Button } from "@linguamaxima/ui/components/button";
+import { Input } from "@linguamaxima/ui/components/input";
 import { Tabs, TabsList, TabsTrigger } from "@linguamaxima/ui/components/tabs";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { BookOpen, CheckCircle2, Clock, Layers, Zap } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import {
+  BookOpen,
+  CheckCircle2,
+  Clock,
+  Layers,
+  Search,
+  Zap,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { z } from "zod";
 
 import { FlashcardCard } from "../components/flashcard-card";
 import {
@@ -12,37 +20,70 @@ import {
   useReviewFlashcard,
 } from "../lib/queries";
 
+const flashcardsSearchSchema = z.object({
+  search: z.string().optional().default(""),
+  tab: z.enum(["review", "deck"]).optional().default("review"),
+});
+
 export const Route = createFileRoute("/flashcards")({
   component: FlashcardsComponent,
+  validateSearch: (search: Record<string, unknown>) =>
+    flashcardsSearchSchema.parse(search),
 });
 
 function FlashcardsComponent() {
+  const navigate = Route.useNavigate();
+  const searchParams = Route.useSearch();
+  const activeTab = searchParams.tab ?? "review";
+  const searchParam = searchParams.search ?? "";
+
+  const [searchInput, setSearchInput] = useState(searchParam);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== searchParam) {
+        navigate({
+          replace: true,
+          search: (prev) => ({
+            ...prev,
+            search: searchInput.trim() || undefined,
+          }),
+        });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, searchParam, navigate]);
+
   const { data: dueCards, isLoading: isLoadingDue } = useDueFlashcards();
-  const { data: allCards, isLoading: isLoadingAll } = useAllFlashcards();
+  const { data: allCards, isLoading: isLoadingAll } = useAllFlashcards({
+    search: searchParam.trim() || undefined,
+  });
   const reviewMutation = useReviewFlashcard();
 
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [activeTab, setActiveTab] = useState<string>("review");
 
   const dueList = dueCards || [];
   const currentCard = dueList[currentIdx];
   const isSessionComplete = dueList.length > 0 && currentIdx >= dueList.length;
 
-  const handleRate = async (quality: number) => {
+  const handleTabChange = (val: string) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        tab: val === "deck" ? "deck" : undefined,
+      }),
+    });
+  };
+
+  const handleRate = (quality: number) => {
     if (!currentCard) {
       return;
     }
-    try {
-      await reviewMutation.mutateAsync({
-        flashcardId: currentCard.id,
-        quality,
-      });
-      setCurrentIdx((prev) => prev + 1);
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Failed to submit review";
-      toast.error(message);
-    }
+    reviewMutation.mutate({
+      flashcardId: currentCard.id,
+      quality,
+    });
+    setCurrentIdx((prev) => prev + 1);
   };
 
   const renderReviewContent = () => {
@@ -77,7 +118,7 @@ function FlashcardsComponent() {
             {allCards && allCards.length > 0 && (
               <Button
                 variant="outline"
-                onClick={() => setActiveTab("deck")}
+                onClick={() => handleTabChange("deck")}
                 className="border-neutral-700 text-neutral-300 hover:bg-neutral-800"
               >
                 Browse Deck
@@ -170,7 +211,11 @@ function FlashcardsComponent() {
 
     return (
       <div className="p-8 text-center bg-neutral-900/40 rounded-xl border border-neutral-800 text-neutral-400">
-        <p>Your deck is empty. Save words from stories to start learning!</p>
+        <p>
+          {searchParam
+            ? "No flashcards match your search."
+            : "Your deck is empty. Save words from stories to start learning!"}
+        </p>
       </div>
     );
   };
@@ -190,7 +235,7 @@ function FlashcardsComponent() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="bg-neutral-900 border border-neutral-800">
             <TabsTrigger
               value="review"
@@ -215,7 +260,19 @@ function FlashcardsComponent() {
 
       {/* TAB 2: FULL VOCABULARY DECK */}
       {activeTab === "deck" && (
-        <div className="space-y-4">{renderDeckContent()}</div>
+        <div className="space-y-4">
+          <div className="relative max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-500" />
+            <Input
+              type="text"
+              placeholder="Search vocabulary..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-9 h-9 text-xs bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 rounded-xl"
+            />
+          </div>
+          {renderDeckContent()}
+        </div>
       )}
     </div>
   );
