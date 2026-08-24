@@ -494,3 +494,15 @@ async def seed_database(session: AsyncSession) -> None:
 
     await session.commit()
     logger.info("Database seeding completed successfully.")
+
+if __name__ == "__main__":
+    import asyncio
+    from app.core.database import get_session_maker
+
+    async def main():
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+        session_maker = get_session_maker()
+        async with session_maker() as session:
+            await seed_database(session)
+
+    asyncio.run(main())

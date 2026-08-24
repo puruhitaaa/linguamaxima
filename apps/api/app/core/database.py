@@ -139,57 +139,8 @@ async def check_db_health() -> bool:
                 return False
         return False
 
-_db_initialized: bool = False
-
-async def ensure_db_initialized() -> None:
-    global _db_initialized
-    if _db_initialized:
-        return
-    await init_db()
-    if settings.auto_seed_db:
-        try:
-            from app.seeds.seed_data import seed_database
-            session_maker = get_session_maker()
-            async with session_maker() as session:
-                await seed_database(session)
-        except Exception as e:
-            logger.error(f"Error during auto-seeding: {e}")
-    _db_initialized = True
-
-async def init_db() -> None:
-    """Create tables on startup."""
-    # Ensure all ORM models are registered in Base.metadata
-    import app.models  # noqa: F401
-    from sqlalchemy.schema import CreateTable
-
-    try:
-        engine = get_engine()
-        async with engine.begin() as conn:
-            # 1. Run standard SQLAlchemy create_all
-            await conn.run_sync(Base.metadata.create_all)
-            # 2. Execute explicit IF NOT EXISTS DDL for each table in dependency order
-            for table in Base.metadata.sorted_tables:
-                ddl = CreateTable(table, if_not_exists=True).compile(dialect=conn.dialect)
-                await conn.execute(text(str(ddl)))
-        logger.info("Database schema initialized successfully.")
-    except Exception as e:
-        logger.warning(f"Failed to init primary DB ({e}). Checking fallback...")
-        if settings.use_sqlite_fallback:
-            switch_to_sqlite()
-            engine = get_engine()
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-        else:
-            raise
-
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Dependency for getting async database session in route handlers."""
-    if not _db_initialized and settings.auto_init_db:
-        try:
-            await ensure_db_initialized()
-        except Exception as e:
-            logger.error(f"Lazy DB initialization error: {e}")
-
     session_maker = get_session_maker()
     async with session_maker() as session:
         try:

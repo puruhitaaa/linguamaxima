@@ -15,6 +15,7 @@
     "dev:api": "uv run --directory apps/api uvicorn app.main:app --reload --port 8000",
     "db:makemigrations": "uv run --directory apps/api alembic revision --autogenerate",
     "db:migrate": "uv run --directory apps/api alembic upgrade head",
+    "db:seed": "uv run --directory apps/api python -m app.seeds.seed_data",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d --build",
     "docker:down": "docker compose down",

@@ -27,8 +27,6 @@ class Settings(BaseSettings):
         or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
         or os.getenv("IS_SERVERLESS", "").lower() in ("true", "1")
     )
-    auto_init_db: bool = True
-    auto_seed_db: bool = True
 
     # Database
     database_url: str = "postgresql+asyncpg://linguamaxima:linguamaxima@localhost:5433/linguamaxima"
