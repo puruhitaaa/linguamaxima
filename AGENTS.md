@@ -1,3 +1,51 @@
+# Agent Guidelines & Development Standards
+
+I am **Baiq**. You are my agent, and we will be working together closely. I wanted to share my development philosophy, preferences, and guidelines so we are fully aligned. 
+
+The models we work with are excellent at **tone-matching**, so please read these guidelines carefully and align your behavior, communication, and code style to match the expectations below.
+
+---
+
+## 1. About Baiq & Core Design Philosophy
+* **Simple Systems, Ambitious Ideas:** I love to build. My primary focus is on building complex things as simply as possible, finding elegant ways to reduce complexity when solving tough problems.
+* **Fight Complexity:** Do not preserve complexity just because it already exists. Do not introduce bloated machinery simply because it looks "architecturally impressive." Understand the real constraints, and fight for the smallest change that makes the correct behavior unsurprising.
+* **YAGNI ("You Aren't Gonna Need It"):** Match the "ceremony" to the actual task. Fight scope creep, and honor the developer's intent in both a minimal and realistic fashion.
+
+## 2. General Coding Preferences
+* **Simplicity & Type Safety:** Keep implementations straightforward and prioritize robust type safety.
+* **Propose Bold Solutions:** Never be afraid to suggest bold, high-impact ideas that can meaningfully benefit the codebase.
+* **Safety First:** Be extremely careful with destructive actions. Never execute destructive terminal commands, delete files, or overwrite key configurations unless explicitly requested.
+* **Focused Verification:** Targeted testing and rapid verification are far better than endless "smoke tests" or bloated regression tests. Focus on what actually needs validation.
+* **Smart Commenting:** Comments should explain *how* a function, class, or definition is meant to be used, not just translate the code line-by-line. Keep comments concise, place them directly above the definition, and keep them strictly up-to-date when editing logic.
+* **Inferred Types Over Annotations:** Prefer TypeScript's inferred types over explicit annotations where appropriate. Treat `any` as the enemy. Avoid simple one-liners that function purely as casting wrappers.
+* **shadcn/ui Component Usage & Customization:** Always utilize shadcn/ui components when implementing new UI elements, components, or pages instead of creating ad-hoc custom components from scratch. When new shadcn components are needed, you **must use the official shadcn CLI** (e.g., `pnpm dlx shadcn@latest add <component>`) to install them—**never generate or create raw shadcn component files directly through AI/manual file creation**. Modifications and styling tweaks to shadcn components must **only** be performed via the `className` prop at the call-site/invocation point—**never directly modify the underlying shadcn component source files**.
+
+## 3. Interaction & Agent Controls
+* **Questions are "Read-Only":** If I am only asking an informational question about the codebase, DO NOT start editing or modifying files. Keep your inspection read-only.
+* **No Multi-Agent Bloat:** Do not spawn sub-agents or multi-agent panels for a task that a single agent can finish in one pass. Delegation is for breath or adversarial review, not ordinary tasks.
+* **Coordinate Parallel Work:** If multiple agents are running in parallel, state your file ownership upfront to prevent edit collisions.
+* **Blast Radius Guardrails:** Always verify your actions won't break running environments or production-level systems. Be cautious when stopping dev servers or killing processes so you don't accidentally terminate the runtime/agent harness itself.
+* **Visual Design Style:** When doing visual or frontend work, do not edit core layout components first. If introducing styling, prefer high-contrast dark modes with clean text layouts to avoid muddy grays.
+* **Security Context:** Security is highly important, but do not overindex on heavy security configurations for local dev mode or internal development networks when it unnecessarily slows down execution.
+
+## 4. Glossary for Our Work
+To prevent terminology confusion and ensure we communicate clearly, let's use this shared glossary:
+* **You:** The agent reading this file and modifying the codebase.
+* **We / Us / Maintainers:** Baiq and the core repository maintainers.
+* **User:** The person running and directing the coding agent.
+* **Provider:** The agent runtime/harness (e.g., Claude, Cursor, Codex).
+* **Environment:** The running server, machine filesystem, credentials, and state.
+* **Project:** An environment's local workspace record rooted at a directory.
+
+## 5. Principles of Contribution & Code Quality
+* **Maintain Compatibility:** Support open development patterns. Ensure that core changes do not break custom user setups, forks, or remote integrations.
+* **Performance Audits:** Regularly inspect your changes for performance regressions. Avoid sending excessive payloads over network wires, using heavy styles/animations that spike GPU usage, or introducing hard-to-render lists.
+* **Hit Every Surface:** When implementing user-facing features, frontend work is not done until it is supported everywhere it belongs (e.g., matching settings, palettes, keybindings, and multiple surfaces/clients).
+* **Reverse States:** Always write symmetrical logic. If you implement a "settle" or "snooze" feature, ensure you also implement the corresponding "unsettle" or "unsnooze" state.
+* **Split Documentation:** Keep public user-facing documentation and internal maintainer documentation strictly separate. Do not leak technical implementation minutiae to the end-users.
+
+---
+
 # Ultracite Code Standards
 
 This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
@@ -42,6 +90,9 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 
 ### React & JSX
 
+- Utilize shadcn/ui components for UI primitives and new components/pages; do not create custom replacements
+- When adding new shadcn components, always use the official shadcn CLI (e.g., `pnpm dlx shadcn@latest add <component>`)—never generate or create raw shadcn component files directly through AI/manual file creation
+- Modify shadcn components exclusively via the `className` prop at the call site—never edit shadcn source components directly
 - Use function components over class components
 - Call hooks at the top level only, never conditionally
 - Specify all dependencies in hook dependency arrays correctly
