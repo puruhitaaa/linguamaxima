@@ -2,6 +2,7 @@
 name = "linguamaxima-api"
 version = "0.1.0"
 description = "AI-powered language learning platform API"
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi[standard]>=0.115.0",
