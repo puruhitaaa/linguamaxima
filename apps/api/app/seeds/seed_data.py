@@ -324,35 +324,87 @@ SAMPLE_STORIES = [
     },
 ]
 
+SUPPORTED_LANGUAGES = [
+    {"code": "de", "name": "German", "native_name": "Deutsch"},
+    {"code": "id", "name": "Indonesian", "native_name": "Bahasa Indonesia"},
+    {"code": "en", "name": "English", "native_name": "English"},
+    {"code": "es", "name": "Spanish", "native_name": "Español"},
+    {"code": "fr", "name": "French", "native_name": "Français"},
+    {"code": "it", "name": "Italian", "native_name": "Italiano"},
+    {"code": "ja", "name": "Japanese", "native_name": "日本語"},
+    {"code": "zh", "name": "Chinese", "native_name": "中文"},
+    {"code": "ko", "name": "Korean", "native_name": "한국어"},
+    {"code": "pt", "name": "Portuguese", "native_name": "Português"},
+    {"code": "nl", "name": "Dutch", "native_name": "Nederlands"},
+    {"code": "ru", "name": "Russian", "native_name": "Русский"},
+    {"code": "ar", "name": "Arabic", "native_name": "العربية"},
+]
+
+POPULAR_PAIRS = [
+    ("id", "de"),
+    ("en", "de"),
+    ("id", "en"),
+    ("en", "es"),
+    ("en", "fr"),
+    ("en", "it"),
+    ("en", "ja"),
+    ("id", "ja"),
+    ("id", "es"),
+    ("id", "fr"),
+    ("id", "zh"),
+    ("en", "zh"),
+    ("en", "ko"),
+    ("en", "pt"),
+]
+
 async def seed_database(session: AsyncSession) -> None:
     """Seeds initial languages, pairs, categories, and sample stories."""
     # 1. Seed languages
-    de = (await session.execute(select(Language).where(Language.code == "de"))).scalar_one_or_none()
-    if not de:
-        de = Language(code="de", name="German", native_name="Deutsch")
-        session.add(de)
-
-    id_lang = (await session.execute(select(Language).where(Language.code == "id"))).scalar_one_or_none()
-    if not id_lang:
-        id_lang = Language(code="id", name="Indonesian", native_name="Bahasa Indonesia")
-        session.add(id_lang)
+    lang_map = {}
+    for lang_data in SUPPORTED_LANGUAGES:
+        lang = (
+            await session.execute(select(Language).where(Language.code == lang_data["code"]))
+        ).scalar_one_or_none()
+        if not lang:
+            lang = Language(
+                code=lang_data["code"],
+                name=lang_data["name"],
+                native_name=lang_data["native_name"],
+            )
+            session.add(lang)
+            await session.flush()
+        lang_map[lang_data["code"]] = lang
 
     await session.flush()
 
-    # 2. Seed language pair (Indonesian -> German)
-    pair = (
-        await session.execute(
-            select(LanguagePair).where(
-                LanguagePair.origin_language_id == id_lang.id,
-                LanguagePair.target_language_id == de.id,
-            )
-        )
-    ).scalar_one_or_none()
+    # 2. Seed popular language pairs
+    pair_map = {}
+    for origin_code, target_code in POPULAR_PAIRS:
+        origin = lang_map.get(origin_code)
+        target = lang_map.get(target_code)
+        if not origin or not target:
+            continue
 
-    if not pair:
-        pair = LanguagePair(origin_language_id=id_lang.id, target_language_id=de.id, is_active=True)
-        session.add(pair)
-        await session.flush()
+        pair = (
+            await session.execute(
+                select(LanguagePair).where(
+                    LanguagePair.origin_language_id == origin.id,
+                    LanguagePair.target_language_id == target.id,
+                )
+            )
+        ).scalar_one_or_none()
+
+        if not pair:
+            pair = LanguagePair(
+                origin_language_id=origin.id,
+                target_language_id=target.id,
+                is_active=True,
+            )
+            session.add(pair)
+            await session.flush()
+        pair_map[f"{origin_code}_{target_code}"] = pair
+
+    pair = pair_map.get("id_de")
 
     # 3. Seed categories
     category_map = {}

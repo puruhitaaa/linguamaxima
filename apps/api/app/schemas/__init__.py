@@ -20,6 +20,10 @@ class LanguagePairResponse(ORMModel):
     target_language: LanguageResponse
     is_active: bool
 
+class LanguagePairCreateRequest(BaseModel):
+    origin_language_code: str
+    target_language_code: str
+
 # ----------------- Categories -----------------
 class CategoryResponse(ORMModel):
     id: int
@@ -156,6 +160,7 @@ class StoryListItemResponse(ORMModel):
     summary: Optional[str] = None
     cefr_level: CEFRLevel
     category: Optional[CategoryResponse] = None
+    language_pair: Optional[LanguagePairResponse] = None
     image_url: Optional[str] = None
     audio_url: Optional[str] = None
     estimated_reading_minutes: int

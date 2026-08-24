@@ -27,8 +27,10 @@ export const queryKeys = {
     is_completed?: boolean;
     is_favorite?: boolean;
     limit?: number;
+    origin_language_code?: string;
     page?: number;
     search?: string;
+    target_language_code?: string;
   }) => ["stories", filters] as const,
   story: (id: number | string) => ["story", id] as const,
 };
@@ -39,12 +41,41 @@ export function useStories(filters?: {
   is_completed?: boolean;
   is_favorite?: boolean;
   limit?: number;
+  origin_language_code?: string;
   page?: number;
   search?: string;
+  target_language_code?: string;
 }) {
   return useQuery({
     queryFn: () => api.getStories(filters),
     queryKey: queryKeys.stories(filters),
+  });
+}
+
+export function useLanguages() {
+  return useQuery({
+    queryFn: () => api.getLanguages(),
+    queryKey: queryKeys.languages,
+  });
+}
+
+export function useLanguagePairs() {
+  return useQuery({
+    queryFn: () => api.getLanguagePairs(),
+    queryKey: queryKeys.languagePairs,
+  });
+}
+
+export function useCreateLanguagePair() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      origin_language_code: string;
+      target_language_code: string;
+    }) => api.createLanguagePair(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.languagePairs });
+    },
   });
 }
 

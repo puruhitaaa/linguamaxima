@@ -30,6 +30,26 @@ class LanguageRepository:
         result = await session.execute(stmt)
         return list(result.scalars().all())
 
+    async def get_by_code(self, session: AsyncSession, code: str) -> Optional[Language]:
+        stmt = select(Language).where(Language.code == code)
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_or_create_language(
+        self,
+        session: AsyncSession,
+        code: str,
+        name: str,
+        native_name: Optional[str] = None,
+    ) -> Language:
+        lang = await self.get_by_code(session, code)
+        if not lang:
+            lang = Language(code=code, name=name, native_name=native_name)
+            session.add(lang)
+            await session.commit()
+            await session.refresh(lang)
+        return lang
+
     async def get_all_pairs(self, session: AsyncSession) -> List[LanguagePair]:
         stmt = select(LanguagePair).options(
             joinedload(LanguagePair.origin_language),
@@ -41,19 +61,48 @@ class LanguageRepository:
     async def get_pair_by_codes(
         self, session: AsyncSession, origin_code: str, target_code: str
     ) -> Optional[LanguagePair]:
-        stmt = select(LanguagePair).join(
-            Language, LanguagePair.origin_language_id == Language.id
-        ).where(
-            Language.code == origin_code
-        ).options(
-            joinedload(LanguagePair.origin_language),
-            joinedload(LanguagePair.target_language),
+        stmt = (
+            select(LanguagePair)
+            .join(Language, LanguagePair.origin_language_id == Language.id)
+            .where(Language.code == origin_code)
+            .options(
+                joinedload(LanguagePair.origin_language),
+                joinedload(LanguagePair.target_language),
+            )
         )
         result = await session.execute(stmt)
         for pair in result.scalars().all():
-            if pair.target_language.code == target_code:
+            if pair.target_language and pair.target_language.code == target_code:
                 return pair
         return None
+
+    async def get_or_create_pair(
+        self, session: AsyncSession, origin_code: str, target_code: str
+    ) -> LanguagePair:
+        existing = await self.get_pair_by_codes(session, origin_code, target_code)
+        if existing:
+            return existing
+
+        origin = await self.get_by_code(session, origin_code)
+        if not origin:
+            origin = Language(code=origin_code, name=origin_code.upper(), native_name=origin_code.upper())
+            session.add(origin)
+            await session.flush()
+
+        target = await self.get_by_code(session, target_code)
+        if not target:
+            target = Language(code=target_code, name=target_code.upper(), native_name=target_code.upper())
+            session.add(target)
+            await session.flush()
+
+        pair = LanguagePair(
+            origin_language_id=origin.id,
+            target_language_id=target.id,
+            is_active=True,
+        )
+        session.add(pair)
+        await session.commit()
+        return await self.get_pair_by_codes(session, origin_code, target_code)
 
 # ----------------- Category Repo -----------------
 class CategoryRepository:
@@ -75,6 +124,9 @@ class StoryRepository:
         cefr_level: Optional[CEFRLevel] = None,
         category_slug: Optional[str] = None,
         search: Optional[str] = None,
+        origin_language_code: Optional[str] = None,
+        target_language_code: Optional[str] = None,
+        language_pair_id: Optional[int] = None,
         is_favorite: Optional[bool] = None,
         is_completed: Optional[bool] = None,
         limit: int = 50,
@@ -90,6 +142,22 @@ class StoryRepository:
             query = query.where(
                 (Story.title.ilike(f"%{search}%")) | (Story.title_translated.ilike(f"%{search}%"))
             )
+
+        if language_pair_id:
+            query = query.where(Story.language_pair_id == language_pair_id)
+        else:
+            if origin_language_code:
+                query = query.where(
+                    Story.language_pair.has(
+                        LanguagePair.origin_language.has(Language.code == origin_language_code)
+                    )
+                )
+            if target_language_code:
+                query = query.where(
+                    Story.language_pair.has(
+                        LanguagePair.target_language.has(Language.code == target_language_code)
+                    )
+                )
 
         if is_favorite is True or is_completed is True:
             query = query.join(UserProgress, UserProgress.story_id == Story.id)

@@ -79,30 +79,30 @@ Requirements:
 4. "content_translated": The full parallel translation in {origin_lang}, matching the paragraph structure.
 5. "summary": A 1-2 sentence overview of the story in {origin_lang}.
 6. "vocabulary": A list of 6-10 key {target_lang} vocabulary words from the story. Each item must contain:
-   - "word": The word in {target_lang} (for nouns, do not include the article in this field, e.g. "Flughafen", "Kaffee").
+   - "word": The word in {target_lang} (for nouns, do not include the article in this field).
    - "translation": Translation in {origin_lang}.
    - "part_of_speech": "noun", "verb", "adjective", "adverb", "preposition", or "phrase".
-   - "gender": For {target_lang} nouns ONLY, specify "der", "die", or "das". For non-nouns, use null.
+   - "gender": For nouns in languages with grammatical gender (e.g., German 'der/die/das', Spanish 'el/la', French 'le/la', Italian 'il/la/lo'), specify the appropriate article/gender. For non-nouns or languages without grammatical gender (e.g. English, Indonesian, Japanese), use null.
    - "example_sentence": A short {target_lang} sentence using the word.
    - "example_translation": The sentence translated into {origin_lang}.
    - "difficulty_rank": 1 (easy) to 3 (challenging).
 7. "grammar_tips": 2-3 contextual grammar explanations relevant to structures found in this story.
-   - "title": Short title (e.g. "Penggunaan Akkusativ dengan Verba", "Aturan Pemakaian Artikel 'der/die/das'").
+   - "title": Short title explaining the target language rule in {origin_lang}.
    - "explanation": Clear, accessible grammar rule explained in {origin_lang}.
-   - "explanation_translated": Same explanation summary.
+   - "explanation_translated": Same explanation summary in {origin_lang}.
    - "example": Sentence from or related to the story in {target_lang}.
    - "example_translation": Example translated into {origin_lang}.
 8. "quiz_questions": 4-5 comprehension and grammar questions. Must include a mix of:
-   - "multiple_choice": Comprehension questions about the story events.
-   - "article": Practice identifying gender (der/die/das) for a noun from the story.
-   - "fill_blank": Sentence with a missing word (e.g., "Ich gehe in ___ Supermarkt.").
-   - "true_false": True or False statement about the story.
+   - "multiple_choice": Comprehension questions about the story events (questions in {target_lang}, explanation in {origin_lang}).
+   - "article": Practice identifying grammatical gender/article for a noun if {target_lang} has grammatical gender, or a core grammar question if not.
+   - "fill_blank": Sentence with a missing word in {target_lang}.
+   - "true_false": True or False statement about the story in {target_lang}.
    Each question item must contain:
    - "question_type": "multiple_choice", "article", "fill_blank", or "true_false".
    - "question": Question in {target_lang}.
    - "question_translated": Question translated or hinted in {origin_lang}.
    - "correct_answer": The exact correct option string.
-   - "wrong_answers": An array of 3 plausible wrong options (for true_false, only 1 wrong option "Falsch" or "Richtig").
+   - "wrong_answers": An array of 3 plausible wrong options (for true_false, only 1 wrong option).
    - "explanation": Brief explanation in {origin_lang} of why the correct answer is right.
 
 Respond with valid JSON only matching the schema:
@@ -164,7 +164,7 @@ Respond with valid JSON only matching the schema:
 
         for model_name, provider in models_to_try:
             try:
-                logger.info(f"Attempting story generation with model {model_name}...")
+                logger.info(f"Attempting story generation with model {model_name} for {target_lang} from {origin_lang}...")
                 response = await litellm.acompletion(
                     model=model_name,
                     messages=[
@@ -187,14 +187,16 @@ Respond with valid JSON only matching the schema:
 
         # If LLM API keys are not set or unavailable, return a rich mock story bundle
         logger.warning(f"All LLM providers failed or unconfigured. Falling back to default template. Error: {last_error}")
-        fallback_bundle = self._get_curated_fallback(cefr_level, category, topic_hint)
+        fallback_bundle = self._get_curated_fallback(cefr_level, category, topic_hint, target_lang, origin_lang)
         return fallback_bundle, "template/fallback-engine", "internal"
 
     def _get_curated_fallback(
         self,
         cefr_level: CEFRLevel,
         category: str,
-        topic_hint: Optional[str] = None
+        topic_hint: Optional[str] = None,
+        target_lang: str = "German",
+        origin_lang: str = "Indonesian",
     ) -> GeneratedStoryBundle:
         """Returns a high-quality educational fallback bundle for offline/mock operation."""
         return GeneratedStoryBundle(

@@ -151,6 +151,12 @@ function StoryReadingComponent() {
           >
             Level {story.cefr_level}
           </span>
+          {story.language_pair && (
+            <span className="px-2.5 py-0.5 text-xs font-bold rounded-md border border-sky-500/30 bg-sky-500/10 text-sky-400">
+              {story.language_pair.target_language.name} ←{" "}
+              {story.language_pair.origin_language.name}
+            </span>
+          )}
           {story.category && (
             <span className="px-2.5 py-0.5 text-xs font-semibold rounded-md border border-neutral-700 bg-neutral-800 text-neutral-300">
               {story.category.name}
@@ -175,7 +181,7 @@ function StoryReadingComponent() {
 
         {story.summary && (
           <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed border-t border-neutral-800/80 pt-3 italic">
-            Ringkasan: {story.summary}
+            Summary: {story.summary}
           </p>
         )}
 
@@ -241,7 +247,7 @@ function StoryReadingComponent() {
                 }`}
               >
                 {showParallelTranslation
-                  ? "Hide Indonesian Translation"
+                  ? "Hide Parallel Translation"
                   : "Show Parallel Translation"}
               </Button>
             </div>
@@ -253,9 +259,8 @@ function StoryReadingComponent() {
           <div className="text-xs text-neutral-400 bg-sky-950/30 border border-sky-500/20 px-4 py-2.5 rounded-xl flex items-center gap-2">
             <Sparkles className="size-4 text-sky-400 shrink-0" />
             <span>
-              Tip: <strong>Ketuk kata bahasa Jerman mana saja</strong> untuk
-              melihat terjemahan bahasa Indonesia, gender kata benda
-              (der/die/das), dan simpan ke Flashcards.
+              Tip: Tap any word to view vocabulary details, grammatical
+              information, and save to your Flashcards deck.
             </span>
           </div>
 
@@ -263,6 +268,7 @@ function StoryReadingComponent() {
             content={story.content}
             contentTranslated={story.content_translated}
             vocabulary={story.vocabulary}
+            originLanguageName={story.language_pair?.origin_language.name}
             showTranslation={showParallelTranslation}
           />
         </TabsContent>

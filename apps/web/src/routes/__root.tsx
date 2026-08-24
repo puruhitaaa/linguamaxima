@@ -9,6 +9,7 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import Header from "../components/header";
+import { LanguagePairProvider } from "../lib/language-context";
 
 import appCss from "../index.css?url";
 
@@ -53,7 +54,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         name: "viewport",
       },
       {
-        title: "LinguaMaxima — AI-Powered German Reader",
+        title: "LinguaMaxima — AI-Powered Multi-Language Reader",
       },
     ],
   }),
@@ -69,14 +70,16 @@ function RootDocument() {
       </head>
       <body className="min-h-screen bg-black font-sans text-white antialiased selection:bg-sky-500/30 selection:text-sky-200">
         <QueryClientProvider client={queryClient}>
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">
-              <Outlet />
-            </main>
-          </div>
-          <Toaster position="top-right" richColors />
-          <TanStackRouterDevtools position="bottom-left" />
+          <LanguagePairProvider>
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1">
+                <Outlet />
+              </main>
+            </div>
+            <Toaster position="top-right" richColors />
+            <TanStackRouterDevtools position="bottom-left" />
+          </LanguagePairProvider>
         </QueryClientProvider>
         <Scripts />
       </body>

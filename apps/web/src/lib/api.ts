@@ -49,35 +49,23 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   // Stories
   getStories: (params?: {
-    cefr_level?: string;
     category_slug?: string;
-    search?: string;
-    is_favorite?: boolean;
+    cefr_level?: string;
     is_completed?: boolean;
-    page?: number;
+    is_favorite?: boolean;
     limit?: number;
+    origin_language_code?: string;
+    page?: number;
+    search?: string;
+    target_language_code?: string;
   }) => {
     const query = new URLSearchParams();
-    if (params?.cefr_level && params.cefr_level !== "all") {
-      query.set("cefr_level", params.cefr_level);
-    }
-    if (params?.category_slug && params.category_slug !== "all") {
-      query.set("category_slug", params.category_slug);
-    }
-    if (params?.search) {
-      query.set("search", params.search);
-    }
-    if (params?.is_favorite !== undefined) {
-      query.set("is_favorite", String(params.is_favorite));
-    }
-    if (params?.is_completed !== undefined) {
-      query.set("is_completed", String(params.is_completed));
-    }
-    if (params?.page) {
-      query.set("page", params.page.toString());
-    }
-    if (params?.limit) {
-      query.set("limit", params.limit.toString());
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== "all" && value !== "") {
+          query.set(key, String(value));
+        }
+      }
     }
     const qs = query.toString();
     return request<StoryListItem[]>(`/api/v1/stories${qs ? `?${qs}` : ""}`);
@@ -93,7 +81,7 @@ export const api = {
     }),
 
   toggleFavorite: (storyId: number) =>
-    request<{ story_id: number; is_favorite: boolean }>(
+    request<{ is_favorite: boolean; story_id: number }>(
       `/api/v1/stories/${storyId}/favorite`,
       { method: "PATCH" }
     ),
@@ -105,6 +93,15 @@ export const api = {
   getLanguages: () => request<Language[]>("/api/v1/languages"),
 
   getLanguagePairs: () => request<LanguagePair[]>("/api/v1/languages/pairs"),
+
+  createLanguagePair: (payload: {
+    origin_language_code: string;
+    target_language_code: string;
+  }) =>
+    request<LanguagePair>("/api/v1/languages/pairs", {
+      body: JSON.stringify(payload),
+      method: "POST",
+    }),
 
   // Flashcards
   getAllFlashcards: (params?: { search?: string }) => {

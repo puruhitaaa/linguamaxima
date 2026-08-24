@@ -38,6 +38,9 @@ class StoryService:
         cefr_level: Optional[CEFRLevel] = None,
         category_slug: Optional[str] = None,
         search: Optional[str] = None,
+        origin_language_code: Optional[str] = None,
+        target_language_code: Optional[str] = None,
+        language_pair_id: Optional[int] = None,
         is_favorite: Optional[bool] = None,
         is_completed: Optional[bool] = None,
         page: int = 1,
@@ -49,6 +52,9 @@ class StoryService:
             cefr_level=cefr_level,
             category_slug=category_slug,
             search=search,
+            origin_language_code=origin_language_code,
+            target_language_code=target_language_code,
+            language_pair_id=language_pair_id,
             is_favorite=is_favorite,
             is_completed=is_completed,
             limit=limit,
@@ -70,6 +76,7 @@ class StoryService:
                     summary=s.summary,
                     cefr_level=s.cefr_level,
                     category=s.category,
+                    language_pair=s.language_pair,
                     image_url=s.image_url,
                     audio_url=s.audio_url,
                     estimated_reading_minutes=s.estimated_reading_minutes,
@@ -165,12 +172,12 @@ class StoryService:
         category_name = category.name if category else req.category_slug.capitalize()
         category_id = category.id if category else None
 
-        lang_pair = await language_repo.get_pair_by_codes(
+        lang_pair = await language_repo.get_or_create_pair(
             session, req.origin_language_code, req.target_language_code
         )
         lang_pair_id = lang_pair.id if lang_pair else None
-        target_name = lang_pair.target_language.name if lang_pair else "German"
-        origin_name = lang_pair.origin_language.name if lang_pair else "Indonesian"
+        target_name = lang_pair.target_language.name if (lang_pair and lang_pair.target_language) else req.target_language_code.upper()
+        origin_name = lang_pair.origin_language.name if (lang_pair and lang_pair.origin_language) else req.origin_language_code.upper()
 
         # 1. AI generation
         bundle, ai_model, ai_provider = await ai_service.generate_story(

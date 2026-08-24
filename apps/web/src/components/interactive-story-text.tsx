@@ -13,14 +13,18 @@ import type { VocabularyItem } from "../types/api";
 interface InteractiveStoryTextProps {
   content: string;
   contentTranslated?: string;
-  vocabulary: VocabularyItem[];
+  originLanguageName?: string;
   showTranslation: boolean;
+  vocabulary: VocabularyItem[];
 }
 
 const GENDER_BADGE_STYLE: Record<string, string> = {
   das: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   der: "bg-sky-500/15 text-sky-400 border-sky-500/30",
   die: "bg-rose-500/15 text-rose-400 border-rose-500/30",
+  el: "bg-sky-500/15 text-sky-400 border-sky-500/30",
+  la: "bg-rose-500/15 text-rose-400 border-rose-500/30",
+  le: "bg-sky-500/15 text-sky-400 border-sky-500/30",
 };
 
 function cleanWord(raw: string) {
@@ -33,8 +37,9 @@ function cleanWord(raw: string) {
 export function InteractiveStoryText({
   content,
   contentTranslated,
-  vocabulary,
+  originLanguageName,
   showTranslation,
+  vocabulary,
 }: InteractiveStoryTextProps) {
   const saveFlashcardMutation = useSaveFlashcard();
   const [activeWordInfo, setActiveWordInfo] = useState<VocabularyItem | null>(
@@ -75,7 +80,7 @@ export function InteractiveStoryText({
             key={pIdx}
             className="p-5 sm:p-6 rounded-2xl bg-neutral-900/40 border border-neutral-800/80 transition-all hover:border-neutral-700/80 space-y-4"
           >
-            {/* German Paragraph with interactive words */}
+            {/* Target Language Paragraph with interactive words */}
             <p className="text-lg sm:text-xl font-normal leading-loose tracking-wide text-neutral-100 selection:bg-sky-500/30">
               {words.map((rawWord, wIdx) => {
                 const cleaned = cleanWord(rawWord);
@@ -131,7 +136,9 @@ export function InteractiveStoryText({
 
                             <div>
                               <span className="text-xs text-neutral-400 block mb-0.5">
-                                Indonesian Translation:
+                                {originLanguageName
+                                  ? `${originLanguageName} Translation:`
+                                  : "Translation:"}
                               </span>
                               <p className="text-sm font-semibold text-sky-400">
                                 {activeWordInfo.translation}
@@ -198,11 +205,13 @@ export function InteractiveStoryText({
               })}
             </p>
 
-            {/* Parallel Indonesian Translation */}
+            {/* Parallel Translation */}
             {showTranslation && transPara && (
               <div className="pt-3 border-t border-neutral-800/80 text-sm text-neutral-400 leading-relaxed italic bg-neutral-950/40 p-3 rounded-lg">
                 <span className="text-[11px] uppercase tracking-wider text-sky-400/80 font-bold block not-italic mb-1">
-                  Terjemahan Indonesia:
+                  {originLanguageName
+                    ? `Parallel Translation (${originLanguageName}):`
+                    : "Parallel Translation:"}
                 </span>
                 {transPara}
               </div>

@@ -2,6 +2,7 @@ import { Card, CardContent } from "@linguamaxima/ui/components/card";
 import { Link } from "@tanstack/react-router";
 import { BookOpen, CheckCircle2, Clock, Heart } from "lucide-react";
 
+import { getLanguageFlag } from "../lib/language-context";
 import { useToggleFavorite } from "../lib/queries";
 import type { StoryListItem, CEFRLevel } from "../types/api";
 
@@ -47,12 +48,18 @@ export function StoryCard({ story }: { story: StoryListItem }) {
           )}
 
           {/* Top overlays */}
-          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
             <span
               className={`px-2 py-0.5 text-xs font-bold rounded-md border ${levelColorClass} backdrop-blur-md bg-neutral-950/80`}
             >
               {story.cefr_level}
             </span>
+            {story.language_pair && (
+              <span className="px-2 py-0.5 text-[11px] font-bold rounded-md border border-sky-500/30 bg-neutral-950/80 text-sky-400 backdrop-blur-md">
+                {getLanguageFlag(story.language_pair.target_language.code)}{" "}
+                {story.language_pair.target_language.code.toUpperCase()}
+              </span>
+            )}
             {story.category && (
               <span className="px-2 py-0.5 text-xs font-medium rounded-md border border-neutral-700 bg-neutral-950/80 text-neutral-300 backdrop-blur-md">
                 {story.category.name}

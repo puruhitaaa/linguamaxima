@@ -8,6 +8,22 @@ from app.core.config import settings
 
 logger = logging.getLogger("linguamaxima.tts")
 
+VOICE_MAP = {
+    "de": "de-DE-KillianNeural",
+    "id": "id-ID-ArdiNeural",
+    "en": "en-US-ChristopherNeural",
+    "es": "es-ES-AlvaroNeural",
+    "fr": "fr-FR-HenriNeural",
+    "it": "it-IT-DiegoNeural",
+    "ja": "ja-JP-KeitaNeural",
+    "zh": "zh-CN-YunxiNeural",
+    "ko": "ko-KR-InJoonNeural",
+    "pt": "pt-BR-AntonioNeural",
+    "nl": "nl-NL-MaartenNeural",
+    "ru": "ru-RU-DmitryNeural",
+    "ar": "ar-SA-HamedNeural",
+}
+
 class TTSService:
     def __init__(self):
         self.audio_dir: Path = settings.audio_dir
@@ -17,6 +33,10 @@ class TTSService:
         # Create stable hash for audio file caching
         content_hash = hashlib.sha256(f"{voice}:{text}".encode("utf-8")).hexdigest()[:16]
         return f"{content_hash}.mp3"
+
+    def get_voice_for_language(self, language: str) -> str:
+        lang_code = language.lower().split("-")[0].split("_")[0]
+        return VOICE_MAP.get(lang_code, settings.default_target_voice or "de-DE-KillianNeural")
 
     async def generate_audio(
         self,
@@ -32,12 +52,7 @@ class TTSService:
             return None
 
         if voice is None:
-            if language.startswith("de"):
-                voice = settings.default_target_voice
-            elif language.startswith("id"):
-                voice = settings.default_origin_voice
-            else:
-                voice = settings.default_target_voice
+            voice = self.get_voice_for_language(language)
 
         filename = self._get_filename(text.strip(), voice)
         file_path = self.audio_dir / filename

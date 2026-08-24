@@ -183,3 +183,44 @@ def test_srs_sm2_algorithm():
     r3 = calculate_sm2(quality=0, current_ease_factor=r2.ease_factor, current_interval=r2.interval_days, current_repetitions=r2.repetitions, now=now)
     assert r3.repetitions == 0
     assert r3.interval_days == 1
+
+@pytest.mark.asyncio
+async def test_languages_endpoints(client):
+    # Test list languages
+    lang_res = await client.get("/api/v1/languages")
+    assert lang_res.status_code == 200
+    languages = lang_res.json()
+    assert len(languages) >= 5
+    codes = [l["code"] for l in languages]
+    assert "de" in codes
+    assert "id" in codes
+    assert "en" in codes
+    assert "es" in codes
+
+    # Test list language pairs
+    pairs_res = await client.get("/api/v1/languages/pairs")
+    assert pairs_res.status_code == 200
+    pairs = pairs_res.json()
+    assert len(pairs) >= 1
+
+    # Test create / get language pair on demand
+    create_pair_res = await client.post(
+        "/api/v1/languages/pairs",
+        json={"origin_language_code": "en", "target_language_code": "es"}
+    )
+    assert create_pair_res.status_code == 200
+    pair_data = create_pair_res.json()
+    assert pair_data["origin_language"]["code"] == "en"
+    assert pair_data["target_language"]["code"] == "es"
+
+@pytest.mark.asyncio
+async def test_filter_stories_by_language_codes(client):
+    # Filter for target_language_code=de and origin_language_code=id
+    res = await client.get("/api/v1/stories?target_language_code=de&origin_language_code=id")
+    assert res.status_code == 200
+    stories = res.json()
+    assert len(stories) >= 1
+    for s in stories:
+        if s.get("language_pair"):
+            assert s["language_pair"]["target_language"]["code"] == "de"
+            assert s["language_pair"]["origin_language"]["code"] == "id"

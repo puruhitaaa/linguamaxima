@@ -69,6 +69,7 @@ export interface StoryListItem {
   summary?: string;
   cefr_level: CEFRLevel;
   category?: Category;
+  language_pair?: LanguagePair;
   image_url?: string;
   audio_url?: string;
   estimated_reading_minutes: number;
@@ -82,7 +83,6 @@ export interface StoryListItem {
 export interface StoryDetail extends StoryListItem {
   content: string;
   content_translated?: string;
-  language_pair?: LanguagePair;
   ai_model?: string;
   ai_provider?: string;
   vocabulary: VocabularyItem[];
@@ -149,4 +149,9 @@ export interface StoryGeneratePayload {
   topic_hint?: string;
   target_language_code?: string;
   origin_language_code?: string;
+}
+
+export interface LanguagePairCreatePayload {
+  origin_language_code: string;
+  target_language_code: string;
 }

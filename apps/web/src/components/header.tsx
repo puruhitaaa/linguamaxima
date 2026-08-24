@@ -1,18 +1,24 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BookOpen, Flame, GraduationCap, Layers } from "lucide-react";
+import { BookOpen, Flame, Globe, GraduationCap, Layers } from "lucide-react";
+import { useState } from "react";
 
+import { useLanguagePair } from "../lib/language-context";
 import { useProgress } from "../lib/queries";
 import { GenerateStoryDialog } from "./generate-story-dialog";
+import { LanguagePairModal } from "./language-pair-modal";
 
 export default function Header() {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const { data: progress } = useProgress();
+  const { getLanguageFlag, originLanguage, targetLanguage } = useLanguagePair();
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
 
   const navLinks = [
-    { to: "/", label: "Stories", icon: BookOpen },
-    { to: "/flashcards", label: "Flashcards", icon: Layers },
-    { to: "/progress", label: "Progress", icon: GraduationCap },
+    { icon: BookOpen, label: "Stories", to: "/" },
+    { icon: Globe, label: "Languages", to: "/languages" },
+    { icon: Layers, label: "Flashcards", to: "/flashcards" },
+    { icon: GraduationCap, label: "Progress", to: "/progress" },
   ] as const;
 
   return (
@@ -27,19 +33,16 @@ export default function Header() {
             <div className="flex flex-col">
               <span className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
                 LinguaMaxima
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-400 border border-sky-500/30">
-                  DE • ID
-                </span>
               </span>
               <span className="text-[10px] text-neutral-400 font-medium -mt-0.5">
-                AI German Reader
+                AI Language Reader
               </span>
             </div>
           </Link>
 
           {/* Navigation Links */}
           <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map(({ to, label, icon: Icon }) => {
+            {navLinks.map(({ icon: Icon, label, to }) => {
               const isActive =
                 to === "/" ? currentPath === "/" : currentPath.startsWith(to);
               return (
@@ -62,6 +65,28 @@ export default function Header() {
 
         {/* Right Action Items */}
         <div className="flex items-center gap-3">
+          {/* Active Language Pair Quick Switcher Badge */}
+          <button
+            type="button"
+            onClick={() => setIsLangModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-sky-500/50 hover:bg-neutral-850 text-neutral-200 text-xs font-bold transition-all shadow-sm group"
+            title="Click to switch language pair"
+          >
+            <span className="text-sm">
+              {getLanguageFlag(targetLanguage.code)}
+            </span>
+            <span className="text-white font-extrabold text-[11px]">
+              {targetLanguage.code.toUpperCase()}
+            </span>
+            <span className="text-neutral-500 font-medium text-[10px]">←</span>
+            <span className="text-sm">
+              {getLanguageFlag(originLanguage.code)}
+            </span>
+            <span className="text-neutral-400 font-semibold text-[11px]">
+              {originLanguage.code.toUpperCase()}
+            </span>
+          </button>
+
           {/* Daily Streak & Due Flashcards */}
           {progress && (
             <div className="hidden sm:flex items-center gap-2">
@@ -88,6 +113,11 @@ export default function Header() {
           <GenerateStoryDialog />
         </div>
       </div>
+
+      <LanguagePairModal
+        open={isLangModalOpen}
+        onOpenChange={setIsLangModalOpen}
+      />
     </header>
   );
 }
