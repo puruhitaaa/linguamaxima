@@ -13,6 +13,8 @@ import type {
 } from "../types/api";
 
 const API_BASE_URL =
+  (typeof process !== "undefined" &&
+    (process.env?.VITE_API_URL || process.env?.API_URL)) ||
   (import.meta !== undefined && import.meta.env?.VITE_API_URL) ||
   "http://localhost:8000";
 
