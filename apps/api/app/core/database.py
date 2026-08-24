@@ -141,10 +141,14 @@ async def init_db() -> None:
         logger.info("auto_init_db is disabled. Skipping startup table creation.")
         return
 
+    # Ensure all ORM models are registered in Base.metadata
+    import app.models  # noqa: F401
+
     try:
         engine = get_engine()
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database schema initialized successfully.")
     except Exception as e:
         logger.warning(f"Failed to init primary DB ({e}). Checking fallback...")
         if settings.use_sqlite_fallback:

@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.error(f"Error during init_db: {e}")
 
-    if settings.auto_seed_db and not settings.is_serverless:
+    if settings.auto_seed_db:
         try:
             session_maker = get_session_maker()
             async with session_maker() as session:
