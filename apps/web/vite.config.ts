@@ -9,6 +9,9 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  ssr: {
+    noExternal: true,
+  },
   server: {
     port: 3001,
   },
