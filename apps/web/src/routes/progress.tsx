@@ -13,6 +13,8 @@ import {
 import { z } from "zod";
 
 import { StoryCard } from "../components/story-card";
+import { useTranslation } from "../lib/i18n";
+import { useLanguagePair } from "../lib/language-context";
 import { useProgress, useStories } from "../lib/queries";
 import type { StoryListItem } from "../types/api";
 
@@ -82,6 +84,8 @@ function MetricsGrid({
     total_words_learned: number;
   };
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Card className="bg-neutral-900/60 border-neutral-800 p-5 rounded-2xl">
@@ -91,7 +95,7 @@ function MetricsGrid({
           </div>
           <div>
             <span className="text-xs text-neutral-400 font-medium block">
-              Stories Read
+              {t("progress.storiesRead")}
             </span>
             <span className="text-2xl font-black text-white">
               {progress?.total_stories_read || 0}
@@ -110,7 +114,7 @@ function MetricsGrid({
           </div>
           <div>
             <span className="text-xs text-neutral-400 font-medium block">
-              Words Saved
+              {t("progress.wordsSaved")}
             </span>
             <span className="text-2xl font-black text-white">
               {progress?.total_words_learned || 0}
@@ -126,10 +130,11 @@ function MetricsGrid({
           </div>
           <div>
             <span className="text-xs text-neutral-400 font-medium block">
-              Daily Streak
+              {t("progress.dailyStreak")}
             </span>
             <span className="text-2xl font-black text-white">
-              {progress?.current_streak_days || 0} days
+              {progress?.current_streak_days || 0}{" "}
+              {t("progress.streakDaysSuffix")}
             </span>
           </div>
         </div>
@@ -142,7 +147,7 @@ function MetricsGrid({
           </div>
           <div>
             <span className="text-xs text-neutral-400 font-medium block">
-              Average Quiz
+              {t("progress.averageQuiz")}
             </span>
             <span className="text-2xl font-black text-white">
               {progress?.average_quiz_score
@@ -171,6 +176,8 @@ function OverviewTabContent({
   onViewAllCompleted: () => void;
   onViewAllFavorites: () => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-8">
       <div className="space-y-4">
@@ -178,7 +185,7 @@ function OverviewTabContent({
           <div className="flex items-center gap-2">
             <Heart className="size-5 text-rose-500 fill-rose-500" />
             <h2 className="text-lg font-bold text-white">
-              Favorite Stories ({favList.length})
+              {t("progress.favoriteStories", { count: favList.length })}
             </h2>
           </div>
           {favList.length > 3 && (
@@ -187,7 +194,7 @@ function OverviewTabContent({
               onClick={onViewAllFavorites}
               className="text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
             >
-              View all favorites →
+              {t("progress.viewAllFavorites")}
             </button>
           )}
         </div>
@@ -195,7 +202,7 @@ function OverviewTabContent({
         <StoryGridSection
           stories={favList}
           isLoading={isLoadingFavorites}
-          emptyMessage="No favorite stories yet. Click the heart icon on any story to save it here!"
+          emptyMessage={t("progress.emptyFavoritesOverview")}
         />
       </div>
 
@@ -204,7 +211,7 @@ function OverviewTabContent({
           <div className="flex items-center gap-2">
             <CheckCircle2 className="size-5 text-emerald-400" />
             <h2 className="text-lg font-bold text-white">
-              Completed Stories ({compList.length})
+              {t("progress.completedStories", { count: compList.length })}
             </h2>
           </div>
           {compList.length > 3 && (
@@ -213,7 +220,7 @@ function OverviewTabContent({
               onClick={onViewAllCompleted}
               className="text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
             >
-              View all completed →
+              {t("progress.viewAllCompleted")}
             </button>
           )}
         </div>
@@ -221,7 +228,7 @@ function OverviewTabContent({
         <StoryGridSection
           stories={compList}
           isLoading={isLoadingCompleted}
-          emptyMessage="No completed stories yet. Read a story and complete its quiz to mark it finished!"
+          emptyMessage={t("progress.emptyCompletedOverview")}
         />
       </div>
     </div>
@@ -229,6 +236,8 @@ function OverviewTabContent({
 }
 
 function ProgressComponent() {
+  const { t } = useTranslation();
+  const { targetLanguage } = useLanguagePair();
   const navigate = Route.useNavigate();
   const searchParams = Route.useSearch();
   const activeTab = searchParams.tab ?? "overview";
@@ -275,11 +284,10 @@ function ProgressComponent() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <GraduationCap className="size-6 text-sky-400" />
-            Learning Dashboard
+            {t("progress.title")}
           </h1>
           <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-            Track your German reading milestones, vocabulary retention, and quiz
-            achievements.
+            {t("progress.subtitle", { target: targetLanguage.name })}
           </p>
         </div>
 
@@ -289,19 +297,19 @@ function ProgressComponent() {
               value="overview"
               className="text-xs font-semibold px-3 py-1.5"
             >
-              Overview
+              {t("progress.overviewTab")}
             </TabsTrigger>
             <TabsTrigger
               value="favorites"
               className="text-xs font-semibold px-3 py-1.5"
             >
-              Favorites ({favList.length})
+              {t("progress.favoritesTab", { count: favList.length })}
             </TabsTrigger>
             <TabsTrigger
               value="completed"
               className="text-xs font-semibold px-3 py-1.5"
             >
-              Completed ({compList.length})
+              {t("progress.completedTab", { count: compList.length })}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -323,7 +331,9 @@ function ProgressComponent() {
                 : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
             }`}
           >
-            {lvl === "all" ? "All Levels" : `Level ${lvl}`}
+            {lvl === "all"
+              ? t("progress.allLevels")
+              : t("progress.levelPrefix", { level: lvl })}
           </button>
         ))}
       </div>
@@ -346,14 +356,14 @@ function ProgressComponent() {
           <div className="flex items-center gap-2">
             <Heart className="size-5 text-rose-500 fill-rose-500" />
             <h2 className="text-lg font-bold text-white">
-              Favorite Stories ({favList.length})
+              {t("progress.favoriteStories", { count: favList.length })}
             </h2>
           </div>
 
           <StoryGridSection
             stories={favList}
             isLoading={isLoadingFavorites}
-            emptyMessage="No favorite stories found for this filter."
+            emptyMessage={t("progress.emptyFavoritesTab")}
           />
         </div>
       )}
@@ -364,14 +374,14 @@ function ProgressComponent() {
           <div className="flex items-center gap-2">
             <CheckCircle2 className="size-5 text-emerald-400" />
             <h2 className="text-lg font-bold text-white">
-              Completed Stories ({compList.length})
+              {t("progress.completedStories", { count: compList.length })}
             </h2>
           </div>
 
           <StoryGridSection
             stories={compList}
             isLoading={isLoadingCompleted}
-            emptyMessage="No completed stories found for this filter."
+            emptyMessage={t("progress.emptyCompletedTab")}
           />
         </div>
       )}

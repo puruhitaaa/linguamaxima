@@ -7,6 +7,7 @@ import {
 import { Bookmark, Check } from "lucide-react";
 import { useState } from "react";
 
+import { useTranslation } from "../lib/i18n";
 import { useSaveFlashcard } from "../lib/queries";
 import type { VocabularyItem } from "../types/api";
 
@@ -41,6 +42,7 @@ export function InteractiveStoryText({
   showTranslation,
   vocabulary,
 }: InteractiveStoryTextProps) {
+  const { t } = useTranslation();
   const saveFlashcardMutation = useSaveFlashcard();
   const [activeWordInfo, setActiveWordInfo] = useState<VocabularyItem | null>(
     null
@@ -136,9 +138,9 @@ export function InteractiveStoryText({
 
                             <div>
                               <span className="text-xs text-neutral-400 block mb-0.5">
-                                {originLanguageName
-                                  ? `${originLanguageName} Translation:`
-                                  : "Translation:"}
+                                {t("story.translationLabel", {
+                                  origin: originLanguageName || "",
+                                })}
                               </span>
                               <p className="text-sm font-semibold text-sky-400">
                                 {activeWordInfo.translation}
@@ -177,12 +179,12 @@ export function InteractiveStoryText({
                               {activeWordInfo.is_saved_as_flashcard ? (
                                 <>
                                   <Check className="size-3.5" />
-                                  Saved in Deck
+                                  {t("story.savedInDeck")}
                                 </>
                               ) : (
                                 <>
                                   <Bookmark className="size-3.5" />
-                                  Save to Flashcards
+                                  {t("story.saveToFlashcards")}
                                 </>
                               )}
                             </Button>
@@ -193,8 +195,7 @@ export function InteractiveStoryText({
                               {activeRawWord}
                             </h4>
                             <p className="text-xs text-neutral-400">
-                              Word meaning is available in the parallel story
-                              translation below.
+                              {t("story.wordMeaningInParallel")}
                             </p>
                           </div>
                         )}
@@ -209,9 +210,9 @@ export function InteractiveStoryText({
             {showTranslation && transPara && (
               <div className="pt-3 border-t border-neutral-800/80 text-sm text-neutral-400 leading-relaxed italic bg-neutral-950/40 p-3 rounded-lg">
                 <span className="text-[11px] uppercase tracking-wider text-sky-400/80 font-bold block not-italic mb-1">
-                  {originLanguageName
-                    ? `Parallel Translation (${originLanguageName}):`
-                    : "Parallel Translation:"}
+                  {t("story.parallelTranslationHeader", {
+                    origin: originLanguageName || "",
+                  })}
                 </span>
                 {transPara}
               </div>

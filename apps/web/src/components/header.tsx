@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { BookOpen, Flame, Globe, GraduationCap, Layers } from "lucide-react";
 import { useState } from "react";
 
+import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
 import { useProgress } from "../lib/queries";
 import { GenerateStoryDialog } from "./generate-story-dialog";
@@ -10,15 +11,16 @@ import { LanguagePairModal } from "./language-pair-modal";
 export default function Header() {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
+  const { t } = useTranslation();
   const { data: progress } = useProgress();
   const { getLanguageFlag, originLanguage, targetLanguage } = useLanguagePair();
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
 
   const navLinks = [
-    { icon: BookOpen, label: "Stories", to: "/" },
-    { icon: Globe, label: "Languages", to: "/languages" },
-    { icon: Layers, label: "Flashcards", to: "/flashcards" },
-    { icon: GraduationCap, label: "Progress", to: "/progress" },
+    { icon: BookOpen, label: t("header.stories"), to: "/" },
+    { icon: Globe, label: t("header.languages"), to: "/languages" },
+    { icon: Layers, label: t("header.flashcards"), to: "/flashcards" },
+    { icon: GraduationCap, label: t("header.progress"), to: "/progress" },
   ] as const;
 
   return (
@@ -35,7 +37,7 @@ export default function Header() {
                 LinguaMaxima
               </span>
               <span className="text-[10px] text-neutral-400 font-medium -mt-0.5">
-                AI Language Reader
+                {t("header.aiReader")}
               </span>
             </div>
           </Link>
@@ -70,7 +72,7 @@ export default function Header() {
             type="button"
             onClick={() => setIsLangModalOpen(true)}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-sky-500/50 hover:bg-neutral-850 text-neutral-200 text-xs font-bold transition-all shadow-sm group"
-            title="Click to switch language pair"
+            title={t("header.quickSwitcherTitle")}
           >
             <span className="text-sm">
               {getLanguageFlag(targetLanguage.code)}
@@ -92,18 +94,31 @@ export default function Header() {
             <div className="hidden sm:flex items-center gap-2">
               <div
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold"
-                title="Daily streak"
+                title={t("header.streakTooltip")}
               >
                 <Flame className="size-3.5 fill-orange-400" />
-                <span>{progress.current_streak_days}d streak</span>
+                <span>
+                  {progress.current_streak_days}
+                  {t("common.days").charAt(0)}{" "}
+                  {t("common.days") !== "days" ? "" : "streak"}
+                </span>
               </div>
               {progress.flashcards_due_today > 0 && (
                 <Link
                   to="/flashcards"
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-bold hover:bg-sky-500/20 transition-colors"
+                  title={t("header.dueTooltip")}
                 >
                   <Layers className="size-3.5" />
-                  <span>{progress.flashcards_due_today} due</span>
+                  <span>
+                    {progress.flashcards_due_today}{" "}
+                    {t("flashcards.dueReviewTab", {
+                      count: progress.flashcards_due_today,
+                    })
+                      .split("(")[0]
+                      ?.trim()
+                      .toLowerCase() || "due"}
+                  </span>
                 </Link>
               )}
             </div>

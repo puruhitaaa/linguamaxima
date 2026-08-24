@@ -13,30 +13,32 @@ import { Label } from "@linguamaxima/ui/components/label";
 import { ArrowLeftRight, Loader2, Sparkles } from "lucide-react";
 import { useState } from "react";
 
+import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
 import { useGenerateStory } from "../lib/queries";
 import type { CEFRLevel } from "../types/api";
 
 const CEFR_LEVELS: CEFRLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
-const CATEGORIES = [
-  { label: "Travel & Adventures", slug: "travel" },
-  { label: "Food & Cuisine", slug: "food" },
-  { label: "Culture & Traditions", slug: "culture" },
-  { label: "Daily Life & Routines", slug: "daily-life" },
-  { label: "Technology & Innovations", slug: "technology" },
-  { label: "Science & Nature", slug: "science" },
-  { label: "Entertainment & Arts", slug: "entertainment" },
-  { label: "News & Society", slug: "news" },
-  { label: "History & Legends", slug: "history" },
-  { label: "Nature & Wildlife", slug: "nature" },
-];
+const CATEGORY_SLUGS = [
+  "travel",
+  "food",
+  "culture",
+  "daily-life",
+  "technology",
+  "science",
+  "entertainment",
+  "news",
+  "history",
+  "nature",
+] as const;
 
 export function GenerateStoryDialog({
   trigger,
 }: {
   trigger?: React.ReactNode;
 }) {
+  const { t, tCategory } = useTranslation();
   const {
     availableLanguages,
     getLanguageFlag,
@@ -98,7 +100,7 @@ export function GenerateStoryDialog({
           ) : (
             <Button className="gap-2 bg-sky-500 hover:bg-sky-600 text-white shadow-sm font-semibold">
               <Sparkles className="size-4" />
-              <span>Generate Story</span>
+              <span>{t("generator.triggerBtn")}</span>
             </Button>
           )
         }
@@ -108,12 +110,13 @@ export function GenerateStoryDialog({
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Sparkles className="size-5 text-sky-400" />
-              Generate AI Story
+              {t("generator.dialogTitle")}
             </DialogTitle>
             <DialogDescription className="text-neutral-400 text-xs leading-relaxed">
-              Generate a CEFR-graded {activeTargetLang.name} story with{" "}
-              {activeOriginLang.name} translations, vocabulary, grammar tips,
-              and comprehension quizzes in seconds.
+              {t("generator.dialogDesc", {
+                origin: activeOriginLang.name,
+                target: activeTargetLang.name,
+              })}
             </DialogDescription>
           </DialogHeader>
 
@@ -121,12 +124,12 @@ export function GenerateStoryDialog({
             {/* Language Pair Selectors in Generator */}
             <div className="p-3.5 rounded-2xl bg-neutral-900/90 border border-neutral-800 space-y-2">
               <div className="text-[11px] uppercase font-bold tracking-wider text-neutral-400">
-                Language Direction
+                {t("generator.languageDirection")}
               </div>
               <div className="grid grid-cols-11 gap-2 items-center">
                 <div className="col-span-5 space-y-1">
                   <span className="text-[10px] text-neutral-400 block font-medium">
-                    I Speak:
+                    {t("generator.iSpeakLabel")}
                   </span>
                   <select
                     value={originCode}
@@ -145,7 +148,7 @@ export function GenerateStoryDialog({
                   <button
                     type="button"
                     onClick={handleSwap}
-                    title="Swap"
+                    title={t("generator.swapTooltip")}
                     className="p-1.5 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 transition-colors"
                   >
                     <ArrowLeftRight className="size-3.5" />
@@ -154,7 +157,7 @@ export function GenerateStoryDialog({
 
                 <div className="col-span-5 space-y-1">
                   <span className="text-[10px] text-sky-400 block font-bold">
-                    I Learn (Target):
+                    {t("generator.iLearnLabel")}
                   </span>
                   <select
                     value={targetCode}
@@ -174,7 +177,7 @@ export function GenerateStoryDialog({
             {/* CEFR Level */}
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-wider text-neutral-400">
-                CEFR Proficiency Level
+                {t("generator.cefrLabel")}
               </Label>
               <div className="grid grid-cols-6 gap-1.5">
                 {CEFR_LEVELS.map((lvl) => (
@@ -197,16 +200,16 @@ export function GenerateStoryDialog({
             {/* Category */}
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-wider text-neutral-400">
-                Category
+                {t("generator.categoryLabel")}
               </Label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full h-10 px-3 rounded-xl bg-neutral-900 border border-neutral-800 text-xs text-neutral-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
               >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat.slug} value={cat.slug}>
-                    {cat.label}
+                {CATEGORY_SLUGS.map((slug) => (
+                  <option key={slug} value={slug}>
+                    {tCategory(slug)}
                   </option>
                 ))}
               </select>
@@ -215,10 +218,10 @@ export function GenerateStoryDialog({
             {/* Topic Hint */}
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-wider text-neutral-400">
-                Topic or Keyword (Optional)
+                {t("generator.topicHintLabel")}
               </Label>
               <Input
-                placeholder="e.g. Ordering at a cafe, Lost in the subway, Booking a ticket..."
+                placeholder={t("generator.topicHintPlaceholder")}
                 value={topicHint}
                 onChange={(e) => setTopicHint(e.target.value)}
                 className="bg-neutral-900 border-neutral-800 text-xs text-neutral-100 placeholder:text-neutral-500 rounded-xl"
@@ -233,7 +236,7 @@ export function GenerateStoryDialog({
               onClick={() => setOpen(false)}
               className="border-neutral-800 text-neutral-300 hover:bg-neutral-900 text-xs"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               type="submit"
@@ -243,12 +246,16 @@ export function GenerateStoryDialog({
               {generateMutation.isPending ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Generating {activeTargetLang.name} Story...
+                  {t("generator.generatingBtn", {
+                    target: activeTargetLang.name,
+                  })}
                 </>
               ) : (
                 <>
                   <Sparkles className="size-4" />
-                  Generate {activeTargetLang.name} Story
+                  {t("generator.generateBtn", {
+                    target: activeTargetLang.name,
+                  })}
                 </>
               )}
             </Button>

@@ -8,6 +8,7 @@ import { z } from "zod";
 import { GenerateStoryDialog } from "../components/generate-story-dialog";
 import { LanguagePairModal } from "../components/language-pair-modal";
 import { StoryCard } from "../components/story-card";
+import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
 import { useCategories, useProgress, useStories } from "../lib/queries";
 
@@ -34,6 +35,7 @@ function HomeComponent() {
   const searchParam = searchParams.search ?? "";
   const languageScope = searchParams.language_scope ?? "pair";
 
+  const { t, tCategory } = useTranslation();
   const { getLanguageFlag, originLanguage, targetLanguage } = useLanguagePair();
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(searchParam);
@@ -124,15 +126,15 @@ function HomeComponent() {
         <div className="space-y-1">
           <h3 className="text-lg font-bold text-white">
             {languageScope === "pair"
-              ? `No ${targetLanguage.name} Stories Yet`
-              : "No Stories Found"}
+              ? t("home.emptyTitlePair", { target: targetLanguage.name })
+              : t("home.emptyTitleGeneric")}
           </h3>
           <p className="text-xs text-neutral-400">
             {searchParam ||
             selectedLevel !== "all" ||
             selectedCategory !== "all"
-              ? "Try clearing or broadening your search filters."
-              : `Generate your first ${targetLanguage.name} story with AI or switch language scope.`}
+              ? t("home.emptyDescGeneric")
+              : t("home.emptyDescPair", { target: targetLanguage.name })}
           </p>
         </div>
         <div className="flex items-center justify-center gap-3 pt-2">
@@ -142,14 +144,14 @@ function HomeComponent() {
               onClick={() => handleToggleScope("all")}
               className="border-neutral-700 text-neutral-300 hover:bg-neutral-800 text-xs"
             >
-              View All Languages
+              {t("home.emptyActionAll")}
             </Button>
           )}
           <GenerateStoryDialog
             trigger={
               <Button className="bg-sky-500 hover:bg-sky-600 text-white gap-2 font-semibold text-xs">
                 <Sparkles className="size-4" />
-                Generate {targetLanguage.name} Story
+                {t("home.emptyActionGenerate", { target: targetLanguage.name })}
               </Button>
             }
           />
@@ -168,25 +170,26 @@ function HomeComponent() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
               <Sparkles className="size-3.5" />
               <span>
-                Learning {getLanguageFlag(targetLanguage.code)}{" "}
-                {targetLanguage.name} from{" "}
-                {getLanguageFlag(originLanguage.code)} {originLanguage.name}
+                {t("home.learningBadge", {
+                  origin: originLanguage.name,
+                  originFlag: getLanguageFlag(originLanguage.code),
+                  target: targetLanguage.name,
+                  targetFlag: getLanguageFlag(targetLanguage.code),
+                })}
               </span>
               <button
                 type="button"
                 onClick={() => setIsLangModalOpen(true)}
                 className="ml-1 text-[11px] underline text-sky-300 hover:text-white"
               >
-                (Change)
+                {t("home.changeLanguage")}
               </button>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Learn {targetLanguage.name} through Graded Interactive Stories
+              {t("home.heroTitle", { target: targetLanguage.name })}
             </h1>
             <p className="text-sm text-neutral-400 leading-relaxed">
-              Expand vocabulary, master contextual grammar in{" "}
-              {originLanguage.name}, and improve listening comprehension with
-              CEFR stories and neural audio.
+              {t("home.heroSubtitle", { origin: originLanguage.name })}
             </p>
           </div>
 
@@ -201,7 +204,7 @@ function HomeComponent() {
                   {progress.total_stories_read}
                 </span>
                 <span className="text-[11px] text-neutral-400 font-medium">
-                  Stories Read
+                  {t("home.storiesRead")}
                 </span>
               </div>
               <div className="text-center px-2 border-x border-neutral-800">
@@ -212,7 +215,7 @@ function HomeComponent() {
                   {progress.total_words_learned}
                 </span>
                 <span className="text-[11px] text-neutral-400 font-medium">
-                  Words Saved
+                  {t("home.wordsSaved")}
                 </span>
               </div>
               <div className="text-center px-2">
@@ -220,10 +223,11 @@ function HomeComponent() {
                   <Flame className="size-4 fill-orange-400" />
                 </div>
                 <span className="text-xl sm:text-2xl font-black text-white block">
-                  {progress.current_streak_days}d
+                  {progress.current_streak_days}
+                  {t("common.days").charAt(0)}
                 </span>
                 <span className="text-[11px] text-neutral-400 font-medium">
-                  Daily Streak
+                  {t("home.dailyStreak")}
                 </span>
               </div>
             </div>
@@ -248,7 +252,9 @@ function HomeComponent() {
                 }`}
               >
                 <span>{getLanguageFlag(targetLanguage.code)}</span>
-                <span>{targetLanguage.name} Stories</span>
+                <span>
+                  {t("home.targetStoriesTab", { target: targetLanguage.name })}
+                </span>
               </button>
               <button
                 type="button"
@@ -260,7 +266,7 @@ function HomeComponent() {
                 }`}
               >
                 <Globe className="size-3.5" />
-                <span>All Languages</span>
+                <span>{t("home.allLanguages")}</span>
               </button>
             </div>
 
@@ -277,7 +283,7 @@ function HomeComponent() {
                       : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
                   }`}
                 >
-                  {lvl === "all" ? "All Levels" : lvl}
+                  {lvl === "all" ? t("home.allLevels") : lvl}
                 </button>
               ))}
             </div>
@@ -288,7 +294,11 @@ function HomeComponent() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-500" />
             <Input
               type="text"
-              placeholder={`Search ${languageScope === "pair" ? targetLanguage.name : ""} stories...`}
+              placeholder={
+                languageScope === "pair"
+                  ? t("home.searchPlaceholder", { target: targetLanguage.name })
+                  : `${t("common.search")}...`
+              }
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="pl-9 h-9 text-xs bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 rounded-xl"
@@ -307,7 +317,7 @@ function HomeComponent() {
                 : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
             }`}
           >
-            All Categories
+            {t("home.allCategories")}
           </button>
           {categories?.map((cat) => (
             <button
@@ -320,7 +330,7 @@ function HomeComponent() {
                   : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
               }`}
             >
-              {cat.name}
+              {tCategory(cat.slug)}
             </button>
           ))}
         </div>

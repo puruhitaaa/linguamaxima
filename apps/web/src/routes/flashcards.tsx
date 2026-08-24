@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 
 import { FlashcardCard } from "../components/flashcard-card";
+import { useTranslation } from "../lib/i18n";
 import {
   useAllFlashcards,
   useDueFlashcards,
@@ -32,6 +33,7 @@ export const Route = createFileRoute("/flashcards")({
 });
 
 function FlashcardsComponent() {
+  const { t } = useTranslation();
   const navigate = Route.useNavigate();
   const searchParams = Route.useSearch();
   const activeTab = searchParams.tab ?? "review";
@@ -100,11 +102,13 @@ function FlashcardsComponent() {
             <CheckCircle2 className="size-8" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-2xl font-bold text-white">All Caught Up!</h3>
+            <h3 className="text-2xl font-bold text-white">
+              {t("flashcards.caughtUpTitle")}
+            </h3>
             <p className="text-sm text-neutral-400">
               {dueList.length === 0 && !allCards?.length
-                ? "You have not saved any vocabulary words yet. Read stories and tap words to add them to your deck!"
-                : "You have reviewed all due flashcards for today. Great job!"}
+                ? t("flashcards.caughtUpEmptyDeck")
+                : t("flashcards.caughtUpReviewDone")}
             </p>
           </div>
 
@@ -112,7 +116,7 @@ function FlashcardsComponent() {
             <Link to="/">
               <Button className="bg-sky-500 hover:bg-sky-600 text-white font-semibold gap-2">
                 <BookOpen className="size-4" />
-                Read More Stories
+                {t("flashcards.readMoreStories")}
               </Button>
             </Link>
             {allCards && allCards.length > 0 && (
@@ -121,7 +125,7 @@ function FlashcardsComponent() {
                 onClick={() => handleTabChange("deck")}
                 className="border-neutral-700 text-neutral-300 hover:bg-neutral-800"
               >
-                Browse Deck
+                {t("flashcards.browseDeck")}
               </Button>
             )}
           </div>
@@ -133,10 +137,13 @@ function FlashcardsComponent() {
       <div className="space-y-6">
         <div className="flex items-center justify-between text-xs text-neutral-400 max-w-xl mx-auto px-1">
           <span className="font-semibold uppercase tracking-wider text-sky-400">
-            Daily Review
+            {t("flashcards.dailyReview")}
           </span>
           <span className="font-mono">
-            Card {currentIdx + 1} of {dueList.length}
+            {t("flashcards.cardOf", {
+              current: currentIdx + 1,
+              total: dueList.length,
+            })}
           </span>
         </div>
 
@@ -196,11 +203,15 @@ function FlashcardsComponent() {
               <div className="flex items-center justify-between text-xs text-neutral-400 pt-2 border-t border-neutral-800/80">
                 <div className="flex items-center gap-1">
                   <Clock className="size-3.5" />
-                  <span>Interval: {fc.interval_days}d</span>
+                  <span>
+                    {t("flashcards.intervalDays", { days: fc.interval_days })}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Zap className="size-3.5 text-amber-400" />
-                  <span>Reps: {fc.repetitions}</span>
+                  <span>
+                    {t("flashcards.repsCount", { reps: fc.repetitions })}
+                  </span>
                 </div>
               </div>
             </div>
@@ -213,8 +224,8 @@ function FlashcardsComponent() {
       <div className="p-8 text-center bg-neutral-900/40 rounded-xl border border-neutral-800 text-neutral-400">
         <p>
           {searchParam
-            ? "No flashcards match your search."
-            : "Your deck is empty. Save words from stories to start learning!"}
+            ? t("flashcards.noCardsSearch")
+            : t("flashcards.caughtUpEmptyDeck")}
         </p>
       </div>
     );
@@ -227,11 +238,10 @@ function FlashcardsComponent() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <Layers className="size-6 text-sky-400" />
-            Spaced Repetition Flashcards
+            {t("flashcards.title")}
           </h1>
           <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-            Review vocabulary using the SuperMemo SM-2 spaced repetition
-            algorithm.
+            {t("flashcards.subtitle")}
           </p>
         </div>
 
@@ -241,13 +251,13 @@ function FlashcardsComponent() {
               value="review"
               className="text-xs font-semibold px-3 py-1.5"
             >
-              Due Review ({dueList.length})
+              {t("flashcards.dueReviewTab", { count: dueList.length })}
             </TabsTrigger>
             <TabsTrigger
               value="deck"
               className="text-xs font-semibold px-3 py-1.5"
             >
-              All Cards ({allCards?.length || 0})
+              {t("flashcards.allCardsTab", { count: allCards?.length || 0 })}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -265,7 +275,7 @@ function FlashcardsComponent() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-500" />
             <Input
               type="text"
-              placeholder="Search vocabulary..."
+              placeholder={t("flashcards.searchPlaceholder")}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="pl-9 h-9 text-xs bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 rounded-xl"

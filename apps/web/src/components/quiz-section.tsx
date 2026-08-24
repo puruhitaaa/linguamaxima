@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { useTranslation } from "../lib/i18n";
 import { useSubmitQuiz } from "../lib/queries";
 import type { QuizQuestion, QuizSubmissionResult } from "../types/api";
 
@@ -23,6 +24,7 @@ export function QuizSection({
   quizzes,
   onComplete,
 }: QuizSectionProps) {
+  const { t } = useTranslation();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export function QuizSection({
     return (
       <div className="p-8 text-center bg-neutral-900/40 rounded-xl border border-neutral-800 text-neutral-400">
         <HelpCircle className="size-8 mx-auto mb-2 text-neutral-600" />
-        <p>No quiz questions available for this story.</p>
+        <p>{t("quiz.emptyQuiz")}</p>
       </div>
     );
   }
@@ -108,21 +110,17 @@ export function QuizSection({
 
         <div className="space-y-2">
           <h3 className="text-2xl font-bold text-white">
-            {isPassed
-              ? "Ausgezeichnet! (Excellent!)"
-              : "Guter Versuch! (Good Try!)"}
+            {isPassed ? t("quiz.passedTitle") : t("quiz.failedTitle")}
           </h3>
           <p className="text-sm text-neutral-400">
-            {isPassed
-              ? "You successfully passed the comprehension quiz!"
-              : "Review the story and try again to improve your score."}
+            {isPassed ? t("quiz.passedDesc") : t("quiz.failedDesc")}
           </p>
         </div>
 
         <div className="p-4 rounded-xl bg-neutral-950/70 border border-neutral-800/80 flex items-center justify-around">
           <div>
             <span className="text-xs uppercase tracking-wider text-neutral-500 font-bold block">
-              Score
+              {t("quiz.scoreStat")}
             </span>
             <span className="text-3xl font-extrabold text-white">
               {submissionResult.score_percentage}%
@@ -131,11 +129,13 @@ export function QuizSection({
           <div className="h-8 w-px bg-neutral-800" />
           <div>
             <span className="text-xs uppercase tracking-wider text-neutral-500 font-bold block">
-              Correct
+              {t("quiz.correctStat")}
             </span>
             <span className="text-3xl font-extrabold text-sky-400">
-              {submissionResult.correct_answers} /{" "}
-              {submissionResult.total_questions}
+              {t("quiz.correctOutOf", {
+                correct: submissionResult.correct_answers,
+                total: submissionResult.total_questions,
+              })}
             </span>
           </div>
         </div>
@@ -144,7 +144,7 @@ export function QuizSection({
         {submissionResult.results && submissionResult.results.length > 0 && (
           <div className="space-y-3 text-left">
             <h4 className="text-xs uppercase tracking-wider text-neutral-400 font-bold">
-              Answer Review
+              {t("quiz.answerReview")}
             </h4>
             {submissionResult.results.map((res, i) => (
               <div
@@ -163,7 +163,7 @@ export function QuizSection({
                 </div>
                 <div className="text-xs pl-6 space-y-0.5">
                   <p className="text-neutral-400">
-                    Your answer:{" "}
+                    {t("quiz.yourAnswer")}{" "}
                     <span
                       className={
                         res.is_correct
@@ -176,7 +176,7 @@ export function QuizSection({
                   </p>
                   {!res.is_correct && (
                     <p className="text-emerald-400">
-                      Correct answer:{" "}
+                      {t("quiz.correctAnswer")}{" "}
                       <span className="font-semibold">
                         {res.correct_answer}
                       </span>
@@ -198,7 +198,7 @@ export function QuizSection({
           className="gap-2 bg-sky-500 hover:bg-sky-600 text-white w-full sm:w-auto px-6 font-semibold"
         >
           <RotateCcw className="size-4" />
-          Retake Quiz
+          {t("quiz.retakeQuiz")}
         </Button>
       </div>
     );
@@ -206,10 +206,10 @@ export function QuizSection({
 
   // ---------------- Question Screen ----------------
   const typeLabels: Record<string, string> = {
-    multiple_choice: "Comprehension",
-    article: "der / die / das Practice",
-    fill_blank: "Fill in the Blank",
-    true_false: "True or False",
+    article: t("quiz.articlePractice"),
+    fill_blank: t("quiz.fillBlank"),
+    multiple_choice: t("quiz.comprehension"),
+    true_false: t("quiz.trueFalse"),
   };
 
   return (
@@ -217,10 +217,13 @@ export function QuizSection({
       {/* Progress Header */}
       <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
         <span className="px-2.5 py-0.5 text-xs font-semibold rounded-md bg-neutral-800 text-neutral-300 border border-neutral-700">
-          {typeLabels[currentQ.question_type] || "Quiz Question"}
+          {typeLabels[currentQ.question_type] || t("quiz.questionTypeFallback")}
         </span>
         <span className="text-xs font-mono font-medium text-neutral-400">
-          Question {currentIdx + 1} of {quizzes.length}
+          {t("quiz.questionOf", {
+            current: currentIdx + 1,
+            total: quizzes.length,
+          })}
         </span>
       </div>
 
@@ -231,7 +234,7 @@ export function QuizSection({
         </h3>
         {currentQ.question_translated && (
           <p className="text-xs sm:text-sm text-neutral-400 italic">
-            Petunjuk: {currentQ.question_translated}
+            {t("quiz.hintLabel", { hint: currentQ.question_translated })}
           </p>
         )}
       </div>
@@ -270,7 +273,7 @@ export function QuizSection({
       {showExplanation && currentQ.explanation && (
         <div className="p-3.5 rounded-xl bg-neutral-950/80 border border-neutral-800 text-xs text-neutral-300 space-y-1">
           <span className="font-bold text-sky-400 block uppercase tracking-wider text-[10px]">
-            Penjelasan:
+            {t("quiz.explanationLabel")}
           </span>
           <p>{currentQ.explanation}</p>
         </div>
@@ -283,7 +286,9 @@ export function QuizSection({
           disabled={!selectedOption || submitMutation.isPending}
           className="gap-2 bg-sky-500 hover:bg-sky-600 text-white font-semibold px-6"
         >
-          <span>{isLastQuestion ? "Submit Quiz" : "Next Question"}</span>
+          <span>
+            {isLastQuestion ? t("quiz.submitQuiz") : t("quiz.nextQuestion")}
+          </span>
           <ChevronRight className="size-4" />
         </Button>
       </div>

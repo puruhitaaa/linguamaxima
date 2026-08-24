@@ -12,6 +12,7 @@ import { ArrowLeftRight, Check, Globe, Search, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
 import { useCreateLanguagePair } from "../lib/queries";
 import type { Language } from "../types/api";
@@ -56,6 +57,7 @@ export function LanguagePairModal({
   onOpenChange: (open: boolean) => void;
   open: boolean;
 }) {
+  const { t } = useTranslation();
   const {
     availableLanguages,
     getLanguageFlag,
@@ -99,7 +101,7 @@ export function LanguagePairModal({
 
   const handleApply = () => {
     if (selectedOrigin.code === selectedTarget.code) {
-      toast.error("Origin and target languages cannot be the same.");
+      toast.error(t("modal.sameLanguageError"));
       return;
     }
     setLanguagePair(selectedOrigin, selectedTarget);
@@ -108,7 +110,10 @@ export function LanguagePairModal({
       target_language_code: selectedTarget.code,
     });
     toast.success(
-      `Switched to learning ${selectedTarget.name} from ${selectedOrigin.name}!`
+      t("modal.toastSuccess", {
+        origin: selectedOrigin.name,
+        target: selectedTarget.name,
+      })
     );
     onOpenChange(false);
   };
@@ -128,11 +133,10 @@ export function LanguagePairModal({
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <Globe className="size-5 text-sky-400" />
-            Choose Language Pair
+            {t("modal.dialogTitle")}
           </DialogTitle>
           <DialogDescription className="text-neutral-400 text-xs">
-            Select what language you speak and what language you want to learn.
-            Stories, vocabulary, grammar, and audio will adapt to your choice.
+            {t("modal.dialogDesc")}
           </DialogDescription>
         </DialogHeader>
 
@@ -149,7 +153,7 @@ export function LanguagePairModal({
             }`}
           >
             <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-400 block mb-1">
-              I Speak (Origin)
+              {t("modal.iSpeak")}
             </span>
             <div className="flex items-center gap-2">
               <span className="text-2xl">
@@ -170,7 +174,7 @@ export function LanguagePairModal({
           <button
             type="button"
             onClick={handleSwap}
-            title="Swap Origin and Target"
+            title={t("modal.swapTooltip")}
             className="p-2.5 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shrink-0"
           >
             <ArrowLeftRight className="size-4" />
@@ -187,7 +191,7 @@ export function LanguagePairModal({
             }`}
           >
             <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-400 block mb-1">
-              I Want to Learn (Target)
+              {t("modal.iLearn")}
             </span>
             <div className="flex items-center gap-2">
               <span className="text-2xl">
@@ -197,7 +201,7 @@ export function LanguagePairModal({
                 <div className="font-bold text-sm text-white flex items-center gap-1.5">
                   {selectedTarget.name}
                   <span className="text-[10px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-400 font-bold">
-                    Target
+                    {t("modal.targetBadge")}
                   </span>
                 </div>
                 <div className="text-[11px] text-neutral-400">
@@ -212,7 +216,7 @@ export function LanguagePairModal({
         <div className="space-y-2">
           <span className="text-[11px] font-semibold text-neutral-400 flex items-center gap-1">
             <Sparkles className="size-3 text-amber-400" />
-            Popular Combinations:
+            {t("modal.popularPresets")}
           </span>
           <div className="flex flex-wrap gap-1.5">
             {PRESETS.map((p) => {
@@ -241,13 +245,15 @@ export function LanguagePairModal({
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-bold text-neutral-300">
-              Select {activeTab === "origin" ? "Origin" : "Target"} Language:
+              {activeTab === "origin"
+                ? t("modal.selectOriginTitle")
+                : t("modal.selectTargetTitle")}
             </span>
             <div className="relative w-44">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-neutral-500" />
               <Input
                 type="text"
-                placeholder="Search..."
+                placeholder={t("modal.searchPlaceholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="h-8 pl-8 text-xs bg-neutral-900 border-neutral-800 rounded-lg text-neutral-200 placeholder:text-neutral-500"
@@ -308,7 +314,7 @@ export function LanguagePairModal({
             onClick={() => onOpenChange(false)}
             className="border-neutral-800 text-neutral-300 hover:bg-neutral-900 text-xs"
           >
-            Cancel
+            {t("modal.cancelBtn")}
           </Button>
           <Button
             type="button"
@@ -316,7 +322,7 @@ export function LanguagePairModal({
             className="bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs gap-1.5 shadow-md shadow-sky-500/20"
           >
             <Check className="size-4" />
-            Apply & Learn {selectedTarget.name}
+            {t("modal.applyBtn", { target: selectedTarget.name })}
           </Button>
         </DialogFooter>
       </DialogContent>

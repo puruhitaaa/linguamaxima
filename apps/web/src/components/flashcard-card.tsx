@@ -2,6 +2,8 @@ import { Button } from "@linguamaxima/ui/components/button";
 import { RotateCw } from "lucide-react";
 import { useState } from "react";
 
+import { useTranslation } from "../lib/i18n";
+import { useLanguagePair } from "../lib/language-context";
 import type { Flashcard } from "../types/api";
 
 interface FlashcardCardProps {
@@ -21,6 +23,8 @@ export function FlashcardCard({
   onRate,
   isSubmitting,
 }: FlashcardCardProps) {
+  const { t } = useTranslation();
+  const { originLanguage } = useLanguagePair();
   const [isFlipped, setIsFlipped] = useState(false);
   const vocab = card.vocabulary;
 
@@ -47,7 +51,9 @@ export function FlashcardCard({
       <button
         type="button"
         tabIndex={0}
-        aria-label="Flashcard, click to flip"
+        aria-label={t("flashcards.flipFrontPrompt", {
+          origin: originLanguage.name,
+        })}
         className="relative h-80 sm:h-96 w-full cursor-pointer perspective-1000 select-none block p-0 bg-transparent border-0 text-left"
         onClick={handleFlip}
         onKeyDown={handleKeyDown}
@@ -84,13 +90,15 @@ export function FlashcardCard({
                 {vocab.word}
               </h2>
               <p className="text-xs text-neutral-500 font-medium">
-                Tap card to reveal Indonesian translation
+                {t("flashcards.flipFrontPrompt", {
+                  origin: originLanguage.name,
+                })}
               </p>
             </div>
 
             <div className="flex items-center gap-1.5 text-xs text-neutral-500 font-medium">
               <RotateCw className="size-3.5" />
-              <span>Click to Flip</span>
+              <span>{t("flashcards.clickToFlip")}</span>
             </div>
           </div>
 
@@ -122,7 +130,9 @@ export function FlashcardCard({
             <div className="space-y-4 my-auto">
               <div>
                 <span className="text-xs text-neutral-400 uppercase tracking-wider font-bold block mb-1">
-                  Artinya (Indonesian):
+                  {t("flashcards.meaningLabel", {
+                    origin: originLanguage.name,
+                  })}
                 </span>
                 <p className="text-2xl sm:text-3xl font-extrabold text-sky-400">
                   {vocab.translation}
@@ -144,7 +154,7 @@ export function FlashcardCard({
             </div>
 
             <div className="text-xs text-neutral-500">
-              Rate your recall below:
+              {t("flashcards.ratePrompt")}
             </div>
           </div>
         </div>
@@ -158,8 +168,12 @@ export function FlashcardCard({
           disabled={isSubmitting}
           className="flex flex-col h-auto py-2.5 bg-rose-950/40 border border-rose-500/30 text-rose-300 hover:bg-rose-900/60 hover:text-white transition-all rounded-xl"
         >
-          <span className="text-xs sm:text-sm font-bold">Again</span>
-          <span className="text-[10px] text-rose-400/80">&lt; 1 day</span>
+          <span className="text-xs sm:text-sm font-bold">
+            {t("flashcards.again")}
+          </span>
+          <span className="text-[10px] text-rose-400/80">
+            {t("flashcards.againInterval")}
+          </span>
         </Button>
 
         <Button
@@ -168,8 +182,12 @@ export function FlashcardCard({
           disabled={isSubmitting}
           className="flex flex-col h-auto py-2.5 bg-amber-950/40 border border-amber-500/30 text-amber-300 hover:bg-amber-900/60 hover:text-white transition-all rounded-xl"
         >
-          <span className="text-xs sm:text-sm font-bold">Hard</span>
-          <span className="text-[10px] text-amber-400/80">1 day</span>
+          <span className="text-xs sm:text-sm font-bold">
+            {t("flashcards.hard")}
+          </span>
+          <span className="text-[10px] text-amber-400/80">
+            {t("flashcards.hardInterval")}
+          </span>
         </Button>
 
         <Button
@@ -178,11 +196,13 @@ export function FlashcardCard({
           disabled={isSubmitting}
           className="flex flex-col h-auto py-2.5 bg-sky-950/40 border border-sky-500/30 text-sky-300 hover:bg-sky-900/60 hover:text-white transition-all rounded-xl"
         >
-          <span className="text-xs sm:text-sm font-bold">Good</span>
+          <span className="text-xs sm:text-sm font-bold">
+            {t("flashcards.good")}
+          </span>
           <span className="text-[10px] text-sky-400/80">
             {card.interval_days > 0
-              ? `${card.interval_days * 2} days`
-              : "1 day"}
+              ? t("flashcards.goodInterval", { days: card.interval_days * 2 })
+              : t("flashcards.hardInterval")}
           </span>
         </Button>
 
@@ -192,11 +212,15 @@ export function FlashcardCard({
           disabled={isSubmitting}
           className="flex flex-col h-auto py-2.5 bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/60 hover:text-white transition-all rounded-xl"
         >
-          <span className="text-xs sm:text-sm font-bold">Easy</span>
+          <span className="text-xs sm:text-sm font-bold">
+            {t("flashcards.easy")}
+          </span>
           <span className="text-[10px] text-emerald-400/80">
             {card.interval_days > 0
-              ? `${Math.round(card.interval_days * 2.5)} days`
-              : "4 days"}
+              ? t("flashcards.easyInterval", {
+                  days: Math.round(card.interval_days * 2.5),
+                })
+              : t("flashcards.easyInterval", { days: 4 })}
           </span>
         </Button>
       </div>

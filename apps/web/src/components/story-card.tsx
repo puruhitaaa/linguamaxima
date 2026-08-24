@@ -2,6 +2,7 @@ import { Card, CardContent } from "@linguamaxima/ui/components/card";
 import { Link } from "@tanstack/react-router";
 import { BookOpen, CheckCircle2, Clock, Heart } from "lucide-react";
 
+import { useTranslation } from "../lib/i18n";
 import { getLanguageFlag } from "../lib/language-context";
 import { useToggleFavorite } from "../lib/queries";
 import type { StoryListItem, CEFRLevel } from "../types/api";
@@ -16,6 +17,7 @@ const LEVEL_COLORS: Record<CEFRLevel, string> = {
 };
 
 export function StoryCard({ story }: { story: StoryListItem }) {
+  const { t, tCategory } = useTranslation();
   const toggleFavorite = useToggleFavorite();
 
   const handleFavorite = (e: React.MouseEvent) => {
@@ -62,7 +64,7 @@ export function StoryCard({ story }: { story: StoryListItem }) {
             )}
             {story.category && (
               <span className="px-2 py-0.5 text-xs font-medium rounded-md border border-neutral-700 bg-neutral-950/80 text-neutral-300 backdrop-blur-md">
-                {story.category.name}
+                {tCategory(story.category.slug)}
               </span>
             )}
           </div>
@@ -75,7 +77,9 @@ export function StoryCard({ story }: { story: StoryListItem }) {
                 ? "bg-rose-500/20 text-rose-500 hover:bg-rose-500/30"
                 : "bg-neutral-950/70 text-neutral-400 hover:text-rose-400 hover:bg-neutral-900/90"
             }`}
-            aria-label="Toggle Favorite"
+            aria-label={
+              story.is_favorite ? t("story.favorited") : t("story.favorite")
+            }
           >
             <Heart
               className={`size-4 ${story.is_favorite ? "fill-rose-500" : ""}`}
@@ -85,7 +89,7 @@ export function StoryCard({ story }: { story: StoryListItem }) {
           {story.is_completed && (
             <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-950/90 border border-emerald-500/40 text-emerald-400 text-xs font-medium backdrop-blur-md">
               <CheckCircle2 className="size-3.5" />
-              <span>Read</span>
+              <span>{t("common.read")}</span>
               {story.quiz_score !== null && story.quiz_score !== undefined && (
                 <span className="font-semibold text-white ml-0.5">
                   {story.quiz_score}%
@@ -115,11 +119,15 @@ export function StoryCard({ story }: { story: StoryListItem }) {
           <div className="flex items-center justify-between text-xs text-neutral-400 pt-2 border-t border-neutral-800/80">
             <div className="flex items-center gap-1">
               <Clock className="size-3.5" />
-              <span>{story.estimated_reading_minutes} min read</span>
+              <span>
+                {story.estimated_reading_minutes} {t("common.minRead")}
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <BookOpen className="size-3.5" />
-              <span>{story.word_count} words</span>
+              <span>
+                {story.word_count} {t("common.words")}
+              </span>
             </div>
           </div>
         </CardContent>
