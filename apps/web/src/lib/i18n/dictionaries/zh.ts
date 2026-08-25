@@ -292,6 +292,11 @@ export const zh: TranslationDictionary = {
     topicHintLabel: "主题或关键词 (可选)",
     topicHintPlaceholder: "例如：咖啡馆点餐、地铁迷路、预订机票...",
     triggerBtn: "生成故事",
+    storyTypeLabel: "故事形式",
+    storyTypeAuto: "智能自动 (对话或独白)",
+    storyTypeDialogue: "对话交流 (多位配音演员)",
+    storyTypeMonologue: "单人独白 / 叙事",
+    storyTypeInformative: "说明文 / 知识短文",
   },
   modal: {
     applyBtn: "应用并学习 {target}",

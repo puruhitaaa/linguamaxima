@@ -282,6 +282,11 @@ export interface TranslationDictionary {
     topicHintLabel: string;
     topicHintPlaceholder: string;
     triggerBtn: string;
+    storyTypeLabel: string;
+    storyTypeAuto: string;
+    storyTypeDialogue: string;
+    storyTypeMonologue: string;
+    storyTypeInformative: string;
   };
   modal: {
     applyBtn: string;

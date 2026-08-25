@@ -18,7 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@linguamaxima/ui/components/select";
-import { AlertCircle, ArrowLeftRight, Loader2, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeftRight,
+  BookOpen,
+  FileText,
+  Loader2,
+  MessageSquare,
+  Sparkles,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useTranslation } from "../lib/i18n";
@@ -66,6 +74,9 @@ export function GenerateStoryDialog({
   const [open, setOpen] = useState(false);
   const [level, setLevel] = useState<CEFRLevel>("A1");
   const [category, setCategory] = useState("travel");
+  const [storyType, setStoryType] = useState<
+    "auto" | "dialogue" | "monologue" | "informative"
+  >("auto");
   const [topicHint, setTopicHint] = useState("");
   const [originCode, setOriginCode] = useState(originLanguage.code);
   const [targetCode, setTargetCode] = useState(targetLanguage.code);
@@ -91,7 +102,7 @@ export function GenerateStoryDialog({
     }
 
     const interval = setInterval(() => {
-      setGenerationStep((prev) => (prev + 1) % GENERATION_STEPS.length);
+      setGenerationStep((prev) => (prev + 1) % GENERATION_STEP_KEYS.length);
     }, 2800);
 
     return () => clearInterval(interval);
@@ -122,6 +133,7 @@ export function GenerateStoryDialog({
         category_slug: category,
         cefr_level: level,
         origin_language_code: originCode,
+        story_type: storyType,
         target_language_code: targetCode,
         topic_hint: topicHint.trim() || undefined,
       });
@@ -290,6 +302,70 @@ export function GenerateStoryDialog({
                     {lvl}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Story Format / Type */}
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-neutral-400">
+                {t("generator.storyTypeLabel")}
+              </Label>
+              <div
+                className="grid grid-cols-2 sm:grid-cols-4 gap-1.5"
+                aria-label={t("generator.storyTypeLabel")}
+              >
+                <button
+                  type="button"
+                  aria-pressed={storyType === "auto"}
+                  onClick={() => setStoryType("auto")}
+                  className={`py-2 px-2 text-xs font-semibold rounded-xl transition-colors border flex items-center justify-center gap-1.5 ${
+                    storyType === "auto"
+                      ? "bg-sky-500 border-sky-400 text-white shadow-sm"
+                      : "bg-neutral-900 border-neutral-800 text-neutral-300 hover:bg-neutral-800"
+                  }`}
+                >
+                  <Sparkles className="size-3.5 shrink-0" />
+                  <span className="truncate">Auto</span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={storyType === "dialogue"}
+                  onClick={() => setStoryType("dialogue")}
+                  className={`py-2 px-2 text-xs font-semibold rounded-xl transition-colors border flex items-center justify-center gap-1.5 ${
+                    storyType === "dialogue"
+                      ? "bg-sky-500 border-sky-400 text-white shadow-sm"
+                      : "bg-neutral-900 border-neutral-800 text-neutral-300 hover:bg-neutral-800"
+                  }`}
+                >
+                  <MessageSquare className="size-3.5 shrink-0" />
+                  <span className="truncate">Dialogue (2+)</span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={storyType === "monologue"}
+                  onClick={() => setStoryType("monologue")}
+                  className={`py-2 px-2 text-xs font-semibold rounded-xl transition-colors border flex items-center justify-center gap-1.5 ${
+                    storyType === "monologue"
+                      ? "bg-sky-500 border-sky-400 text-white shadow-sm"
+                      : "bg-neutral-900 border-neutral-800 text-neutral-300 hover:bg-neutral-800"
+                  }`}
+                >
+                  <BookOpen className="size-3.5 shrink-0" />
+                  <span className="truncate">Monologue</span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={storyType === "informative"}
+                  onClick={() => setStoryType("informative")}
+                  className={`py-2 px-2 text-xs font-semibold rounded-xl transition-colors border flex items-center justify-center gap-1.5 ${
+                    storyType === "informative"
+                      ? "bg-sky-500 border-sky-400 text-white shadow-sm"
+                      : "bg-neutral-900 border-neutral-800 text-neutral-300 hover:bg-neutral-800"
+                  }`}
+                >
+                  <FileText className="size-3.5 shrink-0" />
+                  <span className="truncate">Informative</span>
+                </button>
               </div>
             </div>
 

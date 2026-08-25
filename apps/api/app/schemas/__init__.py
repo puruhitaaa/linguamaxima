@@ -200,6 +200,7 @@ class StoryGenerateRequest(BaseModel):
     topic_hint: Optional[str] = None
     target_language_code: str = "de"
     origin_language_code: str = "id"
+    story_type: Optional[str] = "auto"  # "auto", "dialogue", "monologue"
 
 # ----------------- AI Structured Output Schemas -----------------
 class GeneratedVocabularyItem(BaseModel):

@@ -149,6 +149,7 @@ export interface StoryGeneratePayload {
   topic_hint?: string;
   target_language_code?: string;
   origin_language_code?: string;
+  story_type?: "auto" | "dialogue" | "monologue" | "informative";
 }
 
 export interface LanguagePairCreatePayload {

@@ -315,6 +315,11 @@ export const fr: TranslationDictionary = {
     topicHintPlaceholder:
       "ex. Commander dans un café, Perdu dans le métro, Réserver un billet...",
     triggerBtn: "Générer une histoire",
+    storyTypeLabel: "Format de l'histoire",
+    storyTypeAuto: "Automatique intelligent (Dialogue ou Monologue)",
+    storyTypeDialogue: "Dialogue conversationnel (2+ voix d'acteurs)",
+    storyTypeMonologue: "Monologue solo / Récit",
+    storyTypeInformative: "Texte informatif / Article",
   },
   modal: {
     applyBtn: "Appliquer et apprendre le {target}",

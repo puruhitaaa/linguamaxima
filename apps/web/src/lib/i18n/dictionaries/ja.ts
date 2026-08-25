@@ -308,6 +308,11 @@ export const ja: TranslationDictionary = {
     topicHintLabel: "トピックやキーワード (任意)",
     topicHintPlaceholder: "例: カフェでの注文、地下鉄で迷子、チケットの予約...",
     triggerBtn: "ストーリーを生成",
+    storyTypeLabel: "ストーリー形式",
+    storyTypeAuto: "スマート自動 (対話またはモノローグ)",
+    storyTypeDialogue: "会話対話 (2人以上の声優キャスト)",
+    storyTypeMonologue: "ソロ・モノローグ / ナラティブ",
+    storyTypeInformative: "情報テキスト / 記事",
   },
   modal: {
     applyBtn: "適用して{target}を学ぶ",

@@ -312,6 +312,11 @@ export const id: TranslationDictionary = {
     topicHintPlaceholder:
       "mis. Memesan di kafe, Tersesat di kereta, Membeli tiket...",
     triggerBtn: "Buat Cerita",
+    storyTypeLabel: "Format Cerita",
+    storyTypeAuto: "Otomatis Pintar (Dialog atau Monolog)",
+    storyTypeDialogue: "Dialog Percakapan (2+ Aktor Suara)",
+    storyTypeMonologue: "Monolog Solo / Cerita",
+    storyTypeInformative: "Teks Informatif / Artikel",
   },
   modal: {
     applyBtn: "Terapkan & Belajar {target}",

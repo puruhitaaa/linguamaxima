@@ -186,6 +186,7 @@ class StoryService:
             topic_hint=req.topic_hint,
             target_lang=target_name,
             origin_lang=origin_name,
+            story_type=req.story_type or "auto",
         )
 
         # 2. Cover image fetch (in background/async)
@@ -193,8 +194,8 @@ class StoryService:
             category_slug=req.category_slug, query=bundle.title
         )
 
-        # 3. Audio generation for full story
-        audio_url = await tts_service.generate_audio(
+        # 3. Audio generation for full story (multi-actor dialogue or single monologue)
+        audio_url = await tts_service.generate_story_audio(
             text=bundle.content,
             language=req.target_language_code,
         )

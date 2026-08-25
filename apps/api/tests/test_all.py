@@ -224,3 +224,17 @@ async def test_filter_stories_by_language_codes(client):
         if s.get("language_pair"):
             assert s["language_pair"]["target_language"]["code"] == "de"
             assert s["language_pair"]["origin_language"]["code"] == "id"
+
+def test_gender_detection_and_voice_matching():
+    from app.services.tts_service import detect_speaker_gender, tts_service
+
+    assert detect_speaker_gender("Anna") == "female"
+    assert detect_speaker_gender("Leo") == "male"
+    assert detect_speaker_gender("Sophie") == "female"
+    assert detect_speaker_gender("Lukas") == "male"
+    assert detect_speaker_gender("Carlos") == "male"
+    assert detect_speaker_gender("Emily") == "female"
+
+    voices_map = tts_service.assign_voices_to_speakers(["Anna", "Leo"], "de")
+    assert "Katja" in voices_map["Anna"]  # Female German voice
+    assert "Killian" in voices_map["Leo"]  # Male German voice
