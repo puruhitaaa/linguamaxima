@@ -112,8 +112,8 @@ Readle (formerly Langster) is the **world's first CEFR-graded language-learning 
 from litellm import completion
 
 # Switch providers by just changing the model string:
-response = completion(model="gemini/gemini-2.5-flash", messages=[...])
-response = completion(model="groq/llama-3.3-70b-versatile", messages=[...])
+response = completion(model="gemini/gemini-3.5-flash", messages=[...])
+response = completion(model="groq/openai/gpt-oss-120b", messages=[...])
 response = completion(model="openai/gpt-4.1-nano", messages=[...])
 response = completion(model="deepseek/deepseek-v4-flash", messages=[...])
 ```
@@ -128,8 +128,8 @@ response = completion(model="deepseek/deepseek-v4-flash", messages=[...])
 
 | Role | Provider | Model String (LiteLLM) | Cost | Why |
 | --- | --- | --- | --- | --- |
-| **Primary** | Google Gemini | `gemini/gemini-2.5-flash` | **$0/mo** (free tier: 10-15 RPM) | Best multilingual quality, 1M context, excellent German + Indonesian |
-| **Fallback** | Groq | `groq/llama-3.3-70b-versatile` | **$0/mo** (free tier: 30 RPM, 500K tok/day) | Blazing fast (594 tok/s), generous free tier |
+| **Primary** | Google Gemini | `gemini/gemini-3.5-flash` | **$0/mo** (free tier: 10-15 RPM) | Best multilingual quality, 1M context, excellent German + Indonesian |
+| **Fallback** | Groq | `groq/openai/gpt-oss-120b` | **$0/mo** (free tier: generous rate limit) | Fast inference, open-weight reasoning model |
 
 **Total estimated monthly cost: $0**
 
@@ -513,8 +513,8 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3001"]
 
     # AI Providers (via LiteLLM)
-    default_ai_model: str = "gemini/gemini-2.5-flash"
-    fallback_ai_model: str = "groq/llama-3.3-70b-versatile"
+    default_ai_model: str = "gemini/gemini-3.5-flash"
+    fallback_ai_model: str = "groq/openai/gpt-oss-120b"
 
     # API Keys (set via env vars)
     gemini_api_key: str = ""

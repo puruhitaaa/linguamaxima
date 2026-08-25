@@ -89,8 +89,8 @@ class Settings(BaseSettings):
         return ["http://localhost:3001", "http://127.0.0.1:3001"]
 
     # AI Configuration (via LiteLLM)
-    default_ai_model: str = "gemini/gemini-2.5-flash"
-    fallback_ai_model: str = "groq/llama-3.3-70b-versatile"
+    default_ai_model: str = "gemini/gemini-3.5-flash"
+    fallback_ai_model: str = "groq/openai/gpt-oss-120b"
 
     # API Keys
     gemini_api_key: str = ""
