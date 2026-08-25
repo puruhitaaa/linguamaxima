@@ -260,9 +260,9 @@ function LanguagesPageComponent() {
                 {getLanguageFlag(selectedTarget.code)}
               </span>
               <div>
-                <div className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                <div className="text-base sm:text-lg font-bold text-white flex flex-wrap items-center gap-2">
                   <span>{selectedTarget.name}</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 font-bold border border-sky-500/30">
+                  <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 font-bold border border-sky-500/30 whitespace-nowrap">
                     {t("languages.targetBadge")}
                   </span>
                 </div>
@@ -363,16 +363,16 @@ function LanguagesPageComponent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Origin Language Grid */}
         <div className="space-y-4 p-6 rounded-3xl bg-neutral-900/40 border border-neutral-800">
-          <div className="flex items-center justify-between border-b border-neutral-800/80 pb-3">
-            <div className="space-y-0.5">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>{t("languages.originSectionTitle")}</span>
+          <div className="flex items-start justify-between gap-4 border-b border-neutral-800/80 pb-3">
+            <div className="min-w-0 space-y-1">
+              <h3 className="text-sm font-bold text-white">
+                {t("languages.originSectionTitle")}
               </h3>
-              <p className="text-xs text-neutral-400">
+              <p className="text-xs text-neutral-400 leading-relaxed">
                 {t("languages.originSectionDesc")}
               </p>
             </div>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-400 font-medium">
+            <span className="shrink-0 text-xs px-2.5 py-0.5 rounded-full bg-neutral-800 text-neutral-400 font-medium whitespace-nowrap">
               {filteredLanguages.length} languages
             </span>
           </div>
@@ -420,19 +420,21 @@ function LanguagesPageComponent() {
 
         {/* Target Language Grid */}
         <div className="space-y-4 p-6 rounded-3xl bg-neutral-900/40 border border-neutral-800">
-          <div className="flex items-center justify-between border-b border-neutral-800/80 pb-3">
-            <div className="space-y-0.5">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>{t("languages.targetSectionTitle")}</span>
-                <span className="text-xs px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 font-bold border border-sky-500/30">
+          <div className="flex items-start justify-between gap-4 border-b border-neutral-800/80 pb-3">
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-bold text-white">
+                  {t("languages.targetSectionTitle")}
+                </h3>
+                <span className="shrink-0 text-xs px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 font-bold border border-sky-500/30 whitespace-nowrap">
                   {t("languages.cefrBadge")}
                 </span>
-              </h3>
-              <p className="text-xs text-neutral-400">
+              </div>
+              <p className="text-xs text-neutral-400 leading-relaxed">
                 {t("languages.targetSectionDesc")}
               </p>
             </div>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-400 font-medium">
+            <span className="shrink-0 text-xs px-2.5 py-0.5 rounded-full bg-neutral-800 text-neutral-400 font-medium whitespace-nowrap">
               {filteredLanguages.length} languages
             </span>
           </div>
