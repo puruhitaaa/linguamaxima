@@ -326,7 +326,7 @@ export function LanguagePairModal({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0 pt-3">
+        <DialogFooter className="gap-2 sm:gap-2.5 pt-3">
           <Button
             type="button"
             variant="outline"
