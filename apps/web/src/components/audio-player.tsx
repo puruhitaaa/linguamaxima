@@ -10,17 +10,37 @@ import {
   VolumeX,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 
 import { api } from "../lib/api";
 import { useTranslation } from "../lib/i18n";
 
-interface AudioPlayerProps {
+export interface AudioPlayerHandle {
+  seekTo: (timeInSeconds: number, autoPlay?: boolean) => Promise<void>;
+  togglePlay: () => Promise<void>;
+  play: () => Promise<void>;
+  pause: () => void;
+  getCurrentTime: () => number;
+  getDuration: () => number;
+  getIsPlaying: () => boolean;
+}
+
+export interface AudioPlayerProps {
   audioUrl?: string;
   storyContent?: string;
   storyTitle?: string;
   targetLanguage?: string;
+  onTimeUpdate?: (currentTime: number) => void;
+  onDurationChange?: (duration: number) => void;
+  onPlayStateChange?: (isPlaying: boolean) => void;
+  ref?: React.Ref<AudioPlayerHandle>;
 }
 
 function formatTime(secs: number) {
@@ -39,6 +59,10 @@ export function AudioPlayer({
   storyContent,
   storyTitle,
   targetLanguage = "de",
+  onTimeUpdate,
+  onDurationChange,
+  onPlayStateChange,
+  ref,
 }: AudioPlayerProps) {
   const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -89,23 +113,30 @@ export function AudioPlayer({
       return;
     }
 
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+      onTimeUpdate?.(audio.currentTime);
+    };
     const handleLoadedMetadata = () => {
       setDuration(audio.duration);
       setIsLoading(false);
+      onDurationChange?.(audio.duration);
     };
     const handlePlaying = () => {
       setIsPlaying(true);
       setIsLoading(false);
       clearTimeoutTimer();
+      onPlayStateChange?.(true);
     };
     const handlePause = () => {
       setIsPlaying(false);
       clearTimeoutTimer();
+      onPlayStateChange?.(false);
     };
     const handleEnded = () => {
       setIsPlaying(false);
       clearTimeoutTimer();
+      onPlayStateChange?.(false);
     };
     const handleWaiting = () => {
       setIsLoading(true);
@@ -118,6 +149,7 @@ export function AudioPlayer({
       setIsPlaying(false);
       setIsLoading(false);
       clearTimeoutTimer();
+      onPlayStateChange?.(false);
       setShowVpnHint(true);
       toast.error(t("audio.errorTitle"), {
         description: t("audio.errorDesc"),
@@ -145,7 +177,14 @@ export function AudioPlayer({
       audio.removeEventListener("canplay", handleCanPlay);
       audio.removeEventListener("error", handleError);
     };
-  }, [clearTimeoutTimer, startTimeoutTimer, t]);
+  }, [
+    clearTimeoutTimer,
+    onDurationChange,
+    onPlayStateChange,
+    onTimeUpdate,
+    startTimeoutTimer,
+    t,
+  ]);
 
   const togglePlay = useCallback(async () => {
     const audio = audioRef.current;
@@ -220,6 +259,49 @@ export function AudioPlayer({
     t,
     targetLanguage,
   ]);
+
+  const play = useCallback(async () => {
+    if (!isPlaying) {
+      await togglePlay();
+    }
+  }, [isPlaying, togglePlay]);
+
+  const pause = useCallback(() => {
+    if (audioRef.current && isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, [isPlaying]);
+
+  const seekTo = useCallback(
+    async (timeInSeconds: number, autoPlay = false) => {
+      const audio = audioRef.current;
+      const targetTime = Math.max(0, timeInSeconds);
+      if (audio) {
+        audio.currentTime = targetTime;
+        setCurrentTime(targetTime);
+        onTimeUpdate?.(targetTime);
+        if (autoPlay && !isPlaying) {
+          await togglePlay();
+        }
+      }
+    },
+    [isPlaying, onTimeUpdate, togglePlay]
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      seekTo,
+      togglePlay,
+      play,
+      pause,
+      getCurrentTime: () => currentTime,
+      getDuration: () => duration,
+      getIsPlaying: () => isPlaying,
+    }),
+    [currentTime, duration, isPlaying, pause, play, seekTo, togglePlay]
+  );
 
   const cycleSpeed = () => {
     const nextIdx = (speedIndex + 1) % SPEED_STEPS.length;

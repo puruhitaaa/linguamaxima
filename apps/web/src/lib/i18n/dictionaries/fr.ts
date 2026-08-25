@@ -274,6 +274,10 @@ export const fr: TranslationDictionary = {
     vocabularyTab: "Vocabulaire ({count})",
     wordMeaningInParallel:
       "Le sens du mot est disponible dans la traduction parallèle ci-dessous.",
+    highlightWord: "Surligner le mot",
+    highlightOutline: "Illuminer l'histoire",
+    dictatingIndicator: "Lecture",
+    clickToPlaySection: "Cliquer pour écouter à partir d'ici",
   },
   quiz: {
     answerReview: "Revue des réponses",

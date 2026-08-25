@@ -270,6 +270,10 @@ export const en: TranslationDictionary = {
     vocabularyTab: "Vocabulary ({count})",
     wordMeaningInParallel:
       "Word meaning is available in the parallel story translation below.",
+    highlightWord: "Highlight Word",
+    highlightOutline: "Glow Story Item",
+    dictatingIndicator: "Playing",
+    clickToPlaySection: "Click to play from here",
   },
   quiz: {
     answerReview: "Answer Review",

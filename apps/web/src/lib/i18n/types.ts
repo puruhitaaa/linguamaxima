@@ -242,6 +242,10 @@ export interface TranslationDictionary {
     translationLabel: string;
     vocabularyTab: string;
     wordMeaningInParallel: string;
+    highlightWord: string;
+    highlightOutline: string;
+    dictatingIndicator: string;
+    clickToPlaySection: string;
   };
   quiz: {
     answerReview: string;

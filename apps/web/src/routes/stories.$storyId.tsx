@@ -22,11 +22,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
 import { AudioPlayer } from "../components/audio-player";
+import type { AudioPlayerHandle } from "../components/audio-player";
 import {
   GENDER_BADGE_STYLE,
   InteractiveStoryText,
 } from "../components/interactive-story-text";
 import { QuizSection } from "../components/quiz-section";
+import { useStoryAudioSync } from "../hooks/use-story-audio-sync";
 import { playPronunciationAudio } from "../lib/audio";
 import { useTranslation } from "../lib/i18n";
 import { useSaveFlashcard, useStory, useToggleFavorite } from "../lib/queries";
@@ -59,6 +61,105 @@ const LEVEL_COLORS: Record<CEFRLevel, string> = {
   C2: "bg-rose-500/15 text-rose-300 border-rose-500/30",
 };
 
+function StoryNotFound({ onBackText }: { onBackText: string }) {
+  return (
+    <div className="container mx-auto max-w-lg px-4 py-16 text-center space-y-4">
+      <h2 className="text-xl font-bold text-white">Story Not Found</h2>
+      <p className="text-sm text-neutral-400">
+        The requested story could not be loaded.
+      </p>
+      <Link
+        to="/"
+        search={{
+          category: "all",
+          language_scope: "pair",
+          level: "all",
+          search: "",
+        }}
+      >
+        <Button variant="outline" className="gap-2 rounded-xl">
+          <ArrowLeft className="size-4" />
+          <span>{onBackText}</span>
+        </Button>
+      </Link>
+    </div>
+  );
+}
+
+interface StoryReadingToolbarProps {
+  highlightWords: boolean;
+  onToggleHighlightWords: () => void;
+  highlightStoryItem: boolean;
+  onToggleHighlightStoryItem: () => void;
+  showParallelTranslation: boolean;
+  onToggleParallelTranslation: () => void;
+}
+
+function StoryReadingToolbar({
+  highlightWords,
+  onToggleHighlightWords,
+  highlightStoryItem,
+  onToggleHighlightStoryItem,
+  showParallelTranslation,
+  onToggleParallelTranslation,
+}: StoryReadingToolbarProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onToggleHighlightWords}
+        className={`text-xs font-semibold rounded-xl h-9 px-3 border-neutral-700 transition-colors cursor-pointer ${
+          highlightWords
+            ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
+            : "bg-neutral-900 text-neutral-400 hover:text-white"
+        }`}
+        title={t("story.highlightWord")}
+        aria-pressed={highlightWords}
+      >
+        <Sparkles className="size-3.5 mr-1.5 shrink-0 text-sky-400" />
+        <span>{t("story.highlightWord")}</span>
+      </Button>
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onToggleHighlightStoryItem}
+        className={`text-xs font-semibold rounded-xl h-9 px-3 border-neutral-700 transition-colors cursor-pointer ${
+          highlightStoryItem
+            ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
+            : "bg-neutral-900 text-neutral-400 hover:text-white"
+        }`}
+        title={t("story.highlightOutline")}
+        aria-pressed={highlightStoryItem}
+      >
+        <Layers className="size-3.5 mr-1.5 shrink-0 text-sky-400" />
+        <span>{t("story.highlightOutline")}</span>
+      </Button>
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onToggleParallelTranslation}
+        className={`text-xs font-semibold rounded-xl h-9 px-3.5 border-neutral-700 transition-colors w-full sm:w-auto justify-center cursor-pointer ${
+          showParallelTranslation
+            ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
+            : "bg-neutral-900 text-neutral-300 hover:text-white"
+        }`}
+      >
+        {showParallelTranslation
+          ? t("story.hideParallelTranslation")
+          : t("story.showParallelTranslation")}
+      </Button>
+    </div>
+  );
+}
+
 function StoryReadingComponent() {
   const { storyId } = Route.useParams();
   const navigate = Route.useNavigate();
@@ -71,6 +172,42 @@ function StoryReadingComponent() {
   const saveFlashcard = useSaveFlashcard();
 
   const [showParallelTranslation, setShowParallelTranslation] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioPlayerRef = useRef<AudioPlayerHandle | null>(null);
+
+  const {
+    activeParagraphIndex,
+    activeWordIndex,
+    highlightWords,
+    setHighlightWords,
+    highlightStoryItem,
+    setHighlightStoryItem,
+    getParagraphStartTime,
+    getWordStartTime,
+  } = useStoryAudioSync({
+    content: story?.content ?? "",
+    currentTime,
+    duration,
+    isPlaying,
+  });
+
+  const handleWordClick = useCallback(
+    (pIdx: number, wIdx: number) => {
+      const startTime = getWordStartTime(pIdx, wIdx);
+      audioPlayerRef.current?.seekTo(startTime, true);
+    },
+    [getWordStartTime]
+  );
+
+  const handleStoryItemClick = useCallback(
+    (pIdx: number) => {
+      const startTime = getParagraphStartTime(pIdx);
+      audioPlayerRef.current?.seekTo(startTime, true);
+    },
+    [getParagraphStartTime]
+  );
 
   const handleTabChange = (tab: string) => {
     navigate({
@@ -91,28 +228,7 @@ function StoryReadingComponent() {
   }
 
   if (error || !story) {
-    return (
-      <div className="container mx-auto max-w-lg px-4 py-16 text-center space-y-4">
-        <h2 className="text-xl font-bold text-white">
-          {t("story.notFoundTitle")}
-        </h2>
-        <p className="text-sm text-neutral-400">{t("story.notFoundDesc")}</p>
-        <Link
-          to="/"
-          search={{
-            category: "all",
-            language_scope: "pair",
-            level: "all",
-            search: "",
-          }}
-        >
-          <Button variant="outline" className="gap-2 rounded-xl">
-            <ArrowLeft className="size-4" />
-            <span>{t("story.backToStories")}</span>
-          </Button>
-        </Link>
-      </div>
-    );
+    return <StoryNotFound onBackText={t("story.backToStories")} />;
   }
 
   const handleSaveVocab = (vocabId: number) => {
@@ -169,7 +285,13 @@ function StoryReadingComponent() {
       </div>
 
       {/* Story Header Banner */}
-      <StoryHeaderBanner story={story} />
+      <StoryHeaderBanner
+        story={story}
+        audioPlayerRef={audioPlayerRef}
+        onTimeUpdate={setCurrentTime}
+        onDurationChange={setDuration}
+        onPlayStateChange={setIsPlaying}
+      />
 
       {/* Main Content Tabs */}
       <Tabs
@@ -218,25 +340,18 @@ function StoryReadingComponent() {
           </div>
 
           {activeTab === "story" && (
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setShowParallelTranslation(!showParallelTranslation)
-                }
-                className={`text-xs font-semibold rounded-xl h-9 px-3.5 border-neutral-700 transition-colors w-full sm:w-auto justify-center cursor-pointer ${
-                  showParallelTranslation
-                    ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
-                    : "bg-neutral-900 text-neutral-300 hover:text-white"
-                }`}
-              >
-                {showParallelTranslation
-                  ? t("story.hideParallelTranslation")
-                  : t("story.showParallelTranslation")}
-              </Button>
-            </div>
+            <StoryReadingToolbar
+              highlightWords={highlightWords}
+              onToggleHighlightWords={() => setHighlightWords(!highlightWords)}
+              highlightStoryItem={highlightStoryItem}
+              onToggleHighlightStoryItem={() =>
+                setHighlightStoryItem(!highlightStoryItem)
+              }
+              showParallelTranslation={showParallelTranslation}
+              onToggleParallelTranslation={() =>
+                setShowParallelTranslation(!showParallelTranslation)
+              }
+            />
           )}
         </div>
 
@@ -257,6 +372,13 @@ function StoryReadingComponent() {
               story.language_pair?.target_language.code || "de"
             }
             showTranslation={showParallelTranslation}
+            activeParagraphIndex={activeParagraphIndex}
+            activeWordIndex={activeWordIndex}
+            highlightWords={highlightWords}
+            highlightStoryItem={highlightStoryItem}
+            isPlaying={isPlaying}
+            onWordClick={handleWordClick}
+            onStoryItemClick={handleStoryItemClick}
           />
         </TabsContent>
 
@@ -280,7 +402,19 @@ function StoryReadingComponent() {
   );
 }
 
-function StoryHeaderBanner({ story }: { story: StoryDetail }) {
+function StoryHeaderBanner({
+  story,
+  audioPlayerRef,
+  onTimeUpdate,
+  onDurationChange,
+  onPlayStateChange,
+}: {
+  story: StoryDetail;
+  audioPlayerRef?: React.Ref<AudioPlayerHandle>;
+  onTimeUpdate?: (currentTime: number) => void;
+  onDurationChange?: (duration: number) => void;
+  onPlayStateChange?: (isPlaying: boolean) => void;
+}) {
   const { t, tCategory } = useTranslation();
   const levelColorClass = LEVEL_COLORS[story.cefr_level] || LEVEL_COLORS.A1;
 
@@ -335,10 +469,14 @@ function StoryHeaderBanner({ story }: { story: StoryDetail }) {
       {(story.audio_url || story.content) && (
         <div className="pt-2">
           <AudioPlayer
+            ref={audioPlayerRef}
             audioUrl={story.audio_url}
             storyContent={story.content}
             targetLanguage={story.language_pair?.target_language.code || "de"}
             storyTitle={story.title}
+            onTimeUpdate={onTimeUpdate}
+            onDurationChange={onDurationChange}
+            onPlayStateChange={onPlayStateChange}
           />
         </div>
       )}

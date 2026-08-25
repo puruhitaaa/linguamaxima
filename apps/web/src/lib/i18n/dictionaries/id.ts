@@ -271,6 +271,10 @@ export const id: TranslationDictionary = {
     vocabularyTab: "Kosakata ({count})",
     wordMeaningInParallel:
       "Arti kata tersedia pada terjemahan cerita paralel di bawah ini.",
+    highlightWord: "Sorot Kata",
+    highlightOutline: "Kilau Cerita",
+    dictatingIndicator: "Memutar",
+    clickToPlaySection: "Klik untuk putar dari sini",
   },
   quiz: {
     answerReview: "Tinjauan Jawaban",

@@ -254,6 +254,10 @@ export const zh: TranslationDictionary = {
     translationLabel: "{origin} 翻译:",
     vocabularyTab: "词汇 ({count})",
     wordMeaningInParallel: "单词释义可在下方的故事对照翻译中查看。",
+    highlightWord: "高亮当前单词",
+    highlightOutline: "高亮当前故事卡片",
+    dictatingIndicator: "正在朗读",
+    clickToPlaySection: "点击从此处开始播放",
   },
   quiz: {
     answerReview: "答案解析",

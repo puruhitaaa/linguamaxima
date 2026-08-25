@@ -269,6 +269,10 @@ export const ja: TranslationDictionary = {
     translationLabel: "翻訳 ({origin}):",
     vocabularyTab: "語彙 ({count})",
     wordMeaningInParallel: "単語の意味は下のストーリー対訳で確認できます。",
+    highlightWord: "単語の強調",
+    highlightOutline: "段落の発光",
+    dictatingIndicator: "再生中",
+    clickToPlaySection: "ここから再生",
   },
   quiz: {
     answerReview: "解答の確認",
