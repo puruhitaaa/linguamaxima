@@ -1,4 +1,5 @@
 import { Button } from "@linguamaxima/ui/components/button";
+import { Checkbox } from "@linguamaxima/ui/components/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -10,8 +11,15 @@ import {
 } from "@linguamaxima/ui/components/dialog";
 import { Input } from "@linguamaxima/ui/components/input";
 import { Label } from "@linguamaxima/ui/components/label";
-import { ArrowLeftRight, Loader2, Sparkles } from "lucide-react";
-import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@linguamaxima/ui/components/select";
+import { AlertCircle, ArrowLeftRight, Loader2, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
@@ -33,6 +41,13 @@ const CATEGORY_SLUGS = [
   "nature",
 ] as const;
 
+const GENERATION_STEPS = [
+  "Drafting engaging story narrative...",
+  "Synthesizing parallel bilingual translation...",
+  "Extracting CEFR vocabulary and grammar terms...",
+  "Composing interactive reading quiz...",
+];
+
 export function GenerateStoryDialog({
   trigger,
 }: {
@@ -43,6 +58,7 @@ export function GenerateStoryDialog({
     availableLanguages,
     getLanguageFlag,
     originLanguage,
+    setLanguagePair,
     targetLanguage,
   } = useLanguagePair();
 
@@ -52,16 +68,33 @@ export function GenerateStoryDialog({
   const [topicHint, setTopicHint] = useState("");
   const [originCode, setOriginCode] = useState(originLanguage.code);
   const [targetCode, setTargetCode] = useState(targetLanguage.code);
+  const [syncActivePair, setSyncActivePair] = useState(true);
+  const [generationStep, setGenerationStep] = useState(0);
+
+  const isSameLanguage = originCode === targetCode;
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (nextOpen) {
       setOriginCode(originLanguage.code);
       setTargetCode(targetLanguage.code);
+      setGenerationStep(0);
     }
     setOpen(nextOpen);
   };
 
   const generateMutation = useGenerateStory();
+
+  useEffect(() => {
+    if (!generateMutation.isPending) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setGenerationStep((prev) => (prev + 1) % GENERATION_STEPS.length);
+    }, 2800);
+
+    return () => clearInterval(interval);
+  }, [generateMutation.isPending]);
 
   const handleSwap = () => {
     const prevOrigin = originCode;
@@ -71,7 +104,19 @@ export function GenerateStoryDialog({
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSameLanguage) {
+      return;
+    }
+
     try {
+      if (
+        syncActivePair &&
+        (originCode !== originLanguage.code ||
+          targetCode !== targetLanguage.code)
+      ) {
+        setLanguagePair(originCode, targetCode);
+      }
+
       await generateMutation.mutateAsync({
         category_slug: category,
         cefr_level: level,
@@ -123,32 +168,38 @@ export function GenerateStoryDialog({
           <div className="grid gap-5 py-4">
             {/* Language Pair Selectors in Generator */}
             <div className="p-3.5 rounded-2xl bg-neutral-900/90 border border-neutral-800 space-y-2">
-              <div className="text-[11px] uppercase font-bold tracking-wider text-neutral-400">
+              <div className="text-xs uppercase font-bold tracking-wider text-neutral-400">
                 {t("generator.languageDirection")}
               </div>
               <div className="grid grid-cols-11 gap-2 items-center">
                 <div className="col-span-5 space-y-1">
-                  <span className="text-[10px] text-neutral-400 block font-medium">
+                  <Label className="text-xs text-neutral-400 block font-medium">
                     {t("generator.iSpeakLabel")}
-                  </span>
-                  <select
+                  </Label>
+                  <Select
                     value={originCode}
-                    onChange={(e) => setOriginCode(e.target.value)}
-                    className="w-full h-9 px-2 rounded-xl bg-neutral-950 border border-neutral-700 text-xs text-neutral-200 focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium"
+                    onValueChange={(val) => val && setOriginCode(val)}
                   >
-                    {availableLanguages.map((l) => (
-                      <option key={`dlg-orig-${l.code}`} value={l.code}>
-                        {getLanguageFlag(l.code)} {l.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full h-9 bg-neutral-950 border-neutral-700 text-xs text-neutral-200 focus:ring-sky-500 font-medium rounded-xl">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-neutral-950 border-neutral-800 text-neutral-200">
+                      {availableLanguages.map((l) => (
+                        <SelectItem key={`dlg-orig-${l.code}`} value={l.code}>
+                          <span>{getLanguageFlag(l.code)}</span>
+                          <span>{l.name}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="col-span-1 flex justify-center pt-3">
+                <div className="col-span-1 flex justify-center pt-4">
                   <button
                     type="button"
                     onClick={handleSwap}
                     title={t("generator.swapTooltip")}
+                    aria-label="Swap source and target languages"
                     className="p-1.5 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 transition-colors"
                   >
                     <ArrowLeftRight className="size-3.5" />
@@ -156,21 +207,52 @@ export function GenerateStoryDialog({
                 </div>
 
                 <div className="col-span-5 space-y-1">
-                  <span className="text-[10px] text-sky-400 block font-bold">
+                  <Label className="text-xs text-sky-400 block font-bold">
                     {t("generator.iLearnLabel")}
-                  </span>
-                  <select
+                  </Label>
+                  <Select
                     value={targetCode}
-                    onChange={(e) => setTargetCode(e.target.value)}
-                    className="w-full h-9 px-2 rounded-xl bg-neutral-950 border border-sky-500/50 text-xs text-white focus:outline-none focus:ring-1 focus:ring-sky-500 font-bold"
+                    onValueChange={(val) => val && setTargetCode(val)}
                   >
-                    {availableLanguages.map((l) => (
-                      <option key={`dlg-targ-${l.code}`} value={l.code}>
-                        {getLanguageFlag(l.code)} {l.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full h-9 bg-neutral-950 border-sky-500/50 text-xs text-white focus:ring-sky-500 font-bold rounded-xl">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-neutral-950 border-neutral-800 text-neutral-200">
+                      {availableLanguages.map((l) => (
+                        <SelectItem key={`dlg-targ-${l.code}`} value={l.code}>
+                          <span>{getLanguageFlag(l.code)}</span>
+                          <span>{l.name}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+
+              {/* Validation Warning for Identical Pair */}
+              {isSameLanguage && (
+                <div className="flex items-center gap-1.5 text-xs text-red-400 font-medium pt-1">
+                  <AlertCircle className="size-3.5 shrink-0" />
+                  <span>Source and target languages cannot be identical.</span>
+                </div>
+              )}
+
+              {/* Sync with Active Pair Checkbox */}
+              <div className="flex items-center gap-2 pt-1">
+                <Checkbox
+                  id="sync-active-pair"
+                  checked={syncActivePair}
+                  onCheckedChange={(checked) =>
+                    setSyncActivePair(Boolean(checked))
+                  }
+                  className="data-[state=checked]:bg-sky-500 data-[state=checked]:border-sky-500"
+                />
+                <Label
+                  htmlFor="sync-active-pair"
+                  className="text-xs text-neutral-400 cursor-pointer font-normal"
+                >
+                  Set as active learning pair for the app
+                </Label>
               </div>
             </div>
 
@@ -179,11 +261,15 @@ export function GenerateStoryDialog({
               <Label className="text-xs uppercase tracking-wider text-neutral-400">
                 {t("generator.cefrLabel")}
               </Label>
-              <div className="grid grid-cols-6 gap-1.5">
+              <div
+                className="grid grid-cols-6 gap-1.5"
+                aria-label="CEFR Proficiency Level"
+              >
                 {CEFR_LEVELS.map((lvl) => (
                   <button
                     key={lvl}
                     type="button"
+                    aria-pressed={level === lvl}
                     onClick={() => setLevel(lvl)}
                     className={`py-2 text-xs font-semibold rounded-xl transition-colors border ${
                       level === lvl
@@ -202,37 +288,68 @@ export function GenerateStoryDialog({
               <Label className="text-xs uppercase tracking-wider text-neutral-400">
                 {t("generator.categoryLabel")}
               </Label>
-              <select
+              <Select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl bg-neutral-900 border border-neutral-800 text-xs text-neutral-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                onValueChange={(val) => val && setCategory(val)}
               >
-                {CATEGORY_SLUGS.map((slug) => (
-                  <option key={slug} value={slug}>
-                    {tCategory(slug)}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full h-10 bg-neutral-900 border-neutral-800 text-xs text-neutral-200 focus:ring-sky-500 rounded-xl">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent className="bg-neutral-950 border-neutral-800 text-neutral-200">
+                  {CATEGORY_SLUGS.map((slug) => (
+                    <SelectItem key={slug} value={slug}>
+                      {tCategory(slug)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Topic Hint */}
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-neutral-400">
+              <Label
+                htmlFor="generator-topic-hint"
+                className="text-xs uppercase tracking-wider text-neutral-400"
+              >
                 {t("generator.topicHintLabel")}
               </Label>
               <Input
+                id="generator-topic-hint"
                 placeholder={t("generator.topicHintPlaceholder")}
                 value={topicHint}
                 onChange={(e) => setTopicHint(e.target.value)}
                 className="bg-neutral-900 border-neutral-800 text-xs text-neutral-100 placeholder:text-neutral-500 rounded-xl"
               />
             </div>
+
+            {/* Progress Stepper Banner during generation */}
+            {generateMutation.isPending && (
+              <div className="p-3.5 rounded-2xl bg-sky-950/40 border border-sky-500/30 space-y-2 animate-in fade-in duration-300">
+                <div className="flex items-center gap-2 text-sky-400 text-xs font-semibold">
+                  <Loader2 className="size-4 animate-spin shrink-0" />
+                  <span>{GENERATION_STEPS[generationStep]}</span>
+                </div>
+                <div className="grid grid-cols-4 gap-1.5 pt-1">
+                  {GENERATION_STEPS.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`h-1.5 rounded-full transition-all duration-500 ${
+                        idx <= generationStep
+                          ? "bg-sky-500 shadow-sm shadow-sky-500/50"
+                          : "bg-neutral-800"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0 pt-2">
             <Button
               type="button"
               variant="outline"
+              disabled={generateMutation.isPending}
               onClick={() => setOpen(false)}
               className="border-neutral-800 text-neutral-300 hover:bg-neutral-900 text-xs"
             >
@@ -240,22 +357,26 @@ export function GenerateStoryDialog({
             </Button>
             <Button
               type="submit"
-              disabled={generateMutation.isPending}
-              className="bg-sky-500 hover:bg-sky-600 text-white gap-2 font-semibold text-xs shadow-md shadow-sky-500/20"
+              disabled={generateMutation.isPending || isSameLanguage}
+              className="bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white gap-2 font-semibold text-xs shadow-md shadow-sky-500/20"
             >
               {generateMutation.isPending ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  {t("generator.generatingBtn", {
-                    target: activeTargetLang.name,
-                  })}
+                  <span>
+                    {t("generator.generatingBtn", {
+                      target: activeTargetLang.name,
+                    })}
+                  </span>
                 </>
               ) : (
                 <>
                   <Sparkles className="size-4" />
-                  {t("generator.generateBtn", {
-                    target: activeTargetLang.name,
-                  })}
+                  <span>
+                    {t("generator.generateBtn", {
+                      target: activeTargetLang.name,
+                    })}
+                  </span>
                 </>
               )}
             </Button>

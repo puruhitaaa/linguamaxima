@@ -44,6 +44,10 @@ class StorageService:
         if settings.r2_public_url_prefix:
             prefix = settings.r2_public_url_prefix.rstrip("/")
             return f"{prefix}/{key}"
+        logger.warning(
+            "R2_PUBLIC_URL_PREFIX is not configured. Direct S3 endpoint URLs will fail in browsers with ERR_CERT_COMMON_NAME_INVALID. "
+            "Enable R2.dev or a custom domain in Cloudflare and configure R2_PUBLIC_URL_PREFIX in your .env."
+        )
         return f"https://{settings.r2_bucket_name}.{settings.r2_account_id}.r2.cloudflarestorage.com/{key}"
 
     async def audio_exists(self, filename: str) -> Optional[str]:

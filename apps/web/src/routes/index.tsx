@@ -1,7 +1,17 @@
 import { Button } from "@linguamaxima/ui/components/button";
 import { Input } from "@linguamaxima/ui/components/input";
 import { createFileRoute } from "@tanstack/react-router";
-import { BookOpen, Flame, Globe, Layers, Search, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  BookOpen,
+  Flame,
+  Globe,
+  Layers,
+  RotateCcw,
+  Search,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
@@ -57,7 +67,12 @@ function HomeComponent() {
 
   const { data: categories } = useCategories();
   const { data: progress } = useProgress();
-  const { data: stories, isLoading } = useStories({
+  const {
+    data: stories,
+    isError,
+    isLoading,
+    refetch,
+  } = useStories({
     category_slug: selectedCategory !== "all" ? selectedCategory : undefined,
     cefr_level: selectedLevel !== "all" ? selectedLevel : undefined,
     origin_language_code:
@@ -94,6 +109,17 @@ function HomeComponent() {
     });
   };
 
+  const handleClearSearch = () => {
+    setSearchInput("");
+    navigate({
+      replace: true,
+      search: (prev) => ({
+        ...prev,
+        search: undefined,
+      }),
+    });
+  };
+
   const renderStoriesContent = () => {
     if (isLoading) {
       return (
@@ -104,6 +130,32 @@ function HomeComponent() {
               className="h-72 rounded-xl bg-neutral-900/60 border border-neutral-800 animate-pulse"
             />
           ))}
+        </div>
+      );
+    }
+
+    if (isError) {
+      return (
+        <div className="text-center py-16 px-4 rounded-2xl bg-neutral-900/30 border border-neutral-800/80 space-y-4 max-w-md mx-auto">
+          <div className="size-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center mx-auto">
+            <AlertCircle className="size-6" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold text-white">
+              Failed to load stories
+            </h3>
+            <p className="text-xs text-neutral-400">
+              There was a problem connecting to the server. Please try again.
+            </p>
+          </div>
+          <Button
+            onClick={() => refetch()}
+            variant="outline"
+            className="gap-2 border-neutral-700 text-neutral-200 hover:bg-neutral-800 text-xs"
+          >
+            <RotateCcw className="size-3.5" />
+            <span>Retry</span>
+          </Button>
         </div>
       );
     }
@@ -165,9 +217,9 @@ function HomeComponent() {
       {/* Hero & Progress Summary Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-sky-950/40 via-neutral-900 to-neutral-950 border border-neutral-800/80 p-6 sm:p-8">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-xl">
+          <div className="space-y-3.5 max-w-xl">
             {/* Active Language Badge & Switcher */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
               <Sparkles className="size-3.5" />
               <span>
                 {t("home.learningBadge", {
@@ -180,7 +232,7 @@ function HomeComponent() {
               <button
                 type="button"
                 onClick={() => setIsLangModalOpen(true)}
-                className="ml-1 text-[11px] underline text-sky-300 hover:text-white"
+                className="ml-1 text-xs underline text-sky-300 hover:text-white font-medium"
               >
                 {t("home.changeLanguage")}
               </button>
@@ -191,6 +243,17 @@ function HomeComponent() {
             <p className="text-sm text-neutral-400 leading-relaxed">
               {t("home.heroSubtitle", { origin: originLanguage.name })}
             </p>
+
+            <div className="pt-1">
+              <GenerateStoryDialog
+                trigger={
+                  <Button className="bg-sky-500 hover:bg-sky-600 text-white gap-2 font-semibold text-xs shadow-md shadow-sky-500/20">
+                    <Sparkles className="size-4" />
+                    <span>{t("generator.triggerBtn")}</span>
+                  </Button>
+                }
+              />
+            </div>
           </div>
 
           {/* Stat widgets */}
@@ -203,7 +266,7 @@ function HomeComponent() {
                 <span className="text-xl sm:text-2xl font-black text-white block">
                   {progress.total_stories_read}
                 </span>
-                <span className="text-[11px] text-neutral-400 font-medium">
+                <span className="text-xs text-neutral-400 font-medium">
                   {t("home.storiesRead")}
                 </span>
               </div>
@@ -214,7 +277,7 @@ function HomeComponent() {
                 <span className="text-xl sm:text-2xl font-black text-white block">
                   {progress.total_words_learned}
                 </span>
-                <span className="text-[11px] text-neutral-400 font-medium">
+                <span className="text-xs text-neutral-400 font-medium">
                   {t("home.wordsSaved")}
                 </span>
               </div>
@@ -227,7 +290,7 @@ function HomeComponent() {
                     days: progress.current_streak_days,
                   })}
                 </span>
-                <span className="text-[11px] text-neutral-400 font-medium">
+                <span className="text-xs text-neutral-400 font-medium">
                   {t("home.dailyStreak")}
                 </span>
               </div>
@@ -246,7 +309,7 @@ function HomeComponent() {
               <button
                 type="button"
                 onClick={() => handleToggleScope("pair")}
-                className={`px-3 py-1 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
                   languageScope === "pair"
                     ? "bg-sky-500 text-white shadow-sm"
                     : "text-neutral-400 hover:text-neutral-200"
@@ -260,7 +323,7 @@ function HomeComponent() {
               <button
                 type="button"
                 onClick={() => handleToggleScope("all")}
-                className={`px-3 py-1 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
                   languageScope === "all"
                     ? "bg-sky-500 text-white shadow-sm"
                     : "text-neutral-400 hover:text-neutral-200"
@@ -278,7 +341,7 @@ function HomeComponent() {
                   key={lvl}
                   type="button"
                   onClick={() => handleSelectLevel(lvl)}
-                  className={`px-3 py-1 text-xs font-bold rounded-xl transition-all border ${
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all border ${
                     selectedLevel === lvl
                       ? "bg-neutral-800 border-neutral-700 text-white shadow-sm"
                       : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
@@ -290,9 +353,9 @@ function HomeComponent() {
             </div>
           </div>
 
-          {/* Search Bar */}
+          {/* Search Bar with Clear Button */}
           <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-500 pointer-events-none" />
             <Input
               type="text"
               placeholder={
@@ -302,8 +365,18 @@ function HomeComponent() {
               }
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 h-9 text-xs bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 rounded-xl"
+              className="pl-9 pr-8 h-9 text-xs bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 rounded-xl"
             />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white p-0.5"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -312,7 +385,7 @@ function HomeComponent() {
           <button
             type="button"
             onClick={() => handleSelectCategory("all")}
-            className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
+            className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 ${
               selectedCategory === "all"
                 ? "bg-neutral-100 text-neutral-900 font-semibold"
                 : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
@@ -325,7 +398,7 @@ function HomeComponent() {
               key={cat.slug}
               type="button"
               onClick={() => handleSelectCategory(cat.slug)}
-              className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
+              className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 ${
                 selectedCategory === cat.slug
                   ? "bg-neutral-100 text-neutral-900 font-semibold"
                   : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"

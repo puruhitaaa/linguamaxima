@@ -475,11 +475,11 @@ export function useGenerateStory() {
         is_completed: false,
         is_favorite: false,
         summary:
-          "AI sedang menyusun cerita bahasa Jerman interaktif lengkap dengan kosakata dan kuis...",
+          "AI is generating an interactive graded story with vocabulary and quiz...",
         title:
           payload.topic_hint ||
           `Generating Level ${payload.cefr_level} Story...`,
-        title_translated: "Membuat cerita baru dengan AI...",
+        title_translated: "Creating new story with AI...",
         word_count: 120,
       };
 

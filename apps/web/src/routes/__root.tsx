@@ -9,7 +9,7 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import Header from "../components/header";
-import { LanguagePairProvider } from "../lib/language-context";
+import { LanguagePairProvider, useLanguagePair } from "../lib/language-context";
 
 import appCss from "../index.css?url";
 
@@ -56,6 +56,24 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       {
         title: "LinguaMaxima — AI-Powered Multi-Language Reader",
       },
+      {
+        content:
+          "Master languages through AI-generated parallel bilingual stories and smart spaced-repetition flashcards.",
+        name: "description",
+      },
+      {
+        content: "LinguaMaxima — AI-Powered Multi-Language Reader",
+        property: "og:title",
+      },
+      {
+        content:
+          "Master languages through AI-generated parallel bilingual stories and smart spaced-repetition flashcards.",
+        property: "og:description",
+      },
+      {
+        content: "website",
+        property: "og:type",
+      },
     ],
   }),
 
@@ -64,23 +82,33 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
 function RootDocument() {
   return (
-    <html className="dark" lang="en">
+    <QueryClientProvider client={queryClient}>
+      <LanguagePairProvider>
+        <DocumentShell />
+      </LanguagePairProvider>
+    </QueryClientProvider>
+  );
+}
+
+function DocumentShell() {
+  const { originLanguage } = useLanguagePair();
+
+  return (
+    <html className="dark" lang={originLanguage?.code || "en"}>
       <head>
         <HeadContent />
       </head>
-      <body className="min-h-screen bg-black font-sans text-white antialiased selection:bg-sky-500/30 selection:text-sky-200">
-        <QueryClientProvider client={queryClient}>
-          <LanguagePairProvider>
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">
-                <Outlet />
-              </main>
-            </div>
-            <Toaster position="top-right" richColors />
-            <TanStackRouterDevtools position="bottom-left" />
-          </LanguagePairProvider>
-        </QueryClientProvider>
+      <body className="min-h-screen bg-background font-sans text-foreground antialiased selection:bg-sky-500/30 selection:text-sky-200">
+        <div className="flex min-h-screen flex-col">
+          <Header />
+          <main className="flex-1">
+            <Outlet />
+          </main>
+        </div>
+        <Toaster position="top-right" richColors />
+        {import.meta.env.DEV ? (
+          <TanStackRouterDevtools position="bottom-left" />
+        ) : null}
         <Scripts />
       </body>
     </html>

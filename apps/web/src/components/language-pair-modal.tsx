@@ -8,7 +8,14 @@ import {
   DialogTitle,
 } from "@linguamaxima/ui/components/dialog";
 import { Input } from "@linguamaxima/ui/components/input";
-import { ArrowLeftRight, Check, Globe, Search, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeftRight,
+  Check,
+  Globe,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -49,6 +56,8 @@ export function LanguagePairModal({
   const [activeTab, setActiveTab] = useState<"origin" | "target">("target");
   const [search, setSearch] = useState("");
 
+  const isSameLanguage = selectedOrigin.code === selectedTarget.code;
+
   const createPairMutation = useCreateLanguagePair();
 
   // Keep synced when opened
@@ -57,6 +66,7 @@ export function LanguagePairModal({
       setSelectedOrigin(originLanguage);
       setSelectedTarget(targetLanguage);
       setSearch("");
+      setActiveTab("target");
     }
     onOpenChange(nextOpen);
   };
@@ -76,7 +86,7 @@ export function LanguagePairModal({
   };
 
   const handleApply = () => {
-    if (selectedOrigin.code === selectedTarget.code) {
+    if (isSameLanguage) {
       toast.error(t("modal.sameLanguageError"));
       return;
     }
@@ -117,10 +127,16 @@ export function LanguagePairModal({
         </DialogHeader>
 
         {/* Current Pair Selection Showcase */}
-        <div className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-neutral-900/80 border border-neutral-800 my-2">
+        <div
+          className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-neutral-900/80 border border-neutral-800 my-2"
+          role="tablist"
+          aria-label="Language pair selection tabs"
+        >
           {/* Origin Language Box */}
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === "origin"}
             onClick={() => setActiveTab("origin")}
             className={`flex-1 text-left p-3 rounded-xl border transition-all ${
               activeTab === "origin"
@@ -128,7 +144,7 @@ export function LanguagePairModal({
                 : "bg-neutral-950/60 border-neutral-800 hover:border-neutral-700"
             }`}
           >
-            <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-400 block mb-1">
+            <span className="text-xs uppercase font-bold tracking-wider text-neutral-400 block mb-1">
               {t("modal.iSpeak")}
             </span>
             <div className="flex items-center gap-2">
@@ -139,7 +155,7 @@ export function LanguagePairModal({
                 <div className="font-bold text-sm text-white">
                   {selectedOrigin.name}
                 </div>
-                <div className="text-[11px] text-neutral-400">
+                <div className="text-xs text-neutral-400">
                   {selectedOrigin.native_name || selectedOrigin.code}
                 </div>
               </div>
@@ -151,6 +167,7 @@ export function LanguagePairModal({
             type="button"
             onClick={handleSwap}
             title={t("modal.swapTooltip")}
+            aria-label="Swap native and target languages"
             className="p-2.5 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shrink-0"
           >
             <ArrowLeftRight className="size-4" />
@@ -159,6 +176,8 @@ export function LanguagePairModal({
           {/* Target Language Box */}
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === "target"}
             onClick={() => setActiveTab("target")}
             className={`flex-1 text-left p-3 rounded-xl border transition-all ${
               activeTab === "target"
@@ -166,7 +185,7 @@ export function LanguagePairModal({
                 : "bg-neutral-950/60 border-neutral-800 hover:border-neutral-700"
             }`}
           >
-            <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-400 block mb-1">
+            <span className="text-xs uppercase font-bold tracking-wider text-neutral-400 block mb-1">
               {t("modal.iLearn")}
             </span>
             <div className="flex items-center gap-2">
@@ -176,11 +195,11 @@ export function LanguagePairModal({
               <div>
                 <div className="font-bold text-sm text-white flex items-center gap-1.5">
                   {selectedTarget.name}
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-400 font-bold">
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 font-bold">
                     {t("modal.targetBadge")}
                   </span>
                 </div>
-                <div className="text-[11px] text-neutral-400">
+                <div className="text-xs text-neutral-400">
                   {selectedTarget.native_name || selectedTarget.code}
                 </div>
               </div>
@@ -188,9 +207,17 @@ export function LanguagePairModal({
           </button>
         </div>
 
+        {/* Validation Warning for Identical Pair */}
+        {isSameLanguage && (
+          <div className="flex items-center gap-1.5 text-xs text-red-400 font-medium px-1">
+            <AlertCircle className="size-3.5 shrink-0" />
+            <span>Source and target languages cannot be identical.</span>
+          </div>
+        )}
+
         {/* Quick Presets */}
         <div className="space-y-2">
-          <span className="text-[11px] font-semibold text-neutral-400 flex items-center gap-1">
+          <span className="text-xs font-semibold text-neutral-400 flex items-center gap-1">
             <Sparkles className="size-3 text-amber-400" />
             {t("modal.popularPresets")}
           </span>
@@ -207,7 +234,7 @@ export function LanguagePairModal({
                       origin: orig.name,
                       target: targ.name,
                     })
-                  : `${p.target.toUpperCase()} ← ${p.origin.toUpperCase()}`;
+                  : `${p.origin.toUpperCase()} → ${p.target.toUpperCase()}`;
 
               return (
                 <button
@@ -242,12 +269,16 @@ export function LanguagePairModal({
                 placeholder={t("modal.searchPlaceholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                aria-label={t("modal.searchPlaceholder")}
                 className="h-8 pl-8 text-xs bg-neutral-900 border-neutral-800 rounded-lg text-neutral-200 placeholder:text-neutral-500"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-52 overflow-y-auto pr-1">
+          <div
+            className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-52 overflow-y-auto pr-1"
+            aria-label="Available languages"
+          >
             {filteredLanguages.map((lang) => {
               const isSelected =
                 activeTab === "origin"
@@ -258,9 +289,11 @@ export function LanguagePairModal({
                 <button
                   key={lang.code}
                   type="button"
+                  aria-pressed={isSelected}
                   onClick={() => {
                     if (activeTab === "origin") {
                       setSelectedOrigin(lang);
+                      setActiveTab("target");
                     } else {
                       setSelectedTarget(lang);
                     }
@@ -279,7 +312,7 @@ export function LanguagePairModal({
                       <div className="text-xs font-bold truncate">
                         {lang.name}
                       </div>
-                      <div className="text-[10px] text-neutral-400 truncate">
+                      <div className="text-xs text-neutral-400 truncate">
                         {lang.native_name}
                       </div>
                     </div>
@@ -304,8 +337,9 @@ export function LanguagePairModal({
           </Button>
           <Button
             type="button"
+            disabled={isSameLanguage || createPairMutation.isPending}
             onClick={handleApply}
-            className="bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs gap-1.5 shadow-md shadow-sky-500/20"
+            className="bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white font-semibold text-xs gap-1.5 shadow-md shadow-sky-500/20"
           >
             <Check className="size-4" />
             {t("modal.applyBtn", { target: selectedTarget.name })}
