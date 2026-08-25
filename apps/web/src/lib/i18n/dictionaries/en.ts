@@ -41,10 +41,12 @@ export const en: TranslationDictionary = {
     words: "words",
   },
   header: {
+    about: "About",
     aiReader: "AI Language Reader",
     dueBadge: "{count} due",
     dueTooltip: "Flashcards due for review",
     flashcards: "Flashcards",
+    githubTooltip: "GitHub Profile",
     languages: "Languages",
     progress: "Progress",
     quickSwitcherTitle: "Click to switch language pair",
@@ -332,6 +334,53 @@ export const en: TranslationDictionary = {
     swapTooltip: "Swap Origin and Target",
     targetBadge: "Target",
     toastSuccess: "Switched to learning {target} from {origin}!",
+  },
+  about: {
+    badge: "Open Source Initiative",
+    title: "About LinguaMaxima",
+    subtitle:
+      "An open-source, AI-powered multilingual graded reader and spaced repetition platform engineered for effortless language mastery.",
+    authorSectionTitle: "Created by Baiq",
+    authorName: "Baiq",
+    authorHandle: "@puruhitaaa",
+    authorBio:
+      "Software engineer and creator passionate about simple systems, ambitious ideas, language acquisition, and open-source software.",
+    githubProfileBtn: "GitHub Profile",
+    githubRepoBtn: "Source Code",
+    openSourceBadge: "Open Source Software",
+    licenseBadge: "MIT License",
+    licenseTitle: "Open Source & MIT License",
+    licenseDesc:
+      "LinguaMaxima is proudly 100% free and open-source under the permissive MIT License. You are free to inspect, modify, fork, self-host, and contribute back to the ecosystem.",
+    licenseCommercial: "Commercial Use Allowed",
+    licenseModification: "Modification & Customization",
+    licenseDistribution: "Redistribution Allowed",
+    licensePrivateUse: "Private & Commercial Hosting",
+    missionTitle: "The Mission",
+    missionDesc:
+      "Graded readers are one of the most effective language acquisition tools, but traditional readers are constrained by fixed language pairs and expensive physical publishing. LinguaMaxima removes these boundaries by using modern AI to generate level-calibrated stories in any arbitrary language combination with instant grammar, neural audio, and SM-2 spaced repetition flashcards.",
+    architectureTitle: "Modern Full-Stack Architecture",
+    architectureDesc:
+      "Crafted with modern tools designed for high performance, type safety, and delightful user experience.",
+    frontendTech: "TanStack Start, React 19, Tailwind CSS v4 & shadcn/ui",
+    backendTech: "FastAPI, Python 3.12, SQLAlchemy Async & Alembic",
+    aiTech: "Google Gemini 2.5 Flash story synthesis & Edge Neural TTS",
+    stylingTech: "Ultracite zero-config code standards & strict type safety",
+    featuresTitle: "Core Architectural Highlights",
+    feat1Title: "Arbitrary Language Pairs",
+    feat1Desc:
+      "Read in any target language with translations and grammar notes in your native origin tongue.",
+    feat2Title: "CEFR A1–C2 Calibrated",
+    feat2Desc:
+      "AI stories dynamically leveled to CEFR standards from beginner basics to fluent native prose.",
+    feat3Title: "Neural Audio Synthesis",
+    feat3Desc:
+      "Native-sounding pronunciation with customizable speed controls and quick 5s rewind.",
+    feat4Title: "SM-2 Spaced Repetition",
+    feat4Desc:
+      "Tap any word to view its article, part of speech, and save it to your daily flashcard deck.",
+    exploreStoriesBtn: "Explore Stories",
+    starOnGithubBtn: "Visit on GitHub",
   },
   categories: {
     culture: "Culture & Traditions",

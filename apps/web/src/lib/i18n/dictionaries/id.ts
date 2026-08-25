@@ -41,10 +41,12 @@ export const id: TranslationDictionary = {
     words: "kata",
   },
   header: {
+    about: "Tentang",
     aiReader: "Pembaca Bahasa AI",
     dueBadge: "{count} jatuh tempo",
     dueTooltip: "Flashcard yang perlu diulang hari ini",
     flashcards: "Flashcards",
+    githubTooltip: "Profil GitHub",
     languages: "Bahasa",
     progress: "Kemajuan",
     quickSwitcherTitle: "Klik untuk mengganti pasangan bahasa",
@@ -335,6 +337,53 @@ export const id: TranslationDictionary = {
     swapTooltip: "Tukar Bahasa Asal dan Target",
     targetBadge: "Target",
     toastSuccess: "Beralih belajar {target} dari {origin}!",
+  },
+  about: {
+    badge: "Inisiatif Sumber Terbuka",
+    title: "Tentang LinguaMaxima",
+    subtitle:
+      "Platform pembaca bertingkat multibahasa berbasis AI dan spaced repetition sumber terbuka yang dirancang untuk penguasaan bahasa tanpa batas.",
+    authorSectionTitle: "Dibuat oleh Baiq",
+    authorName: "Baiq",
+    authorHandle: "@puruhitaaa",
+    authorBio:
+      "Pengembang perangkat lunak yang berfokus pada sistem sederhana, ide ambisius, pembelajaran bahasa, dan perangkat lunak sumber terbuka.",
+    githubProfileBtn: "Profil GitHub",
+    githubRepoBtn: "Kode Sumber",
+    openSourceBadge: "Perangkat Lunak Terbuka",
+    licenseBadge: "Lisensi MIT",
+    licenseTitle: "Sumber Terbuka & Lisensi MIT",
+    licenseDesc:
+      "LinguaMaxima 100% gratis dan bersumber terbuka di bawah Lisensi MIT. Anda bebas untuk memeriksa, memodifikasi, membuat fork, melakukan self-hosting, dan berkontribusi kembali ke komunitas.",
+    licenseCommercial: "Penggunaan Komersial Diizinkan",
+    licenseModification: "Modifikasi & Kustomisasi Bebas",
+    licenseDistribution: "Redistribusi Diizinkan",
+    licensePrivateUse: "Hosting Privat & Komersial",
+    missionTitle: "Misi Kami",
+    missionDesc:
+      "Graded reader adalah salah satu metode akuisisi bahasa paling efektif, namun pembaca tradisional terbatas oleh pasangan bahasa yang kaku dan biaya penerbitan. LinguaMaxima menghapus batasan tersebut menggunakan AI modern untuk menghasilkan cerita terkalibrasi level dalam kombinasi bahasa apa pun dengan tata bahasa instan, audio neural, dan flashcard repetisi berjarak SM-2.",
+    architectureTitle: "Arsitektur Full-Stack Modern",
+    architectureDesc:
+      "Dibangun dengan teknologi modern yang dirancang untuk performa tinggi, type safety yang kokoh, dan pengalaman pengguna yang luar biasa.",
+    frontendTech: "TanStack Start, React 19, Tailwind CSS v4 & shadcn/ui",
+    backendTech: "FastAPI, Python 3.12, SQLAlchemy Async & Alembic",
+    aiTech: "Sintesis cerita Google Gemini 2.5 Flash & Edge Neural TTS",
+    stylingTech: "Standar kode nol-konfigurasi Ultracite & type safety ketat",
+    featuresTitle: "Pilar Utama Arsitektur",
+    feat1Title: "Pasangan Bahasa Fleksibel",
+    feat1Desc:
+      "Baca dalam bahasa target apa pun dengan terjemahan dan catatan tata bahasa dalam bahasa ibu Anda.",
+    feat2Title: "Terkalibrasi CEFR A1–C2",
+    feat2Desc:
+      "Cerita AI yang disesuaikan secara dinamis dengan standar CEFR dari tingkat pemula hingga mahir.",
+    feat3Title: "Sintesis Audio Neural",
+    feat3Desc:
+      "Pengucapan autentik seperti penutur asli dengan kontrol kecepatan dan tombol mundur 5 detik.",
+    feat4Title: "Spaced Repetition SM-2",
+    feat4Desc:
+      "Ketuk kata apa pun untuk melihat artikel, jenis kata, dan simpan ke deck flashcard harian Anda.",
+    exploreStoriesBtn: "Jelajahi Cerita",
+    starOnGithubBtn: "Kunjungi di GitHub",
   },
   categories: {
     culture: "Budaya & Tradisi",

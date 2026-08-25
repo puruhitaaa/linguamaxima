@@ -4,6 +4,7 @@ import {
   Flame,
   Globe,
   GraduationCap,
+  Info,
   Layers,
   Menu,
   X,
@@ -13,6 +14,7 @@ import { useState } from "react";
 import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
 import { useProgress } from "../lib/queries";
+import { GitHubIcon } from "../routes/about";
 import { GenerateStoryDialog } from "./generate-story-dialog";
 import { LanguagePairModal } from "./language-pair-modal";
 
@@ -30,6 +32,7 @@ export default function Header() {
     { icon: Globe, label: t("header.languages"), to: "/languages" },
     { icon: Layers, label: t("header.flashcards"), to: "/flashcards" },
     { icon: GraduationCap, label: t("header.progress"), to: "/progress" },
+    { icon: Info, label: t("header.about"), to: "/about" },
   ] as const;
 
   return (
@@ -151,6 +154,18 @@ export default function Header() {
           {/* Generate Story CTA */}
           <GenerateStoryDialog />
 
+          {/* GitHub Profile Button */}
+          <a
+            href="https://github.com/puruhitaaa"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center size-9 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700 hover:bg-neutral-850 transition-all shrink-0"
+            title={t("header.githubTooltip")}
+            aria-label={t("header.githubTooltip")}
+          >
+            <GitHubIcon className="size-4" />
+          </a>
+
           {/* Mobile Navigation Toggle Button */}
           <button
             type="button"
@@ -189,11 +204,21 @@ export default function Header() {
                       : "bg-neutral-900/60 text-neutral-300 hover:text-white hover:bg-neutral-900 border border-neutral-800/60"
                   }`}
                 >
-                  <Icon className="size-4 text-sky-400" />
+                  <Icon className="size-4 text-sky-400 shrink-0" />
                   <span>{label}</span>
                 </Link>
               );
             })}
+            <a
+              href="https://github.com/puruhitaaa"
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => setIsMobileNavOpen(false)}
+              className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-neutral-900/60 text-neutral-300 hover:text-white hover:bg-neutral-900 border border-neutral-800/60 transition-colors min-h-[44px]"
+            >
+              <GitHubIcon className="size-4 text-neutral-400 shrink-0" />
+              <span>GitHub</span>
+            </a>
           </nav>
 
           {/* Mobile Streak & Due Badges */}

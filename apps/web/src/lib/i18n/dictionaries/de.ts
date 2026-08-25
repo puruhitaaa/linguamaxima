@@ -41,10 +41,12 @@ export const de: TranslationDictionary = {
     words: "Wörter",
   },
   header: {
+    about: "Über",
     aiReader: "KI-Sprachleser",
     dueBadge: "{count} fällig",
     dueTooltip: "Fällige Karteikarten",
     flashcards: "Karteikarten",
+    githubTooltip: "GitHub-Profil",
     languages: "Sprachen",
     progress: "Fortschritt",
     quickSwitcherTitle: "Klicken, um das Sprachpaar zu wechseln",
@@ -337,6 +339,53 @@ export const de: TranslationDictionary = {
     swapTooltip: "Ausgangs- und Zielsprache tauschen",
     targetBadge: "Ziel",
     toastSuccess: "Zu {target} lernen (von {origin}) gewechselt!",
+  },
+  about: {
+    badge: "Open-Source-Initiative",
+    title: "Über LinguaMaxima",
+    subtitle:
+      "Eine quelloffene, KI-gestützte mehrsprachige Leseplattform mit abgestuften Texten und Spaced-Repetition-System für mühelosen Spracherwerb.",
+    authorSectionTitle: "Erstellt von Baiq",
+    authorName: "Baiq",
+    authorHandle: "@puruhitaaa",
+    authorBio:
+      "Softwareentwickler mit Leidenschaft für einfache Systeme, ambitionierte Ideen, Spracherwerb und quelloffene Software.",
+    githubProfileBtn: "GitHub-Profil",
+    githubRepoBtn: "Quellcode",
+    openSourceBadge: "Quelloffene Software",
+    licenseBadge: "MIT-Lizenz",
+    licenseTitle: "Open Source & MIT-Lizenz",
+    licenseDesc:
+      "LinguaMaxima ist zu 100 % kostenlos und quelloffen unter der MIT-Lizenz. Sie können den Code frei einsehen, anpassen, forken, selbst hosten und zur Community beitragen.",
+    licenseCommercial: "Kommerzielle Nutzung erlaubt",
+    licenseModification: "Freie Anpassung & Modifikation",
+    licenseDistribution: "Weiterverbreitung erlaubt",
+    licensePrivateUse: "Privates & kommerzielles Hosting",
+    missionTitle: "Unsere Mission",
+    missionDesc:
+      "Graded Reader gehören zu den effektivsten Sprachlernmethoden, waren bisher jedoch auf feste Sprachpaare und teure Verlage beschränkt. LinguaMaxima überwindet diese Grenzen mit moderner KI, um stufengerechte Geschichten in beliebigen Sprachkombinationen mit Grammatik, Audio und SM-2-Karteikarten zu generieren.",
+    architectureTitle: "Moderne Full-Stack-Architektur",
+    architectureDesc:
+      "Entwickelt mit modernen Technologien für hohe Geschwindigkeit, robuste Typsicherheit und erstklassige Benutzerfreundlichkeit.",
+    frontendTech: "TanStack Start, React 19, Tailwind CSS v4 & shadcn/ui",
+    backendTech: "FastAPI, Python 3.12, SQLAlchemy Async & Alembic",
+    aiTech: "Google Gemini 2.5 Flash Textgenerierung & Edge Neural TTS",
+    stylingTech: "Ultracite Zero-Config-Codestandards & strikte Typsicherheit",
+    featuresTitle: "Zentrale Architekturpfeiler",
+    feat1Title: "Beliebige Sprachpaare",
+    feat1Desc:
+      "Lesen Sie in jeder Zielsprache mit Übersetzungen und Grammatik in Ihrer Muttersprache.",
+    feat2Title: "CEFR A1–C2 Kalibriert",
+    feat2Desc:
+      "Dynamisch auf CEFR-Niveaus abgestimmte KI-Geschichten von den Grundlagen bis zu anspruchsvollen Texten.",
+    feat3Title: "Neuronale Audiosynthese",
+    feat3Desc:
+      "Authentische muttersprachliche Aussprache mit Geschwindigkeitskontrolle und 5-Sekunden-Rücklauf.",
+    feat4Title: "SM-2 Spaced Repetition",
+    feat4Desc:
+      "Tippen Sie auf Wörter, um Artikel und Wortarten zu sehen und direkt in Ihr tägliches Deck zu speichern.",
+    exploreStoriesBtn: "Geschichten entdecken",
+    starOnGithubBtn: "Auf GitHub ansehen",
   },
   categories: {
     culture: "Kultur & Traditionen",

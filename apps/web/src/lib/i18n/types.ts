@@ -38,10 +38,12 @@ export interface TranslationDictionary {
     words: string;
   };
   header: {
+    about: string;
     aiReader: string;
     dueBadge: string;
     dueTooltip: string;
     flashcards: string;
+    githubTooltip: string;
     languages: string;
     progress: string;
     quickSwitcherTitle: string;
@@ -304,6 +306,44 @@ export interface TranslationDictionary {
     swapTooltip: string;
     targetBadge: string;
     toastSuccess: string;
+  };
+  about: {
+    badge: string;
+    title: string;
+    subtitle: string;
+    authorSectionTitle: string;
+    authorName: string;
+    authorHandle: string;
+    authorBio: string;
+    githubProfileBtn: string;
+    githubRepoBtn: string;
+    openSourceBadge: string;
+    licenseBadge: string;
+    licenseTitle: string;
+    licenseDesc: string;
+    licenseCommercial: string;
+    licenseModification: string;
+    licenseDistribution: string;
+    licensePrivateUse: string;
+    missionTitle: string;
+    missionDesc: string;
+    architectureTitle: string;
+    architectureDesc: string;
+    frontendTech: string;
+    backendTech: string;
+    aiTech: string;
+    stylingTech: string;
+    featuresTitle: string;
+    feat1Title: string;
+    feat1Desc: string;
+    feat2Title: string;
+    feat2Desc: string;
+    feat3Title: string;
+    feat3Desc: string;
+    feat4Title: string;
+    feat4Desc: string;
+    exploreStoriesBtn: string;
+    starOnGithubBtn: string;
   };
   categories: Record<string, string>;
 }

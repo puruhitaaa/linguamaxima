@@ -41,10 +41,12 @@ export const ja: TranslationDictionary = {
     words: "単語",
   },
   header: {
+    about: "概要",
     aiReader: "AI言語リーダー",
     dueBadge: "{count}件復習",
     dueTooltip: "今日復習する単語カード",
     flashcards: "単語カード",
+    githubTooltip: "GitHubプロフィール",
     languages: "言語",
     progress: "進捗",
     quickSwitcherTitle: "言語ペアを切り替える",
@@ -331,6 +333,53 @@ export const ja: TranslationDictionary = {
     swapTooltip: "原言語とターゲット言語を入れ替え",
     targetBadge: "ターゲット",
     toastSuccess: "{origin}から{target}の学習に切り替えました！",
+  },
+  about: {
+    badge: "オープンソース・イニシアチブ",
+    title: "LinguaMaximaについて",
+    subtitle:
+      "オープンソース＆AI駆動の多言語多読リーダー＆間隔反復学習プラットフォーム。あらゆる言語の習得を身近にします。",
+    authorSectionTitle: "制作者：Baiq",
+    authorName: "Baiq",
+    authorHandle: "@puruhitaaa",
+    authorBio:
+      "シンプルなシステム、挑戦的なアイデア、言語習得、オープンソースソフトウェアに情熱を持つソフトウェアエンジニア。",
+    githubProfileBtn: "GitHubプロフィール",
+    githubRepoBtn: "ソースコード",
+    openSourceBadge: "オープンソースソフトウェア",
+    licenseBadge: "MITライセンス",
+    licenseTitle: "オープンソース＆MITライセンス",
+    licenseDesc:
+      "LinguaMaximaはMITライセンスの下で100%無料かつオープンソースとして公開されています。コードの確認、修正、フォーク、セルフホスト、コミュニティへの貢献が自由に行えます。",
+    licenseCommercial: "商用利用可能",
+    licenseModification: "改変・カスタマイズ自由",
+    licenseDistribution: "再配布可能",
+    licensePrivateUse: "プライベートおよび商用ホスティング可能",
+    missionTitle: "私たちのミッション",
+    missionDesc:
+      "多読（Graded Readers）は最も効果的な言語習得法の1つですが、従来の出版物は言語ペアが限定され高価でした。LinguaMaximaはAIを活用し、任意の言語ペアでレベル調整されたストーリーを生成し、文法解説、ニューラル音声、SM-2単語カードを瞬時に提供します。",
+    architectureTitle: "モダン・フルスタック・アーキテクチャ",
+    architectureDesc:
+      "高いパフォーマンス、堅牢な型安全性、優れたユーザー体験を実現する最先端技術で構築されています。",
+    frontendTech: "TanStack Start, React 19, Tailwind CSS v4 & shadcn/ui",
+    backendTech: "FastAPI, Python 3.12, SQLAlchemy Async & Alembic",
+    aiTech: "Google Gemini 2.5 Flash ストーリー生成 & Edge Neural TTS",
+    stylingTech: "Ultracite ゼロ設定コード標準 & 厳格な型安全性",
+    featuresTitle: "主要な機能と特徴",
+    feat1Title: "自由な言語ペア設定",
+    feat1Desc:
+      "母国語での翻訳と文法解説を添えて、学びたい任意の言語で読書を楽しめます。",
+    feat2Title: "CEFR A1〜C2レベル対応",
+    feat2Desc:
+      "初心者向けの基礎文章からネイティブレベルの物語まで、CEFR基準に調整されたAIストーリー。",
+    feat3Title: "ニューラル音声合成",
+    feat3Desc:
+      "ネイティブスピーカーによる自然な発音、再生速度調整、5秒巻き戻し機能を搭載。",
+    feat4Title: "SM-2 間隔反復システム",
+    feat4Desc:
+      "単語をタップして品詞や解説を確認し、毎日の復習デッキに即座に追加できます。",
+    exploreStoriesBtn: "ストーリーを読む",
+    starOnGithubBtn: "GitHubで見る",
   },
   categories: {
     culture: "文化と伝統",

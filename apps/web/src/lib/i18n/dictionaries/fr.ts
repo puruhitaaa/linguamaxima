@@ -41,10 +41,12 @@ export const fr: TranslationDictionary = {
     words: "mots",
   },
   header: {
+    about: "À propos",
     aiReader: "Lecteur de Langues IA",
     dueBadge: "{count} à réviser",
     dueTooltip: "Cartes mémoire à réviser aujourd'hui",
     flashcards: "Cartes mémoire",
+    githubTooltip: "Profil GitHub",
     languages: "Langues",
     progress: "Progression",
     quickSwitcherTitle: "Cliquer pour changer la paire de langues",
@@ -340,6 +342,54 @@ export const fr: TranslationDictionary = {
     targetBadge: "Cible",
     toastSuccess:
       "Paire changée pour apprendre le {target} depuis le {origin} !",
+  },
+  about: {
+    badge: "Initiative Open Source",
+    title: "À propos de LinguaMaxima",
+    subtitle:
+      "Une plateforme de lecture graduée multilingue et de répétition espacée open-source propulsée par l'IA, conçue pour un apprentissage linguistique sans effort.",
+    authorSectionTitle: "Créé par Baiq",
+    authorName: "Baiq",
+    authorHandle: "@puruhitaaa",
+    authorBio:
+      "Développeur passionné par les systèmes simples, les idées ambitieuses, l'apprentissage des langues et les logiciels libres.",
+    githubProfileBtn: "Profil GitHub",
+    githubRepoBtn: "Code Source",
+    openSourceBadge: "Logiciel Libre & Open Source",
+    licenseBadge: "Licence MIT",
+    licenseTitle: "Open Source & Licence MIT",
+    licenseDesc:
+      "LinguaMaxima est 100% gratuit et open source sous la licence permissive MIT. Vous êtes libre d'examiner le code, de le modifier, de créer des forks, de l'auto-héberger et de contribuer au projet.",
+    licenseCommercial: "Utilisation commerciale autorisée",
+    licenseModification: "Modification & personnalisation libres",
+    licenseDistribution: "Redistribution autorisée",
+    licensePrivateUse: "Hébergement privé & commercial",
+    missionTitle: "Notre Mission",
+    missionDesc:
+      "Les lectures graduées sont l'une des approches les plus efficaces pour apprendre une langue, mais étaient limitées par des paires de langues fixes et des coûts d'édition. LinguaMaxima lève ces obstacles grâce à l'IA pour générer des histoires calibrées par niveau dans n'importe quelle combinaison avec grammaire instantanée, audio neural et cartes mémoires SM-2.",
+    architectureTitle: "Architecture Full-Stack Moderne",
+    architectureDesc:
+      "Conçue avec des technologies de pointe pour garantir des performances optimales, une sécurité de typage rigoureuse et une expérience utilisateur fluide.",
+    frontendTech: "TanStack Start, React 19, Tailwind CSS v4 & shadcn/ui",
+    backendTech: "FastAPI, Python 3.12, SQLAlchemy Async & Alembic",
+    aiTech: "Génération d'histoires Google Gemini 2.5 Flash & Edge Neural TTS",
+    stylingTech:
+      "Standards de code Ultracite sans configuration & typage strict",
+    featuresTitle: "Piliers de l'Architecture",
+    feat1Title: "Paires de Langues Libres",
+    feat1Desc:
+      "Lisez dans la langue cible de votre choix avec des traductions et des notes de grammaire dans votre langue maternelle.",
+    feat2Title: "Calibré CECR A1–C2",
+    feat2Desc:
+      "Des récits IA adaptés dynamiquement aux niveaux du CECR, du grand débutant au texte littéraire.",
+    feat3Title: "Synthèse Audio Neuronale",
+    feat3Desc:
+      "Une prononciation authentique avec contrôle de la vitesse de lecture et retour rapide de 5 secondes.",
+    feat4Title: "Répétition Espacée SM-2",
+    feat4Desc:
+      "Appuyez sur n'importe quel mot pour afficher son article et sa nature, puis enregistrez-le dans vos cartes mémoires.",
+    exploreStoriesBtn: "Découvrir les histoires",
+    starOnGithubBtn: "Voir sur GitHub",
   },
   categories: {
     culture: "Culture & Traditions",
