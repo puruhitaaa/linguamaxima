@@ -34,23 +34,23 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-800/80 bg-neutral-950/90 backdrop-blur-md">
-      <div className="container mx-auto max-w-6xl px-4 h-16 flex items-center justify-between gap-3">
+      <div className="container mx-auto max-w-6xl px-3 sm:px-4 h-16 flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand & Desktop Nav */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 md:gap-6 min-w-0">
           <Link
             to="/"
             onClick={() => setIsMobileNavOpen(false)}
-            className="flex items-center gap-2.5 group"
+            className="flex items-center gap-2 sm:gap-2.5 group shrink-0"
             aria-label="LinguaMaxima Home"
           >
-            <div className="size-9 rounded-xl bg-sky-500 flex items-center justify-center text-white font-black text-lg shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform">
+            <div className="size-8 sm:size-9 rounded-xl bg-sky-500 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform shrink-0">
               L
             </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
+            <div className="flex flex-col min-w-0">
+              <span className="font-extrabold text-sm sm:text-base tracking-tight text-white flex items-center gap-1.5">
                 LinguaMaxima
               </span>
-              <span className="text-xs text-neutral-400 font-medium -mt-0.5">
+              <span className="hidden sm:block text-xs text-neutral-400 font-medium -mt-0.5 truncate">
                 {t("header.aiReader")}
               </span>
             </div>
@@ -83,26 +83,28 @@ export default function Header() {
         </div>
 
         {/* Right Action Items */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {/* Active Language Pair Quick Switcher Badge (LTR) */}
           <button
             type="button"
             onClick={() => setIsLangModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-sky-500/50 hover:bg-neutral-850 text-neutral-200 text-xs font-bold transition-all shadow-sm group min-h-[36px]"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-sky-500/50 hover:bg-neutral-850 text-neutral-200 text-xs font-bold transition-all shadow-sm group min-h-[36px]"
             title={t("header.quickSwitcherTitle")}
             aria-label={`Language pair: ${originLanguage.name} to ${targetLanguage.name}. Click to change.`}
           >
-            <span className="text-sm">
+            <span className="text-xs sm:text-sm">
               {getLanguageFlag(originLanguage.code)}
             </span>
-            <span className="text-neutral-400 font-semibold text-xs">
+            <span className="text-neutral-400 font-semibold text-[11px] sm:text-xs">
               {originLanguage.code.toUpperCase()}
             </span>
-            <span className="text-neutral-500 font-medium text-xs">→</span>
-            <span className="text-sm">
+            <span className="text-neutral-500 font-medium text-[11px] sm:text-xs">
+              →
+            </span>
+            <span className="text-xs sm:text-sm">
               {getLanguageFlag(targetLanguage.code)}
             </span>
-            <span className="text-white font-extrabold text-xs">
+            <span className="text-white font-extrabold text-[11px] sm:text-xs">
               {targetLanguage.code.toUpperCase()}
             </span>
             <span className="hidden lg:inline-block text-xs px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 font-semibold ml-0.5">

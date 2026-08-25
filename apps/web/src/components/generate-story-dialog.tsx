@@ -143,9 +143,14 @@ export function GenerateStoryDialog({
           trigger ? (
             (trigger as React.ReactElement)
           ) : (
-            <Button className="gap-2 bg-sky-500 hover:bg-sky-600 text-white shadow-sm font-semibold">
-              <Sparkles className="size-4" />
-              <span>{t("generator.triggerBtn")}</span>
+            <Button
+              className="gap-1.5 sm:gap-2 bg-sky-500 hover:bg-sky-600 text-white shadow-sm font-semibold px-2.5 sm:px-4 min-h-[36px]"
+              aria-label={t("generator.triggerBtn")}
+            >
+              <Sparkles className="size-4 shrink-0" />
+              <span className="hidden sm:inline">
+                {t("generator.triggerBtn")}
+              </span>
             </Button>
           )
         }

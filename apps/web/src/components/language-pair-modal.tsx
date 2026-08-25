@@ -128,7 +128,7 @@ export function LanguagePairModal({
 
         {/* Current Pair Selection Showcase */}
         <div
-          className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-neutral-900/80 border border-neutral-800 my-2"
+          className="flex items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-4 rounded-2xl bg-neutral-900/80 border border-neutral-800 my-2"
           role="tablist"
           aria-label="Language pair selection tabs"
         >
@@ -138,24 +138,24 @@ export function LanguagePairModal({
             role="tab"
             aria-selected={activeTab === "origin"}
             onClick={() => setActiveTab("origin")}
-            className={`flex-1 text-left p-3 rounded-xl border transition-all ${
+            className={`flex-1 min-w-0 text-left p-2 sm:p-3 rounded-xl border transition-all ${
               activeTab === "origin"
                 ? "bg-neutral-800 border-sky-500 shadow-md shadow-sky-500/10 ring-1 ring-sky-500"
                 : "bg-neutral-950/60 border-neutral-800 hover:border-neutral-700"
             }`}
           >
-            <span className="text-xs uppercase font-bold tracking-wider text-neutral-400 block mb-1">
+            <span className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-neutral-400 block mb-1">
               {t("modal.iSpeak")}
             </span>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <span className="text-xl sm:text-2xl shrink-0">
                 {getLanguageFlag(selectedOrigin.code)}
               </span>
-              <div>
-                <div className="font-bold text-sm text-white">
+              <div className="min-w-0 truncate">
+                <div className="font-bold text-xs sm:text-sm text-white truncate">
                   {selectedOrigin.name}
                 </div>
-                <div className="text-xs text-neutral-400">
+                <div className="text-[11px] sm:text-xs text-neutral-400 truncate">
                   {selectedOrigin.native_name || selectedOrigin.code}
                 </div>
               </div>
@@ -168,9 +168,9 @@ export function LanguagePairModal({
             onClick={handleSwap}
             title={t("modal.swapTooltip")}
             aria-label="Swap native and target languages"
-            className="p-2.5 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shrink-0"
+            className="p-2 sm:p-2.5 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shrink-0"
           >
-            <ArrowLeftRight className="size-4" />
+            <ArrowLeftRight className="size-3.5 sm:size-4" />
           </button>
 
           {/* Target Language Box */}
@@ -179,27 +179,27 @@ export function LanguagePairModal({
             role="tab"
             aria-selected={activeTab === "target"}
             onClick={() => setActiveTab("target")}
-            className={`flex-1 text-left p-3 rounded-xl border transition-all ${
+            className={`flex-1 min-w-0 text-left p-2 sm:p-3 rounded-xl border transition-all ${
               activeTab === "target"
                 ? "bg-neutral-800 border-sky-500 shadow-md shadow-sky-500/10 ring-1 ring-sky-500"
                 : "bg-neutral-950/60 border-neutral-800 hover:border-neutral-700"
             }`}
           >
-            <span className="text-xs uppercase font-bold tracking-wider text-neutral-400 block mb-1">
+            <span className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-neutral-400 block mb-1">
               {t("modal.iLearn")}
             </span>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <span className="text-xl sm:text-2xl shrink-0">
                 {getLanguageFlag(selectedTarget.code)}
               </span>
-              <div>
-                <div className="font-bold text-sm text-white flex items-center gap-1.5">
-                  {selectedTarget.name}
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 font-bold">
+              <div className="min-w-0 truncate">
+                <div className="font-bold text-xs sm:text-sm text-white flex items-center gap-1 min-w-0">
+                  <span className="truncate">{selectedTarget.name}</span>
+                  <span className="hidden sm:inline-block text-xs px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 font-bold shrink-0">
                     {t("modal.targetBadge")}
                   </span>
                 </div>
-                <div className="text-xs text-neutral-400">
+                <div className="text-[11px] sm:text-xs text-neutral-400 truncate">
                   {selectedTarget.native_name || selectedTarget.code}
                 </div>
               </div>
@@ -262,7 +262,7 @@ export function LanguagePairModal({
                 ? t("modal.selectOriginTitle")
                 : t("modal.selectTargetTitle")}
             </span>
-            <div className="relative w-44">
+            <div className="relative w-36 sm:w-44 shrink-0">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-neutral-500" />
               <Input
                 type="text"
