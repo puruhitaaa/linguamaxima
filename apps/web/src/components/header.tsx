@@ -46,9 +46,13 @@ export default function Header() {
             className="flex items-center gap-2 sm:gap-2.5 group shrink-0"
             aria-label="LinguaMaxima Home"
           >
-            <div className="size-8 sm:size-9 rounded-xl bg-sky-500 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform shrink-0">
-              L
-            </div>
+            <img
+              src="/favicon.svg"
+              alt="LinguaMaxima"
+              className="size-8 sm:size-9 rounded-xl shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform shrink-0"
+              width={36}
+              height={36}
+            />
             <div className="flex flex-col min-w-0">
               <span className="font-extrabold text-sm sm:text-base tracking-tight text-white flex items-center gap-1.5">
                 LinguaMaxima
