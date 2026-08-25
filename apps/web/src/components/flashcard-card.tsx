@@ -57,20 +57,61 @@ export function FlashcardCard({
   const vocab = card.vocabulary;
   const genderBadge = getGenderBadge(vocab.gender);
   const mediaAudioUrl = api.getMediaUrl(vocab.pronunciation_url);
+  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string>("");
+  const resolvedAudioUrl = generatedAudioUrl || mediaAudioUrl;
 
-  // Play pronunciation via server audio or speech synthesis fallback
+  // Play pronunciation via server audio, dynamic neural TTS, or speech synthesis fallback
   const playAudio = useCallback(async () => {
-    if (mediaAudioUrl) {
+    let urlToPlay = resolvedAudioUrl;
+
+    if (!urlToPlay && vocab.word) {
+      try {
+        setIsPlayingAudio(true);
+        const res = await api.generateTTS(
+          vocab.word,
+          targetLanguage?.code || "de"
+        );
+        if (res.audio_url) {
+          urlToPlay = api.getMediaUrl(res.audio_url);
+          setGeneratedAudioUrl(urlToPlay);
+        }
+      } catch {
+        // Fall back below if API request fails
+      }
+    }
+
+    if (urlToPlay) {
       if (audioRef.current) {
+        if (audioRef.current.src !== urlToPlay) {
+          audioRef.current.src = urlToPlay;
+        }
         audioRef.current.currentTime = 0;
         try {
           await audioRef.current.play();
           setIsPlayingAudio(true);
+          return;
+        } catch {
+          setIsPlayingAudio(false);
+        }
+      } else {
+        try {
+          const audio = new Audio(urlToPlay);
+          setIsPlayingAudio(true);
+          audio.addEventListener("ended", () => setIsPlayingAudio(false), {
+            once: true,
+          });
+          audio.addEventListener("error", () => setIsPlayingAudio(false), {
+            once: true,
+          });
+          await audio.play();
+          return;
         } catch {
           setIsPlayingAudio(false);
         }
       }
-    } else if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    }
+
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(vocab.word);
       if (targetLanguage?.code) {
@@ -87,7 +128,7 @@ export function FlashcardCard({
       });
       window.speechSynthesis.speak(utterance);
     }
-  }, [mediaAudioUrl, vocab.word, targetLanguage]);
+  }, [resolvedAudioUrl, vocab.word, targetLanguage]);
 
   const handleFlip = useCallback(() => {
     setIsFlipped((prev) => !prev);
@@ -148,10 +189,10 @@ export function FlashcardCard({
   return (
     <div className="w-full max-w-xl mx-auto space-y-6">
       {/* Hidden audio element for neural TTS */}
-      {mediaAudioUrl && (
+      {resolvedAudioUrl && (
         <audio
           ref={audioRef}
-          src={mediaAudioUrl}
+          src={resolvedAudioUrl}
           preload="auto"
           onPlay={() => setIsPlayingAudio(true)}
           onEnded={() => setIsPlayingAudio(false)}

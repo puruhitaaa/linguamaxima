@@ -34,9 +34,9 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-800/80 bg-neutral-950/90 backdrop-blur-md">
-      <div className="container mx-auto max-w-6xl px-3 sm:px-4 h-16 flex items-center justify-between gap-2 sm:gap-4">
+      <div className="container mx-auto max-w-7xl px-3 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand & Desktop Nav */}
-        <div className="flex items-center gap-3 md:gap-6 min-w-0">
+        <div className="flex items-center gap-3 lg:gap-6 min-w-0">
           <Link
             to="/"
             onClick={() => setIsMobileNavOpen(false)}
@@ -50,7 +50,7 @@ export default function Header() {
               <span className="font-extrabold text-sm sm:text-base tracking-tight text-white flex items-center gap-1.5">
                 LinguaMaxima
               </span>
-              <span className="hidden sm:block text-xs text-neutral-400 font-medium -mt-0.5 truncate">
+              <span className="hidden xl:block text-xs text-neutral-400 font-medium -mt-0.5 truncate">
                 {t("header.aiReader")}
               </span>
             </div>
@@ -58,7 +58,7 @@ export default function Header() {
 
           {/* Desktop Navigation Links */}
           <nav
-            className="hidden md:flex items-center gap-1"
+            className="hidden md:flex items-center gap-0.5 lg:gap-1"
             aria-label="Main Navigation"
           >
             {navLinks.map(({ icon: Icon, label, to }) => {
@@ -68,13 +68,13 @@ export default function Header() {
                 <Link
                   key={to}
                   to={to}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  className={`flex items-center gap-2 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors shrink-0 ${
                     isActive
                       ? "bg-neutral-800 text-white"
                       : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900"
                   }`}
                 >
-                  <Icon className="size-4" />
+                  <Icon className="size-4 shrink-0" />
                   <span>{label}</span>
                 </Link>
               );
@@ -83,12 +83,12 @@ export default function Header() {
         </div>
 
         {/* Right Action Items */}
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Active Language Pair Quick Switcher Badge (LTR) */}
           <button
             type="button"
             onClick={() => setIsLangModalOpen(true)}
-            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-sky-500/50 hover:bg-neutral-850 text-neutral-200 text-xs font-bold transition-all shadow-sm group min-h-[36px]"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-sky-500/50 hover:bg-neutral-850 text-neutral-200 text-xs font-bold transition-all shadow-sm group min-h-[36px] shrink-0"
             title={t("header.quickSwitcherTitle")}
             aria-label={`Language pair: ${originLanguage.name} to ${targetLanguage.name}. Click to change.`}
           >
@@ -107,38 +107,41 @@ export default function Header() {
             <span className="text-white font-extrabold text-[11px] sm:text-xs">
               {targetLanguage.code.toUpperCase()}
             </span>
-            <span className="hidden lg:inline-block text-xs px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 font-semibold ml-0.5">
-              {t("common.learn")}
-            </span>
           </button>
 
           {/* Daily Streak & Due Flashcards */}
           {progress && (
-            <div className="hidden sm:flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1.5 shrink-0">
               <div
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold min-h-[36px]"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold min-h-[36px] shrink-0"
                 title={t("header.streakTooltip")}
                 aria-label={`Daily streak: ${progress.current_streak_days} days`}
               >
-                <Flame className="size-3.5 fill-orange-400" />
-                <span>
+                <Flame className="size-3.5 fill-orange-400 shrink-0" />
+                <span className="hidden xl:inline">
                   {t("header.streakBadge", {
                     days: progress.current_streak_days,
                   })}
+                </span>
+                <span className="xl:hidden">
+                  {progress.current_streak_days}
                 </span>
               </div>
               {progress.flashcards_due_today > 0 && (
                 <Link
                   to="/flashcards"
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-bold hover:bg-sky-500/20 transition-colors min-h-[36px]"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-bold hover:bg-sky-500/20 transition-colors min-h-[36px] shrink-0"
                   title={t("header.dueTooltip")}
                   aria-label={`${progress.flashcards_due_today} flashcards due today`}
                 >
-                  <Layers className="size-3.5" />
-                  <span>
+                  <Layers className="size-3.5 shrink-0" />
+                  <span className="hidden xl:inline">
                     {t("header.dueBadge", {
                       count: progress.flashcards_due_today,
                     })}
+                  </span>
+                  <span className="xl:hidden">
+                    {progress.flashcards_due_today}
                   </span>
                 </Link>
               )}
@@ -152,7 +155,7 @@ export default function Header() {
           <button
             type="button"
             onClick={() => setIsMobileNavOpen((prev) => !prev)}
-            className="md:hidden flex items-center justify-center size-9 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors"
+            className="md:hidden flex items-center justify-center size-9 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors shrink-0"
             aria-label={isMobileNavOpen ? "Close menu" : "Open menu"}
             aria-expanded={isMobileNavOpen}
           >

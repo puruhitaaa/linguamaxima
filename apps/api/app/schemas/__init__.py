@@ -211,6 +211,7 @@ class GeneratedVocabularyItem(BaseModel):
     example_sentence: Optional[str] = None
     example_translation: Optional[str] = None
     difficulty_rank: int = 1
+    pronunciation_url: Optional[str] = None
 
 class GeneratedGrammarTip(BaseModel):
     title: str

@@ -299,15 +299,30 @@ function FlashcardsDeckTab({
 
   const playWordAudio = useCallback(
     async (url?: string, word?: string) => {
-      const mediaUrl = api.getMediaUrl(url);
+      let mediaUrl = api.getMediaUrl(url);
+
+      if (!mediaUrl && word) {
+        try {
+          const res = await api.generateTTS(word, targetLanguage?.code || "de");
+          if (res.audio_url) {
+            mediaUrl = api.getMediaUrl(res.audio_url);
+          }
+        } catch {
+          // Fall back below if API request fails
+        }
+      }
+
       if (mediaUrl) {
         const audio = new Audio(mediaUrl);
         try {
           await audio.play();
+          return;
         } catch {
           // Audio autoplay error handling
         }
-      } else if (
+      }
+
+      if (
         word &&
         typeof window !== "undefined" &&
         "speechSynthesis" in window

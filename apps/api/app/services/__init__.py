@@ -207,6 +207,7 @@ class StoryService:
                 language=req.target_language_code,
             )
             # Attach generated audio url or keep None
+            item.pronunciation_url = audio_path
             item.example_sentence = item.example_sentence or ""
 
         await asyncio.gather(*[populate_vocab_audio(v) for v in bundle.vocabulary], return_exceptions=True)

@@ -139,6 +139,13 @@ export const api = {
   // Progress
   getProgress: () => request<ProgressSummary>("/api/v1/progress"),
 
+  // TTS Generation
+  generateTTS: (text: string, language = "de", voice?: string) =>
+    request<{ audio_url: string }>("/api/v1/tts/generate", {
+      body: JSON.stringify({ language, text, voice }),
+      method: "POST",
+    }),
+
   // Helper for full audio URL
   getMediaUrl: (relativePath?: string) => {
     if (!relativePath) {

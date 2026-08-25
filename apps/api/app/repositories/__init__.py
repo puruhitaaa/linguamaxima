@@ -255,6 +255,7 @@ class StoryRepository:
                 example_sentence=item.example_sentence,
                 example_translation=item.example_translation,
                 difficulty_rank=item.difficulty_rank,
+                pronunciation_url=item.pronunciation_url,
             )
             session.add(vocab)
 
