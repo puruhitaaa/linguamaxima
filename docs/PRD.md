@@ -217,7 +217,7 @@ class GeneratedStoryBundle(BaseModel):
     quiz_questions: list[GeneratedQuizQuestion]
 ```
 
-**LLM provider configuration**: Primary model is `gemini/gemini-3.5-flash`. Fallback model is `groq/openai/gpt-oss-120b`. Both are configured via environment variables. LiteLLM Router handles automatic fallback when the primary returns an error or hits rate limits. Provider API keys are set via `GEMINI_API_KEY` and `GROQ_API_KEY` environment variables.
+**LLM provider configuration**: Primary model is `gemini/gemini-3.1-flash-lite`. Fallback model is `groq/openai/gpt-oss-120b`. Both are configured via environment variables. LiteLLM Router handles automatic fallback when the primary returns an error or hits rate limits. Provider API keys are set via `GEMINI_API_KEY` and `GROQ_API_KEY` environment variables.
 
 **TTS service**: The `tts_service` wraps edge-tts (async). It generates audio for the full story text and for each vocabulary word individually. Audio files are stored on the local filesystem under a `media/audio/` directory and served via FastAPI's static file mount. Voice selections: `de-DE-ConradNeural` for German, `id-ID-ArdiNeural` for Indonesian.
 
