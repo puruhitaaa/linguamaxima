@@ -194,10 +194,12 @@ class StoryService:
             category_slug=req.category_slug, query=bundle.title
         )
 
-        # 3. Audio generation for full story (multi-actor dialogue or single monologue)
+        # 3. Audio generation for full story (multi-actor dialogue or gender-matched monologue)
         audio_url = await tts_service.generate_story_audio(
             text=bundle.content,
             language=req.target_language_code,
+            speaker_gender=bundle.speaker_gender,
+            speaker_name=bundle.speaker_name,
         )
 
         # 4. Generate audio for vocabulary words

@@ -231,6 +231,8 @@ class GeneratedQuizQuestion(BaseModel):
 class GeneratedStoryBundle(BaseModel):
     title: str
     title_translated: str
+    speaker_name: Optional[str] = None
+    speaker_gender: Optional[str] = None  # "male", "female", or None
     content: str
     content_translated: str
     summary: str

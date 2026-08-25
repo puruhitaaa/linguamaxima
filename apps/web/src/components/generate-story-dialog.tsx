@@ -168,11 +168,11 @@ export function GenerateStoryDialog({
           )
         }
       />
-      <DialogContent className="sm:max-w-lg bg-neutral-950 text-neutral-100 border-neutral-800 p-6">
+      <DialogContent className="max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto sm:max-w-lg bg-neutral-950 text-neutral-100 border-neutral-800 p-4 sm:p-6 w-[calc(100%-1.5rem)] sm:w-full rounded-2xl sm:rounded-3xl">
         <form onSubmit={handleGenerate}>
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <Sparkles className="size-5 text-sky-400" />
+            <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <Sparkles className="size-5 text-sky-400 shrink-0" />
               {t("generator.dialogTitle")}
             </DialogTitle>
             <DialogDescription className="text-neutral-400 text-xs leading-relaxed">
@@ -183,22 +183,22 @@ export function GenerateStoryDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-5 py-4">
+          <div className="grid gap-4 sm:gap-5 py-3 sm:py-4">
             {/* Language Pair Selectors in Generator */}
-            <div className="p-3.5 rounded-2xl bg-neutral-900/90 border border-neutral-800 space-y-2">
-              <div className="text-xs uppercase font-bold tracking-wider text-neutral-400">
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-neutral-900/90 border border-neutral-800 space-y-2.5">
+              <div className="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-neutral-400">
                 {t("generator.languageDirection")}
               </div>
-              <div className="grid grid-cols-11 gap-2 items-center">
-                <div className="col-span-5 space-y-1">
-                  <Label className="text-xs text-neutral-400 block font-medium">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <Label className="text-[11px] sm:text-xs text-neutral-400 block font-medium truncate">
                     {t("generator.iSpeakLabel")}
                   </Label>
                   <Select
                     value={originCode}
                     onValueChange={(val) => val && setOriginCode(val)}
                   >
-                    <SelectTrigger className="w-full h-9 bg-neutral-950 border-neutral-700 text-xs text-neutral-200 focus:ring-sky-500 font-medium rounded-xl">
+                    <SelectTrigger className="w-full h-9 bg-neutral-950 border-neutral-700 text-xs text-neutral-200 focus:ring-sky-500 font-medium rounded-xl px-2.5 sm:px-3">
                       <SelectValue
                         placeholder={t("generator.selectLanguagePlaceholder")}
                       />
@@ -214,27 +214,27 @@ export function GenerateStoryDialog({
                   </Select>
                 </div>
 
-                <div className="col-span-1 flex justify-center pt-4">
+                <div className="shrink-0 pt-4 sm:pt-5">
                   <button
                     type="button"
                     onClick={handleSwap}
                     title={t("generator.swapTooltip")}
                     aria-label="Swap source and target languages"
-                    className="p-1.5 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 transition-colors"
                   >
                     <ArrowLeftRight className="size-3.5" />
                   </button>
                 </div>
 
-                <div className="col-span-5 space-y-1">
-                  <Label className="text-xs text-sky-400 block font-bold">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <Label className="text-[11px] sm:text-xs text-sky-400 block font-bold truncate">
                     {t("generator.iLearnLabel")}
                   </Label>
                   <Select
                     value={targetCode}
                     onValueChange={(val) => val && setTargetCode(val)}
                   >
-                    <SelectTrigger className="w-full h-9 bg-neutral-950 border-sky-500/50 text-xs text-white focus:ring-sky-500 font-bold rounded-xl">
+                    <SelectTrigger className="w-full h-9 bg-neutral-950 border-sky-500/50 text-xs text-white focus:ring-sky-500 font-bold rounded-xl px-2.5 sm:px-3">
                       <SelectValue
                         placeholder={t("generator.selectLanguagePlaceholder")}
                       />
@@ -253,25 +253,25 @@ export function GenerateStoryDialog({
 
               {/* Validation Warning for Identical Pair */}
               {isSameLanguage && (
-                <div className="flex items-center gap-1.5 text-xs text-red-400 font-medium pt-1">
+                <div className="flex items-center gap-1.5 text-xs text-red-400 font-medium pt-0.5">
                   <AlertCircle className="size-3.5 shrink-0" />
                   <span>{t("modal.sameLanguageError")}</span>
                 </div>
               )}
 
               {/* Sync with Active Pair Checkbox */}
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-2 pt-0.5">
                 <Checkbox
                   id="sync-active-pair"
                   checked={syncActivePair}
                   onCheckedChange={(checked) =>
                     setSyncActivePair(Boolean(checked))
                   }
-                  className="data-[state=checked]:bg-sky-500 data-[state=checked]:border-sky-500"
+                  className="data-[state=checked]:bg-sky-500 data-[state=checked]:border-sky-500 shrink-0"
                 />
                 <Label
                   htmlFor="sync-active-pair"
-                  className="text-xs text-neutral-400 cursor-pointer font-normal"
+                  className="text-xs text-neutral-400 cursor-pointer font-normal leading-tight"
                 >
                   {t("generator.syncActivePairLabel")}
                 </Label>
@@ -284,7 +284,7 @@ export function GenerateStoryDialog({
                 {t("generator.cefrLabel")}
               </Label>
               <div
-                className="grid grid-cols-6 gap-1.5"
+                className="grid grid-cols-6 gap-1 sm:gap-1.5"
                 aria-label="CEFR Proficiency Level"
               >
                 {CEFR_LEVELS.map((lvl) => (
@@ -293,7 +293,7 @@ export function GenerateStoryDialog({
                     type="button"
                     aria-pressed={level === lvl}
                     onClick={() => setLevel(lvl)}
-                    className={`py-2 text-xs font-semibold rounded-xl transition-colors border ${
+                    className={`py-2 text-xs font-semibold rounded-xl transition-colors border text-center flex items-center justify-center ${
                       level === lvl
                         ? "bg-sky-500 border-sky-400 text-white shadow-sm"
                         : "bg-neutral-900 border-neutral-800 text-neutral-300 hover:bg-neutral-800"
@@ -318,7 +318,7 @@ export function GenerateStoryDialog({
                   type="button"
                   aria-pressed={storyType === "auto"}
                   onClick={() => setStoryType("auto")}
-                  className={`py-2 px-2 text-xs font-semibold rounded-xl transition-colors border flex items-center justify-center gap-1.5 ${
+                  className={`py-2 px-2 text-xs font-semibold rounded-xl transition-colors border flex items-center justify-center gap-1.5 min-w-0 ${
                     storyType === "auto"
                       ? "bg-sky-500 border-sky-400 text-white shadow-sm"
                       : "bg-neutral-900 border-neutral-800 text-neutral-300 hover:bg-neutral-800"
@@ -331,7 +331,7 @@ export function GenerateStoryDialog({
                   type="button"
                   aria-pressed={storyType === "dialogue"}
                   onClick={() => setStoryType("dialogue")}
-                  className={`py-2 px-2 text-xs font-semibold rounded-xl transition-colors border flex items-center justify-center gap-1.5 ${
+                  className={`py-2 px-2 text-xs font-semibold rounded-xl transition-colors border flex items-center justify-center gap-1.5 min-w-0 ${
                     storyType === "dialogue"
                       ? "bg-sky-500 border-sky-400 text-white shadow-sm"
                       : "bg-neutral-900 border-neutral-800 text-neutral-300 hover:bg-neutral-800"
@@ -344,7 +344,7 @@ export function GenerateStoryDialog({
                   type="button"
                   aria-pressed={storyType === "monologue"}
                   onClick={() => setStoryType("monologue")}
-                  className={`py-2 px-2 text-xs font-semibold rounded-xl transition-colors border flex items-center justify-center gap-1.5 ${
+                  className={`py-2 px-2 text-xs font-semibold rounded-xl transition-colors border flex items-center justify-center gap-1.5 min-w-0 ${
                     storyType === "monologue"
                       ? "bg-sky-500 border-sky-400 text-white shadow-sm"
                       : "bg-neutral-900 border-neutral-800 text-neutral-300 hover:bg-neutral-800"
@@ -357,7 +357,7 @@ export function GenerateStoryDialog({
                   type="button"
                   aria-pressed={storyType === "informative"}
                   onClick={() => setStoryType("informative")}
-                  className={`py-2 px-2 text-xs font-semibold rounded-xl transition-colors border flex items-center justify-center gap-1.5 ${
+                  className={`py-2 px-2 text-xs font-semibold rounded-xl transition-colors border flex items-center justify-center gap-1.5 min-w-0 ${
                     storyType === "informative"
                       ? "bg-sky-500 border-sky-400 text-white shadow-sm"
                       : "bg-neutral-900 border-neutral-800 text-neutral-300 hover:bg-neutral-800"
@@ -378,7 +378,7 @@ export function GenerateStoryDialog({
                 value={category}
                 onValueChange={(val) => val && setCategory(val)}
               >
-                <SelectTrigger className="w-full h-10 bg-neutral-900 border-neutral-800 text-xs text-neutral-200 focus:ring-sky-500 rounded-xl">
+                <SelectTrigger className="w-full h-9 sm:h-10 bg-neutral-900 border-neutral-800 text-xs text-neutral-200 focus:ring-sky-500 rounded-xl px-2.5 sm:px-3">
                   <SelectValue
                     placeholder={t("generator.selectCategoryPlaceholder")}
                   />
@@ -406,7 +406,7 @@ export function GenerateStoryDialog({
                 placeholder={t("generator.topicHintPlaceholder")}
                 value={topicHint}
                 onChange={(e) => setTopicHint(e.target.value)}
-                className="bg-neutral-900 border-neutral-800 text-xs text-neutral-100 placeholder:text-neutral-500 rounded-xl"
+                className="bg-neutral-900 border-neutral-800 text-xs text-neutral-100 placeholder:text-neutral-500 rounded-xl h-9 sm:h-10 px-2.5 sm:px-3"
               />
             </div>
 
@@ -433,20 +433,20 @@ export function GenerateStoryDialog({
             )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-2.5 pt-2">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-2.5 pt-2">
             <Button
               type="button"
               variant="outline"
               disabled={generateMutation.isPending}
               onClick={() => setOpen(false)}
-              className="border-neutral-800 text-neutral-300 hover:bg-neutral-900 text-xs"
+              className="w-full sm:w-auto border-neutral-800 text-neutral-300 hover:bg-neutral-900 text-xs h-9 sm:h-10"
             >
               {t("common.cancel")}
             </Button>
             <Button
               type="submit"
               disabled={generateMutation.isPending || isSameLanguage}
-              className="bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white gap-2 font-semibold text-xs shadow-md shadow-sky-500/20"
+              className="w-full sm:w-auto bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white gap-2 font-semibold text-xs shadow-md shadow-sky-500/20 h-9 sm:h-10"
             >
               {generateMutation.isPending ? (
                 <>

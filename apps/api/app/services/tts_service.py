@@ -87,6 +87,7 @@ FEMALE_NAMES = {
     "frieda", "johanna", "mathilda", "claudia", "monika", "petra", "katja", "susanne", "brigitte",
     "elvira", "isabella", "lucia", "carmen", "rosa", "lucie", "juliette", "camille",
     "alice", "helen", "mary", "jessica", "ashley", "amanda", "olivia", "ava", "chloe", "zoe",
+    "claire", "rachel", "elizabeth", "grace", "lucy", "victoria", "natalie",
     "nanami", "aoi", "mayu", "sakura", "yuki", "hana", "xiaoxiao", "xiaoyi", "sunhi",
     "gadis", "siti", "dewi", "putri", "ani", "rina", "ratna", "wulandari", "tania",
     "frau", "mrs", "ms", "miss", "madame", "mademoiselle", "señora", "senora", "señorita",
@@ -95,8 +96,9 @@ FEMALE_NAMES = {
 }
 
 MALE_NAMES = {
-    "leo", "leon", "lukas", "lucas", "paul", "max", "felix", "elias", "jonas", "noah",
-    "ben", "finn", "luca", "tim", "jan", "niklas", "david", "michael", "alexander", "moritz",
+    "leo", "leon", "darren", "damon", "daniel", "david", "derek", "arthur", "aaron", "liam", "ethan",
+    "lukas", "lucas", "paul", "max", "felix", "elias", "jonas", "noah",
+    "ben", "finn", "luca", "tim", "jan", "niklas", "michael", "alexander", "moritz",
     "sebastian", "florian", "tobias", "christoph", "klaus", "bernd", "karl", "hans", "stefan",
     "carlos", "alvaro", "diego", "javier", "mateo", "antonio", "miguel", "pablo", "juan",
     "henri", "louis", "pierre", "alain", "thomas", "julien", "antoine", "nicolas", "alexandre",
@@ -107,6 +109,15 @@ MALE_NAMES = {
     "sohn", "son", "fils", "hijo", "kellner", "waiter", "serveur", "camarero", "pelayan pria",
     "mann", "man", "homme", "hombre", "pria", "junge", "boy", "garçon", "garcon", "chico",
 }
+
+FIRST_PERSON_INTRO_PATTERNS = [
+    re.compile(r"(?:ich heiße|mein name ist|ich bin)\s+([A-Za-zÄÖÜäöüß]+)", re.IGNORECASE),
+    re.compile(r"(?:i am|i'm|my name is)\s+([A-Za-z]+)", re.IGNORECASE),
+    re.compile(r"(?:me llamo|mi nombre es|soy)\s+([A-Za-zÁÉÍÓÚáéíóúñ]+)", re.IGNORECASE),
+    re.compile(r"(?:je m'appelle|mon nom est|je suis)\s+([A-Za-zÀ-ÿ]+)", re.IGNORECASE),
+    re.compile(r"(?:mi chiamo|il mio nome è|sono)\s+([A-Za-zÀ-ÿ]+)", re.IGNORECASE),
+    re.compile(r"(?:nama saya|namaku|aku|saya)\s+([A-Za-z]+)", re.IGNORECASE),
+]
 
 
 def detect_speaker_gender(name: str) -> str:
@@ -141,6 +152,22 @@ def detect_speaker_gender(name: str) -> str:
     return "unknown"
 
 
+def detect_speaker_gender_from_content(text: str) -> str:
+    """
+    Scans narrative monologue text for self-introduction patterns to infer speaker gender.
+    """
+    if not text:
+        return "unknown"
+    for pattern in FIRST_PERSON_INTRO_PATTERNS:
+        match = pattern.search(text)
+        if match:
+            candidate_name = match.group(1).strip()
+            gender = detect_speaker_gender(candidate_name)
+            if gender != "unknown":
+                return gender
+    return "unknown"
+
+
 class TTSService:
     def _get_filename(self, text: str, voice: str) -> str:
         # Create stable hash for audio file caching
@@ -151,8 +178,18 @@ class TTSService:
         lang_code = language.lower().split("-")[0].split("_")[0]
         return LANGUAGE_VOICE_POOLS.get(lang_code, LANGUAGE_VOICE_POOLS["de"])
 
-    def get_voice_for_language(self, language: str) -> str:
+    def get_voice_for_language(self, language: str, gender: Optional[str] = None) -> str:
         pools = self.get_voice_pools_for_language(language)
+        if gender == "female":
+            female_voices = pools.get("female", [])
+            if female_voices:
+                return female_voices[0]
+        elif gender == "male":
+            male_voices = pools.get("male", [])
+            if male_voices:
+                return male_voices[0]
+
+        # Default fallback: prefer male then female
         male_voices = pools.get("male", [])
         if male_voices:
             return male_voices[0]
@@ -265,11 +302,13 @@ class TTSService:
     async def generate_story_audio(
         self,
         text: str,
-        language: str = "de"
+        language: str = "de",
+        speaker_gender: Optional[str] = None,
+        speaker_name: Optional[str] = None,
     ) -> Optional[str]:
         """
         Generates multi-voice audio if story contains a multi-character dialogue,
-        or single narrator voice audio if it is a monologue.
+        or gender-matched narrator voice audio if it is a monologue/solo reflection.
         """
         if not text or not text.strip():
             return None
@@ -317,8 +356,30 @@ class TTSService:
             )
             return uploaded_url
 
-        # Monologue or single speaker: use standard generation
-        return await self.generate_audio(text=text, language=language)
+        # Monologue or single speaker: determine effective speaker gender
+        effective_gender: Optional[str] = None
+
+        if speaker_gender and speaker_gender.strip().lower() in ("male", "female"):
+            effective_gender = speaker_gender.strip().lower()
+        elif speaker_name:
+            detected = detect_speaker_gender(speaker_name)
+            if detected in ("male", "female"):
+                effective_gender = detected
+        elif len(unique_speakers) == 1:
+            detected = detect_speaker_gender(unique_speakers[0])
+            if detected in ("male", "female"):
+                effective_gender = detected
+
+        if not effective_gender or effective_gender == "unknown":
+            detected = detect_speaker_gender_from_content(text)
+            if detected in ("male", "female"):
+                effective_gender = detected
+
+        chosen_voice = self.get_voice_for_language(language, gender=effective_gender)
+        logger.info(
+            f"Synthesizing monologue audio for language '{language}' (gender={effective_gender}, speaker={speaker_name}) using voice '{chosen_voice}'"
+        )
+        return await self.generate_audio(text=text, voice=chosen_voice, language=language)
 
 
 tts_service = TTSService()

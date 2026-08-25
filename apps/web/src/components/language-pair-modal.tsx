@@ -115,7 +115,7 @@ export function LanguagePairModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-xl bg-neutral-950 border-neutral-800 text-neutral-100 p-6">
+      <DialogContent className="max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto sm:max-w-xl bg-neutral-950 border-neutral-800 text-neutral-100 p-4 sm:p-6 w-[calc(100%-1.5rem)] sm:w-full rounded-2xl sm:rounded-3xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <Globe className="size-5 text-sky-400" />

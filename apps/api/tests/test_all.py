@@ -226,15 +226,55 @@ async def test_filter_stories_by_language_codes(client):
             assert s["language_pair"]["origin_language"]["code"] == "id"
 
 def test_gender_detection_and_voice_matching():
-    from app.services.tts_service import detect_speaker_gender, tts_service
+    from app.services.tts_service import (
+        detect_speaker_gender,
+        detect_speaker_gender_from_content,
+        tts_service,
+    )
 
+    # Test masculine and feminine name detection
     assert detect_speaker_gender("Anna") == "female"
     assert detect_speaker_gender("Leo") == "male"
+    assert detect_speaker_gender("Leon") == "male"
+    assert detect_speaker_gender("Darren") == "male"
     assert detect_speaker_gender("Sophie") == "female"
+    assert detect_speaker_gender("Sarah") == "female"
     assert detect_speaker_gender("Lukas") == "male"
     assert detect_speaker_gender("Carlos") == "male"
     assert detect_speaker_gender("Emily") == "female"
 
+    # Test dialogue actor voice assignment
     voices_map = tts_service.assign_voices_to_speakers(["Anna", "Leo"], "de")
     assert "Katja" in voices_map["Anna"]  # Female German voice
     assert "Killian" in voices_map["Leo"]  # Male German voice
+
+    # Test language voice resolution by gender
+    male_voice = tts_service.get_voice_for_language("de", gender="male")
+    female_voice = tts_service.get_voice_for_language("de", gender="female")
+    assert "Killian" in male_voice
+    assert "Katja" in female_voice
+
+    en_male = tts_service.get_voice_for_language("en", gender="male")
+    en_female = tts_service.get_voice_for_language("en", gender="female")
+    assert "Christopher" in en_male
+    assert "Jenny" in en_female
+
+    # Test monologue narrative content gender detection
+    assert detect_speaker_gender_from_content("Hallo! Ich heiße Leon und wohne in Berlin.") == "male"
+    assert detect_speaker_gender_from_content("Mein Name ist Sarah. Heute ist ein schöner Tag.") == "female"
+    assert detect_speaker_gender_from_content("Hello! My name is Darren and I am a student.") == "male"
+    assert detect_speaker_gender_from_content("¡Hola! Me llamo Carlos y vivo en Madrid.") == "male"
+
+@pytest.mark.asyncio
+async def test_monologue_story_bundle_fallback():
+    from app.services.ai_service import ai_service
+    bundle, model, provider = await ai_service.generate_story(
+        cefr_level=CEFRLevel.A1,
+        category="travel",
+        target_lang="German",
+        origin_lang="Indonesian",
+        story_type="monologue",
+    )
+    assert bundle.speaker_name is not None
+    assert bundle.speaker_gender in ("male", "female")
+    assert bundle.content is not None

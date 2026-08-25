@@ -71,6 +71,7 @@ Format & Perspective Requirement:
 - The story MUST be a direct, engaging dialogue between 2 or more distinct characters (e.g. 1 male, 1 female, or named roles).
 - Every single paragraph in "content" MUST start with the speaker's name: `SpeakerName: Spoken text without quotes or third-person narration`.
 - Strictly NO third-person narration, narrative summaries, or dialogue tags (e.g. do NOT write 'said Lukas' or 'she replied').
+- Set "speaker_name" and "speaker_gender" to null (each dialogue turn already has its own speaker prefix).
 - Parallel Translation: "content_translated" MUST mirror each dialogue turn with `SpeakerName: Translated text`.
 """
         elif story_type == "monologue":
@@ -78,6 +79,7 @@ Format & Perspective Requirement:
 Format & Perspective Requirement:
 - MANDATORY STORY FORMAT: **SOLO MONOLOGUE / PERSONAL REFLECTION**.
 - The story MUST be a first-person personal story, journal entry, or inner monologue from a single character's perspective.
+- Establish a clear character identity for the narrator. You MUST specify their name in "speaker_name" (e.g. "Leon", "Darren", "Sarah", "Elena") and their gender in "speaker_gender" ("male" or "female").
 - Do NOT use speaker prefixes or script formatting. Write standard narrative paragraphs.
 - Parallel Translation: "content_translated" MUST match the narrative paragraphs.
 """
@@ -87,6 +89,7 @@ Format & Perspective Requirement:
 - MANDATORY STORY FORMAT: **INFORMATIVE / FACTUAL ARTICLE**.
 - The text MUST be an informative, educational article or factual overview (e.g. cultural background, nature, science, history, city guide, or interesting educational facts) written in an engaging, accessible third-person expository style.
 - Strictly NO dialogue turns, speaker tags, or fictional character drama. Write well-structured, clear informational paragraphs.
+- Set "speaker_name" and "speaker_gender" to null.
 - Parallel Translation: "content_translated" MUST match the informative paragraphs.
 """
         else:
@@ -96,7 +99,7 @@ Format & Perspective Guidelines:
   - In a dialogue story, every paragraph represents a dialogue turn starting with the speaker's name: `SpeakerName: Spoken text without quotes or third-person narration`.
   - Do NOT include third-person narration or dialogue tags (such as 'he said', 'she replied', 'said Marco') in dialogue stories. Keep it direct spoken conversational lines.
   - Choose natural, distinct names for the characters (e.g. 1 male, 1 female or named roles like 'Kellner' / 'Gast').
-- If the scenario is a solitary experience, monologue, journal entry, or descriptive scene, write standard first-person or descriptive narrative paragraphs without speaker prefixes.
+- If the scenario is a solitary experience, monologue, journal entry, or descriptive scene, write standard first-person or descriptive narrative paragraphs without speaker prefixes, and specify the narrator's name in "speaker_name" and gender in "speaker_gender" ("male" or "female").
 - Parallel Translation: "content_translated" MUST exactly match the paragraph structure of "content" (including matching `SpeakerName: Translated text` for dialogues, or translated narrative paragraphs for monologues).
 """
 
@@ -113,10 +116,12 @@ Constraints for CEFR Level {cefr_level.value}:
 Requirements:
 1. "title": Story title in {target_lang}.
 2. "title_translated": Story title translated into natural {origin_lang}.
-3. "content": The complete story in {target_lang}. Format into 3-6 clean paragraphs separated by double newlines (`\\n\\n`).
-4. "content_translated": The full parallel translation in {origin_lang}, matching the paragraph structure.
-5. "summary": A 1-2 sentence overview of the story in {origin_lang}.
-6. "vocabulary": A list of 6-10 key {target_lang} vocabulary words from the story. Each item must contain:
+3. "speaker_name": Name of the narrator / primary character (e.g. "Leon", "Darren", "Sarah") for monologues, or null if dialogue / third-person factual.
+4. "speaker_gender": Gender of the monologue narrator ("male" or "female"), or null if dialogue / third-person factual.
+5. "content": The complete story in {target_lang}. Format into 3-6 clean paragraphs separated by double newlines (`\\n\\n`).
+6. "content_translated": The full parallel translation in {origin_lang}, matching the paragraph structure.
+7. "summary": A 1-2 sentence overview of the story in {origin_lang}.
+8. "vocabulary": A list of 6-10 key {target_lang} vocabulary words from the story. Each item must contain:
    - "word": The word in {target_lang} (for nouns, do not include the article in this field).
    - "translation": Translation in {origin_lang}.
    - "part_of_speech": "noun", "verb", "adjective", "adverb", "preposition", or "phrase".
@@ -124,13 +129,13 @@ Requirements:
    - "example_sentence": A short {target_lang} sentence using the word.
    - "example_translation": The sentence translated into {origin_lang}.
    - "difficulty_rank": 1 (easy) to 3 (challenging).
-7. "grammar_tips": 2-3 contextual grammar explanations relevant to structures found in this story.
+9. "grammar_tips": 2-3 contextual grammar explanations relevant to structures found in this story.
    - "title": Short title explaining the target language rule in {origin_lang}.
    - "explanation": Clear, accessible grammar rule explained in {origin_lang}.
    - "explanation_translated": Same explanation summary in {origin_lang}.
    - "example": Sentence from or related to the story in {target_lang}.
    - "example_translation": Example translated into {origin_lang}.
-8. "quiz_questions": 4-5 comprehension and grammar questions. Must include a mix of:
+10. "quiz_questions": 4-5 comprehension and grammar questions. Must include a mix of:
    - "multiple_choice": Comprehension questions about the story events (questions in {target_lang}, explanation in {origin_lang}).
    - "article": Practice identifying grammatical gender/article for a noun if {target_lang} has grammatical gender, or a core grammar question if not.
    - "fill_blank": Sentence with a missing word in {target_lang}.
@@ -147,6 +152,8 @@ Respond with valid JSON only matching the schema:
 {{
   "title": "...",
   "title_translated": "...",
+  "speaker_name": "...",
+  "speaker_gender": "male" or "female",
   "content": "...",
   "content_translated": "...",
   "summary": "...",
@@ -231,7 +238,7 @@ Respond with valid JSON only matching the schema:
 
         # If LLM API keys are not set or unavailable, return a rich mock story bundle
         logger.warning(f"All LLM providers failed or unconfigured. Falling back to default template. Error: {last_error}")
-        fallback_bundle = self._get_curated_fallback(cefr_level, category, topic_hint, target_lang, origin_lang)
+        fallback_bundle = self._get_curated_fallback(cefr_level, category, topic_hint, target_lang, origin_lang, story_type)
         return fallback_bundle, "template/fallback-engine", "internal"
 
     def _get_curated_fallback(
@@ -241,9 +248,86 @@ Respond with valid JSON only matching the schema:
         topic_hint: Optional[str] = None,
         target_lang: str = "German",
         origin_lang: str = "Indonesian",
+        story_type: str = "auto",
     ) -> GeneratedStoryBundle:
         """Returns a high-quality educational fallback bundle for offline/mock operation tailored to the target language."""
         target_clean = target_lang.lower().strip()
+
+        # Monologue fallback for German / General
+        if story_type == "monologue" and target_clean in ["german", "deutsch", "de"]:
+            return GeneratedStoryBundle(
+                title="Mein sonniger Tag in Berlin",
+                title_translated="Hari Cerahku di Berlin",
+                speaker_name="Leon",
+                speaker_gender="male",
+                content=(
+                    "Heute ist ein wunderschöner Tag in Berlin. Ich wache früh auf und trinke einen frischen Kaffee auf meinem Balkon.\n\n"
+                    "Die Sonne scheint herrlich über der Stadt. Ich packe meinen Rucksack und gehe gemütlich durch den großen Park spazieren.\n\n"
+                    "Später am Nachmittag möchte ich das berühmte Kunstmuseum im Zentrum besuchen und den Tag mit Freunden genießen."
+                ),
+                content_translated=(
+                    "Hari ini adalah hari yang sangat indah di Berlin. Aku bangun pagi-pagi dan minum kopi segar di balkonku.\n\n"
+                    "Matahari bersinar indah di atas kota. Aku mengemas ranselku dan berjalan santai menyusuri taman yang luas.\n\n"
+                    "Nanti sore aku ingin mengunjungi museum seni terkenal di pusat kota dan menikmati hari bersama teman-teman."
+                ),
+                summary="Leon menceritakan hari santainya di Berlin, menikmati kopi di balkon, berjalan di taman, dan mengunjungi museum seni.",
+                vocabulary=[
+                    GeneratedVocabularyItem(
+                        word="Balkon",
+                        translation="Balkon",
+                        part_of_speech="noun",
+                        gender="der",
+                        example_sentence="Ich trinke Kaffee auf meinem Balkon.",
+                        example_translation="Aku minum kopi di balkonku.",
+                        difficulty_rank=1,
+                    ),
+                    GeneratedVocabularyItem(
+                        word="spazieren",
+                        translation="Berjalan-jalan santai",
+                        part_of_speech="verb",
+                        gender=None,
+                        example_sentence="Ich gehe im Park spazieren.",
+                        example_translation="Aku berjalan-jalan di taman.",
+                        difficulty_rank=1,
+                    ),
+                    GeneratedVocabularyItem(
+                        word="wunderschön",
+                        translation="Sangat indah",
+                        part_of_speech="adjective",
+                        gender=None,
+                        example_sentence="Heute ist ein wunderschöner Tag.",
+                        example_translation="Hari ini adalah hari yang sangat indah.",
+                        difficulty_rank=2,
+                    ),
+                ],
+                grammar_tips=[
+                    GeneratedGrammarTip(
+                        title="Präsens (Present Tense) dalam Narasi",
+                        explanation="Bentuk waktu sekarang (Präsens) digunakan untuk menceritakan rutinitas harian dan peristiwa yang sedang berlangsung.",
+                        explanation_translated="Penggunaan Präsens untuk narasi monolog orang pertama.",
+                        example="Ich wache früh auf und packe meinen Rucksack.",
+                        example_translation="Aku bangun pagi-pagi dan mengemas ranselku.",
+                    ),
+                ],
+                quiz_questions=[
+                    GeneratedQuizQuestion(
+                        question_type="multiple_choice",
+                        question="Wo trinkt Leon seinen Kaffee?",
+                        question_translated="Di mana Leon meminum kopinya?",
+                        correct_answer="Auf seinem Balkon",
+                        wrong_answers=["Im Restaurant", "Im Bus", "Im Büro"],
+                        explanation="Leon erwähnt: 'Ich trinke einen frischen Kaffee auf meinem Balkon'.",
+                    ),
+                    GeneratedQuizQuestion(
+                        question_type="true_false",
+                        question="Leon geht durch den Park spazieren.",
+                        question_translated="Leon berjalan-jalan melalui taman.",
+                        correct_answer="Richtig",
+                        wrong_answers=["Falsch"],
+                        explanation="Leon packt seinen Rucksack und geht durch den großen Park spazieren.",
+                    ),
+                ],
+            )
 
         # 1. Spanish Fallback Bundle (Conversational Dialogue)
         if target_clean in ["spanish", "español", "es"]:
