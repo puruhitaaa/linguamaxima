@@ -19,7 +19,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 
 import { FlashcardCard } from "../components/flashcard-card";
-import { api } from "../lib/api";
+import { playPronunciationAudio } from "../lib/audio";
 import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
 import {
@@ -297,45 +297,44 @@ function FlashcardsDeckTab({
   const { t } = useTranslation();
   const { targetLanguage } = useLanguagePair();
 
+  const [playingWord, setPlayingWord] = useState<string | null>(null);
+  const cancelAudioRef = useRef<(() => void) | null>(null);
+
   const playWordAudio = useCallback(
-    async (url?: string, word?: string) => {
-      let mediaUrl = api.getMediaUrl(url);
+    async (url?: string | null, word?: string) => {
+      if (cancelAudioRef.current) {
+        cancelAudioRef.current();
+      }
 
-      if (!mediaUrl && word) {
-        try {
-          const res = await api.generateTTS(word, targetLanguage?.code || "de");
-          if (res.audio_url) {
-            mediaUrl = api.getMediaUrl(res.audio_url);
+      if (word) {
+        setPlayingWord(word);
+      }
+
+      const cleanup = await playPronunciationAudio({
+        url,
+        word,
+        languageCode: targetLanguage?.code || "de",
+        onStart: () => {
+          if (word) {
+            setPlayingWord(word);
           }
-        } catch {
-          // Fall back below if API request fails
-        }
-      }
+        },
+        onEnd: () => setPlayingWord(null),
+        onError: () => setPlayingWord(null),
+        t,
+      });
+      cancelAudioRef.current = cleanup;
+    },
+    [targetLanguage, t]
+  );
 
-      if (mediaUrl) {
-        const audio = new Audio(mediaUrl);
-        try {
-          await audio.play();
-          return;
-        } catch {
-          // Audio autoplay error handling
-        }
-      }
-
-      if (
-        word &&
-        typeof window !== "undefined" &&
-        "speechSynthesis" in window
-      ) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(word);
-        if (targetLanguage?.code) {
-          utterance.lang = targetLanguage.code;
-        }
-        window.speechSynthesis.speak(utterance);
+  useEffect(
+    () => () => {
+      if (cancelAudioRef.current) {
+        cancelAudioRef.current();
       }
     },
-    [targetLanguage]
+    []
   );
 
   const filteredCards = useMemo(() => {
@@ -477,7 +476,11 @@ function FlashcardsDeckTab({
                             fc.vocabulary.word
                           )
                         }
-                        className="size-7 p-0 rounded-full text-neutral-400 hover:text-sky-400 hover:bg-neutral-800 cursor-pointer"
+                        className={`size-7 p-0 rounded-full text-neutral-400 hover:text-sky-400 hover:bg-neutral-800 cursor-pointer ${
+                          playingWord === fc.vocabulary.word
+                            ? "text-sky-400 bg-sky-500/10 animate-pulse"
+                            : ""
+                        }`}
                       >
                         <Volume2 className="size-3.5" />
                       </Button>

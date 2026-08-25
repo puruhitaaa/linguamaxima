@@ -54,12 +54,21 @@ export const zh: TranslationDictionary = {
     streakTooltip: "每日连胜",
   },
   audio: {
+    errorDesc:
+      "如果播放音频遇到问题，请尝试开启 VPN 或使用 Cloudflare Warp 等服务更改 DNS。",
+    errorTitle: "音频播放问题",
     mute: "静音",
     pause: "暂停",
     play: "播放",
+    retry: "重试音频",
     rewindTooltip: "快退 5 秒",
     speed: "倍速",
+    timeoutWarningDesc:
+      "如果播放音频遇到问题，请尝试开启 VPN 或使用 Cloudflare Warp 等服务更改 DNS。",
+    timeoutWarningTitle: "音频加载时间较长",
     unmute: "取消静音",
+    vpnRecommendation:
+      "如果播放音频遇到问题，请尝试开启 VPN 或使用 Cloudflare Warp 等服务更改 DNS。",
   },
   home: {
     allCategories: "全部分类",

@@ -55,12 +55,21 @@ export const id: TranslationDictionary = {
     streakTooltip: "Streak harian",
   },
   audio: {
+    errorDesc:
+      "Jika Anda mengalami kendala memutar audio, cobalah untuk mengaktifkan VPN atau menggunakan layanan seperti Cloudflare Warp untuk mengubah DNS.",
+    errorTitle: "Kendala Pemutaran Audio",
     mute: "Bisukan",
     pause: "Jeda",
     play: "Putar",
+    retry: "Coba Lagi Audio",
     rewindTooltip: "Mundur 5 detik",
     speed: "Kecepatan",
+    timeoutWarningDesc:
+      "Jika Anda mengalami kendala memutar audio, cobalah untuk mengaktifkan VPN atau menggunakan layanan seperti Cloudflare Warp untuk mengubah DNS.",
+    timeoutWarningTitle: "Memuat Audio Lebih Lama dari Biasanya",
     unmute: "Bunyikan",
+    vpnRecommendation:
+      "Jika Anda mengalami kendala memutar audio, cobalah untuk mengaktifkan VPN atau menggunakan layanan seperti Cloudflare Warp untuk mengubah DNS.",
   },
   home: {
     allCategories: "Semua Kategori",

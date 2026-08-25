@@ -1,21 +1,26 @@
 import { Button } from "@linguamaxima/ui/components/button";
 import { Slider } from "@linguamaxima/ui/components/slider";
 import {
+  Globe,
   Loader2,
   Pause,
   Play,
   RotateCcw,
   Volume2,
   VolumeX,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { api } from "../lib/api";
 import { useTranslation } from "../lib/i18n";
 
 interface AudioPlayerProps {
   audioUrl?: string;
+  storyContent?: string;
   storyTitle?: string;
+  targetLanguage?: string;
 }
 
 function formatTime(secs: number) {
@@ -29,18 +34,54 @@ function formatTime(secs: number) {
 
 const SPEED_STEPS = [0.75, 1, 1.25, 1.5];
 
-export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
+export function AudioPlayer({
+  audioUrl,
+  storyContent,
+  storyTitle,
+  targetLanguage = "de",
+}: AudioPlayerProps) {
   const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speedIndex, setSpeedIndex] = useState(1); // Defaults to 1x (index 1)
   const [isMuted, setIsMuted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [dynamicAudioUrl, setDynamicAudioUrl] = useState<string>("");
+  const [showVpnHint, setShowVpnHint] = useState(false);
 
   const speed = SPEED_STEPS[speedIndex] ?? 1;
-  const fullAudioUrl = api.getMediaUrl(audioUrl);
+  const initialAudioUrl = api.getMediaUrl(audioUrl);
+  const activeAudioUrl = dynamicAudioUrl || initialAudioUrl;
+
+  const clearTimeoutTimer = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  const startTimeoutTimer = useCallback(() => {
+    clearTimeoutTimer();
+    timeoutRef.current = setTimeout(() => {
+      setShowVpnHint(true);
+      toast.warning(t("audio.timeoutWarningTitle"), {
+        description: t("audio.timeoutWarningDesc"),
+        duration: 8000,
+        id: "story-audio-timeout",
+      });
+    }, 5000);
+  }, [clearTimeoutTimer, t]);
+
+  useEffect(
+    () => () => {
+      clearTimeoutTimer();
+    },
+    [clearTimeoutTimer]
+  );
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -53,42 +94,132 @@ export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
       setDuration(audio.duration);
       setIsLoading(false);
     };
-    const handleEnded = () => setIsPlaying(false);
-    const handleWaiting = () => setIsLoading(true);
-    const handleCanPlay = () => setIsLoading(false);
+    const handlePlaying = () => {
+      setIsPlaying(true);
+      setIsLoading(false);
+      clearTimeoutTimer();
+    };
+    const handlePause = () => {
+      setIsPlaying(false);
+      clearTimeoutTimer();
+    };
+    const handleEnded = () => {
+      setIsPlaying(false);
+      clearTimeoutTimer();
+    };
+    const handleWaiting = () => {
+      setIsLoading(true);
+      startTimeoutTimer();
+    };
+    const handleCanPlay = () => {
+      setIsLoading(false);
+    };
+    const handleError = () => {
+      setIsPlaying(false);
+      setIsLoading(false);
+      clearTimeoutTimer();
+      setShowVpnHint(true);
+      toast.error(t("audio.errorTitle"), {
+        description: t("audio.errorDesc"),
+        duration: 8000,
+        id: "story-audio-error",
+      });
+    };
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("playing", handlePlaying);
+    audio.addEventListener("pause", handlePause);
     audio.addEventListener("ended", handleEnded);
     audio.addEventListener("waiting", handleWaiting);
     audio.addEventListener("canplay", handleCanPlay);
+    audio.addEventListener("error", handleError);
 
     return () => {
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("playing", handlePlaying);
+      audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("waiting", handleWaiting);
       audio.removeEventListener("canplay", handleCanPlay);
+      audio.removeEventListener("error", handleError);
     };
-  }, []);
+  }, [clearTimeoutTimer, startTimeoutTimer, t]);
 
   const togglePlay = useCallback(async () => {
     const audio = audioRef.current;
-    if (!audio) {
+
+    if (isPlaying) {
+      if (audio) {
+        audio.pause();
+      }
+      setIsPlaying(false);
+      clearTimeoutTimer();
       return;
     }
-    if (isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
-    } else {
+
+    setIsLoading(true);
+    startTimeoutTimer();
+
+    // If no pre-existing audio URL, attempt to generate TTS on the fly
+    let currentUrl = activeAudioUrl;
+    if (!currentUrl && storyContent) {
       try {
-        await audio.play();
-        setIsPlaying(true);
+        const res = await api.generateTTS(storyContent, targetLanguage);
+        if (res.audio_url) {
+          currentUrl = api.getMediaUrl(res.audio_url);
+          setDynamicAudioUrl(currentUrl);
+        }
       } catch {
-        setIsPlaying(false);
+        setShowVpnHint(true);
+        toast.error(t("audio.errorTitle"), {
+          description: t("audio.errorDesc"),
+          duration: 8000,
+          id: "story-audio-error",
+        });
+        setIsLoading(false);
+        clearTimeoutTimer();
+        return;
       }
     }
-  }, [isPlaying]);
+
+    if (!audio) {
+      setIsLoading(false);
+      clearTimeoutTimer();
+      return;
+    }
+
+    if (currentUrl && audio.src !== currentUrl) {
+      audio.src = currentUrl;
+      audio.load();
+    }
+
+    try {
+      await audio.play();
+      setIsPlaying(true);
+      setIsLoading(false);
+      clearTimeoutTimer();
+    } catch {
+      setIsPlaying(false);
+      setIsLoading(false);
+      clearTimeoutTimer();
+      setShowVpnHint(true);
+      toast.error(t("audio.errorTitle"), {
+        description: t("audio.errorDesc"),
+        duration: 8000,
+        id: "story-audio-error",
+      });
+    }
+  }, [
+    activeAudioUrl,
+    clearTimeoutTimer,
+    isPlaying,
+    startTimeoutTimer,
+    storyContent,
+    t,
+    targetLanguage,
+  ]);
 
   const cycleSpeed = () => {
     const nextIdx = (speedIndex + 1) % SPEED_STEPS.length;
@@ -123,7 +254,7 @@ export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
     }
   }, [currentTime]);
 
-  // Keyboard shortcut listener for space (play/pause), M (mute), left/right arrows
+  // Keyboard shortcut listener for space (play/pause), M (mute), J (rewind 5s)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -149,7 +280,7 @@ export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [togglePlay, toggleMute, rewind5s]);
 
-  if (!fullAudioUrl) {
+  if (!activeAudioUrl && !storyContent) {
     return null;
   }
 
@@ -168,8 +299,12 @@ export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
       aria-label="Story audio narration"
       className="w-full bg-neutral-900/90 backdrop-blur-md border border-neutral-800 rounded-2xl p-4 flex flex-col gap-3 shadow-xl"
     >
-      <audio ref={audioRef} src={fullAudioUrl} preload="metadata">
-        <track kind="captions" src="" label="English" />
+      <audio
+        ref={audioRef}
+        src={activeAudioUrl || undefined}
+        preload="metadata"
+      >
+        <track kind="captions" src="" label="Subtitles" />
       </audio>
 
       <div className="flex items-center justify-between gap-3">
@@ -181,7 +316,7 @@ export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
             onClick={togglePlay}
             aria-label={isPlaying ? t("audio.pause") : t("audio.play")}
             title={isPlaying ? t("audio.pause") : t("audio.play")}
-            className="rounded-full size-11 p-0 bg-sky-500 hover:bg-sky-600 text-white shrink-0 shadow-md transition-transform active:scale-95"
+            className="rounded-full size-11 p-0 bg-sky-500 hover:bg-sky-600 text-white shrink-0 shadow-md transition-transform active:scale-95 cursor-pointer"
           >
             {renderPlayIcon()}
           </Button>
@@ -194,7 +329,7 @@ export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
             onClick={rewind5s}
             aria-label={t("audio.rewindTooltip")}
             title={t("audio.rewindTooltip")}
-            className="size-11 p-0 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-xl"
+            className="size-11 p-0 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-xl cursor-pointer"
           >
             <RotateCcw className="size-4" />
           </Button>
@@ -207,7 +342,7 @@ export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
             onClick={cycleSpeed}
             aria-label={`Playback speed: ${speed}x`}
             title={t("audio.speed")}
-            className="h-11 px-3 text-xs font-bold rounded-xl border-neutral-700 bg-neutral-800/90 text-neutral-200 hover:bg-neutral-700 hover:text-white"
+            className="h-11 px-3 text-xs font-bold rounded-xl border-neutral-700 bg-neutral-800/90 text-neutral-200 hover:bg-neutral-700 hover:text-white cursor-pointer"
           >
             {speed}x
           </Button>
@@ -232,7 +367,7 @@ export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
             onClick={toggleMute}
             aria-label={isMuted ? t("audio.unmute") : t("audio.mute")}
             title={isMuted ? t("audio.unmute") : t("audio.mute")}
-            className="size-11 p-0 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-xl"
+            className="size-11 p-0 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-xl cursor-pointer"
           >
             {isMuted ? (
               <VolumeX className="size-5 text-rose-400" />
@@ -256,6 +391,45 @@ export function AudioPlayer({ audioUrl, storyTitle }: AudioPlayerProps) {
           className="cursor-pointer"
         />
       </div>
+
+      {/* VPN / Cloudflare Warp Guidance Banner */}
+      {showVpnHint && (
+        <div className="mt-1 flex items-start justify-between gap-3 p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="flex items-start gap-2.5">
+            <Globe className="size-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold text-amber-300">
+                {t("audio.timeoutWarningTitle")}
+              </p>
+              <p className="text-amber-200/90 leading-relaxed">
+                {t("audio.vpnRecommendation")}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={togglePlay}
+              className="h-7 px-2.5 text-xs font-semibold rounded-lg border-amber-500/40 bg-amber-900/30 text-amber-200 hover:bg-amber-800/40 hover:text-white cursor-pointer"
+            >
+              {t("audio.retry")}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowVpnHint(false)}
+              className="size-7 p-0 text-amber-400 hover:text-white hover:bg-amber-900/40 rounded-lg cursor-pointer"
+              aria-label="Dismiss warning"
+            >
+              <X className="size-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

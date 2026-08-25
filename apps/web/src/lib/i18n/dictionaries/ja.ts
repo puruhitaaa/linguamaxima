@@ -55,12 +55,21 @@ export const ja: TranslationDictionary = {
     streakTooltip: "デイリーストリーク",
   },
   audio: {
+    errorDesc:
+      "音声の再生に問題がある場合は、VPNをオンにするか、Cloudflare Warpなどのサービスを使用してDNSを変更してみてください。",
+    errorTitle: "音声再生の問題",
     mute: "ミュート",
     pause: "一時停止",
     play: "再生",
+    retry: "音声を再試行",
     rewindTooltip: "5秒巻き戻し",
     speed: "再生速度",
+    timeoutWarningDesc:
+      "音声の再生に問題がある場合は、VPNをオンにするか、Cloudflare Warpなどのサービスを使用してDNSを変更してみてください。",
+    timeoutWarningTitle: "音声の読み込みに時間がかかっています",
     unmute: "ミュート解除",
+    vpnRecommendation:
+      "音声の再生に問題がある場合は、VPNをオンにするか、Cloudflare Warpなどのサービスを使用してDNSを変更してみてください。",
   },
   home: {
     allCategories: "すべてのカテゴリー",

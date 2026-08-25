@@ -55,12 +55,21 @@ export const de: TranslationDictionary = {
     streakTooltip: "Tägliche Serie",
   },
   audio: {
+    errorDesc:
+      "Wenn Sie Probleme beim Abspielen des Audios haben, versuchen Sie, ein VPN zu aktivieren oder Dienste wie Cloudflare Warp zu nutzen, um das DNS zu ändern.",
+    errorTitle: "Audio-Wiedergabefehler",
     mute: "Stummschalten",
     pause: "Pause",
     play: "Abspielen",
+    retry: "Audio wiederholen",
     rewindTooltip: "5 Sek. zurückspulen",
     speed: "Geschwindigkeit",
+    timeoutWarningDesc:
+      "Wenn Sie Probleme beim Abspielen des Audios haben, versuchen Sie, ein VPN zu aktivieren oder Dienste wie Cloudflare Warp zu nutzen, um das DNS zu ändern.",
+    timeoutWarningTitle: "Audio-Wiedergabe dauert länger als gewöhnlich",
     unmute: "Ton aktivieren",
+    vpnRecommendation:
+      "Wenn Sie Probleme beim Abspielen des Audios haben, versuchen Sie, ein VPN zu aktivieren oder Dienste wie Cloudflare Warp zu nutzen, um das DNS zu ändern.",
   },
   home: {
     allCategories: "Alle Kategorien",

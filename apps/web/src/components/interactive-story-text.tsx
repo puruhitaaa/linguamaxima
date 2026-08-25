@@ -4,9 +4,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@linguamaxima/ui/components/popover";
-import { Bookmark, Check, MessageSquare } from "lucide-react";
-import { useMemo } from "react";
+import { Bookmark, Check, MessageSquare, Volume2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { playPronunciationAudio } from "../lib/audio";
 import { useTranslation } from "../lib/i18n";
 import { useSaveFlashcard } from "../lib/queries";
 import type { VocabularyItem } from "../types/api";
@@ -17,6 +18,7 @@ interface InteractiveStoryTextProps {
   content: string;
   contentTranslated?: string;
   originLanguageName?: string;
+  targetLanguageCode?: string;
   showTranslation: boolean;
   vocabulary: VocabularyItem[];
 }
@@ -73,11 +75,51 @@ export function InteractiveStoryText({
   content,
   contentTranslated,
   originLanguageName,
+  targetLanguageCode = "de",
   showTranslation,
   vocabulary,
 }: InteractiveStoryTextProps) {
   const { t } = useTranslation();
   const saveFlashcardMutation = useSaveFlashcard();
+  const [playingWord, setPlayingWord] = useState<string | null>(null);
+  const cancelAudioRef = useRef<(() => void) | null>(null);
+
+  const playWord = useCallback(
+    async (url?: string | null, word?: string) => {
+      if (cancelAudioRef.current) {
+        cancelAudioRef.current();
+      }
+
+      if (word) {
+        setPlayingWord(word);
+      }
+
+      const cleanup = await playPronunciationAudio({
+        url,
+        word,
+        languageCode: targetLanguageCode,
+        onStart: () => {
+          if (word) {
+            setPlayingWord(word);
+          }
+        },
+        onEnd: () => setPlayingWord(null),
+        onError: () => setPlayingWord(null),
+        t,
+      });
+      cancelAudioRef.current = cleanup;
+    },
+    [targetLanguageCode, t]
+  );
+
+  useEffect(
+    () => () => {
+      if (cancelAudioRef.current) {
+        cancelAudioRef.current();
+      }
+    },
+    []
+  );
 
   // Map vocabulary for instant O(1) lookup by cleaned lowercase word
   const vocabMap = useMemo(() => {
@@ -167,6 +209,23 @@ export function InteractiveStoryText({
                         {vocabItem.gender}
                       </span>
                     )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label={t("flashcards.playPronunciation")}
+                      title={t("flashcards.playPronunciation")}
+                      onClick={() =>
+                        playWord(vocabItem.pronunciation_url, vocabItem.word)
+                      }
+                      className={`size-6 p-0 rounded-full text-neutral-400 hover:text-sky-400 hover:bg-neutral-800 cursor-pointer ${
+                        playingWord === vocabItem.word
+                          ? "text-sky-400 bg-sky-500/10 animate-pulse"
+                          : ""
+                      }`}
+                    >
+                      <Volume2 className="size-3.5" />
+                    </Button>
                   </div>
                   {vocabItem.part_of_speech && (
                     <span className="text-xs uppercase tracking-wider text-neutral-400 font-semibold block">

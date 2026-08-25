@@ -55,12 +55,21 @@ export const en: TranslationDictionary = {
     streakTooltip: "Daily streak",
   },
   audio: {
+    errorDesc:
+      "If you have a problem playing the audio, you should try to turn on VPN or use services like Cloudflare Warp to change the DNS.",
+    errorTitle: "Audio Playback Issue",
     mute: "Mute",
     pause: "Pause",
     play: "Play",
+    retry: "Retry Audio",
     rewindTooltip: "Rewind 5s",
     speed: "Speed",
+    timeoutWarningDesc:
+      "If you have a problem playing the audio, you should try to turn on VPN or use services like Cloudflare Warp to change the DNS.",
+    timeoutWarningTitle: "Audio Taking Longer Than Usual",
     unmute: "Unmute",
+    vpnRecommendation:
+      "If you have a problem playing the audio, you should try to turn on VPN or use services like Cloudflare Warp to change the DNS.",
   },
   home: {
     allCategories: "All Categories",

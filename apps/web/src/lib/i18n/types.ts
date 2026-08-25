@@ -52,12 +52,18 @@ export interface TranslationDictionary {
     streakTooltip: string;
   };
   audio: {
+    errorDesc: string;
+    errorTitle: string;
     mute: string;
     pause: string;
     play: string;
+    retry: string;
     rewindTooltip: string;
     speed: string;
+    timeoutWarningDesc: string;
+    timeoutWarningTitle: string;
     unmute: string;
+    vpnRecommendation: string;
   };
   home: {
     allCategories: string;

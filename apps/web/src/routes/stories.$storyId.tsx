@@ -16,8 +16,9 @@ import {
   HelpCircle,
   Layers,
   Sparkles,
+  Volume2,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
 import { AudioPlayer } from "../components/audio-player";
@@ -26,6 +27,7 @@ import {
   InteractiveStoryText,
 } from "../components/interactive-story-text";
 import { QuizSection } from "../components/quiz-section";
+import { playPronunciationAudio } from "../lib/audio";
 import { useTranslation } from "../lib/i18n";
 import { useSaveFlashcard, useStory, useToggleFavorite } from "../lib/queries";
 import type {
@@ -247,6 +249,9 @@ function StoryReadingComponent() {
             contentTranslated={story.content_translated}
             vocabulary={story.vocabulary}
             originLanguageName={story.language_pair?.origin_language.name}
+            targetLanguageCode={
+              story.language_pair?.target_language.code || "de"
+            }
             showTranslation={showParallelTranslation}
           />
         </TabsContent>
@@ -254,6 +259,7 @@ function StoryReadingComponent() {
         {/* TAB 2: VOCABULARY LIST */}
         <StoryVocabularyTab
           vocabulary={story.vocabulary}
+          targetLanguageCode={story.language_pair?.target_language.code || "de"}
           onSaveVocab={handleSaveVocab}
           isSaving={saveFlashcard.isPending}
         />
@@ -322,9 +328,14 @@ function StoryHeaderBanner({ story }: { story: StoryDetail }) {
       )}
 
       {/* Audio Player */}
-      {story.audio_url && (
+      {(story.audio_url || story.content) && (
         <div className="pt-2">
-          <AudioPlayer audioUrl={story.audio_url} storyTitle={story.title} />
+          <AudioPlayer
+            audioUrl={story.audio_url}
+            storyContent={story.content}
+            targetLanguage={story.language_pair?.target_language.code || "de"}
+            storyTitle={story.title}
+          />
         </div>
       )}
     </header>
@@ -333,14 +344,55 @@ function StoryHeaderBanner({ story }: { story: StoryDetail }) {
 
 function StoryVocabularyTab({
   vocabulary,
+  targetLanguageCode = "de",
   onSaveVocab,
   isSaving,
 }: {
   vocabulary: VocabularyItem[];
+  targetLanguageCode?: string;
   onSaveVocab: (vocabId: number) => void;
   isSaving: boolean;
 }) {
   const { t } = useTranslation();
+  const [playingWord, setPlayingWord] = useState<string | null>(null);
+  const cancelAudioRef = useRef<(() => void) | null>(null);
+
+  const playWord = useCallback(
+    async (url?: string | null, word?: string) => {
+      if (cancelAudioRef.current) {
+        cancelAudioRef.current();
+      }
+
+      if (word) {
+        setPlayingWord(word);
+      }
+
+      const cleanup = await playPronunciationAudio({
+        url,
+        word,
+        languageCode: targetLanguageCode,
+        onStart: () => {
+          if (word) {
+            setPlayingWord(word);
+          }
+        },
+        onEnd: () => setPlayingWord(null),
+        onError: () => setPlayingWord(null),
+        t,
+      });
+      cancelAudioRef.current = cleanup;
+    },
+    [targetLanguageCode, t]
+  );
+
+  useEffect(
+    () => () => {
+      if (cancelAudioRef.current) {
+        cancelAudioRef.current();
+      }
+    },
+    []
+  );
 
   return (
     <TabsContent value="vocabulary" className="space-y-4 outline-none">
@@ -355,7 +407,7 @@ function StoryVocabularyTab({
           >
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-lg font-bold text-white">{vocab.word}</h3>
                   {vocab.gender && (
                     <span
@@ -367,6 +419,23 @@ function StoryVocabularyTab({
                       {vocab.gender}
                     </span>
                   )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label={t("flashcards.playPronunciation")}
+                    title={t("flashcards.playPronunciation")}
+                    onClick={() =>
+                      playWord(vocab.pronunciation_url, vocab.word)
+                    }
+                    className={`size-7 p-0 rounded-full text-neutral-400 hover:text-sky-400 hover:bg-neutral-800 cursor-pointer ${
+                      playingWord === vocab.word
+                        ? "text-sky-400 bg-sky-500/10 animate-pulse"
+                        : ""
+                    }`}
+                  >
+                    <Volume2 className="size-3.5" />
+                  </Button>
                 </div>
                 {vocab.part_of_speech && (
                   <span className="text-xs uppercase font-bold text-neutral-400 tracking-wider">
@@ -397,7 +466,7 @@ function StoryVocabularyTab({
               size="sm"
               onClick={() => onSaveVocab(vocab.id)}
               disabled={vocab.is_saved_as_flashcard || isSaving}
-              className={`w-full text-xs font-semibold gap-1.5 h-10 rounded-xl mt-1 ${
+              className={`w-full text-xs font-semibold gap-1.5 h-10 rounded-xl mt-1 cursor-pointer ${
                 vocab.is_saved_as_flashcard
                   ? "bg-emerald-950/40 text-emerald-400 border border-emerald-500/30"
                   : "bg-neutral-800 hover:bg-neutral-700 text-neutral-200 hover:text-white"

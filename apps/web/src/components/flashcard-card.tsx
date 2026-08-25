@@ -2,7 +2,7 @@ import { Button } from "@linguamaxima/ui/components/button";
 import { Eye, EyeOff, RotateCw, Volume2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { api } from "../lib/api";
+import { playPronunciationAudio } from "../lib/audio";
 import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
 import type { Flashcard } from "../types/api";
@@ -52,83 +52,38 @@ export function FlashcardCard({
   const [isFlipped, setIsFlipped] = useState(false);
   const [showSentenceTranslation, setShowSentenceTranslation] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const cancelAudioRef = useRef<(() => void) | null>(null);
 
   const vocab = card.vocabulary;
   const genderBadge = getGenderBadge(vocab.gender);
-  const mediaAudioUrl = api.getMediaUrl(vocab.pronunciation_url);
-  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string>("");
-  const resolvedAudioUrl = generatedAudioUrl || mediaAudioUrl;
 
-  // Play pronunciation via server audio, dynamic neural TTS, or speech synthesis fallback
+  // Play pronunciation via server audio, dynamic neural TTS, or speech synthesis fallback with 5s timeout
   const playAudio = useCallback(async () => {
-    let urlToPlay = resolvedAudioUrl;
-
-    if (!urlToPlay && vocab.word) {
-      try {
-        setIsPlayingAudio(true);
-        const res = await api.generateTTS(
-          vocab.word,
-          targetLanguage?.code || "de"
-        );
-        if (res.audio_url) {
-          urlToPlay = api.getMediaUrl(res.audio_url);
-          setGeneratedAudioUrl(urlToPlay);
-        }
-      } catch {
-        // Fall back below if API request fails
-      }
+    if (cancelAudioRef.current) {
+      cancelAudioRef.current();
     }
 
-    if (urlToPlay) {
-      if (audioRef.current) {
-        if (audioRef.current.src !== urlToPlay) {
-          audioRef.current.src = urlToPlay;
-        }
-        audioRef.current.currentTime = 0;
-        try {
-          await audioRef.current.play();
-          setIsPlayingAudio(true);
-          return;
-        } catch {
-          setIsPlayingAudio(false);
-        }
-      } else {
-        try {
-          const audio = new Audio(urlToPlay);
-          setIsPlayingAudio(true);
-          audio.addEventListener("ended", () => setIsPlayingAudio(false), {
-            once: true,
-          });
-          audio.addEventListener("error", () => setIsPlayingAudio(false), {
-            once: true,
-          });
-          await audio.play();
-          return;
-        } catch {
-          setIsPlayingAudio(false);
-        }
-      }
-    }
+    setIsPlayingAudio(true);
+    const cleanup = await playPronunciationAudio({
+      url: vocab.pronunciation_url,
+      word: vocab.word,
+      languageCode: targetLanguage?.code || "de",
+      onStart: () => setIsPlayingAudio(true),
+      onEnd: () => setIsPlayingAudio(false),
+      onError: () => setIsPlayingAudio(false),
+      t,
+    });
+    cancelAudioRef.current = cleanup;
+  }, [vocab.pronunciation_url, vocab.word, targetLanguage, t]);
 
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(vocab.word);
-      if (targetLanguage?.code) {
-        utterance.lang = targetLanguage.code;
+  useEffect(
+    () => () => {
+      if (cancelAudioRef.current) {
+        cancelAudioRef.current();
       }
-      utterance.addEventListener("start", () => setIsPlayingAudio(true), {
-        once: true,
-      });
-      utterance.addEventListener("end", () => setIsPlayingAudio(false), {
-        once: true,
-      });
-      utterance.addEventListener("error", () => setIsPlayingAudio(false), {
-        once: true,
-      });
-      window.speechSynthesis.speak(utterance);
-    }
-  }, [resolvedAudioUrl, vocab.word, targetLanguage]);
+    },
+    []
+  );
 
   const handleFlip = useCallback(() => {
     setIsFlipped((prev) => !prev);
@@ -188,20 +143,6 @@ export function FlashcardCard({
 
   return (
     <div className="w-full max-w-xl mx-auto space-y-6">
-      {/* Hidden audio element for neural TTS */}
-      {resolvedAudioUrl && (
-        <audio
-          ref={audioRef}
-          src={resolvedAudioUrl}
-          preload="auto"
-          onPlay={() => setIsPlayingAudio(true)}
-          onEnded={() => setIsPlayingAudio(false)}
-          onError={() => setIsPlayingAudio(false)}
-        >
-          <track kind="captions" />
-        </audio>
-      )}
-
       {/* 3D Flip Card Container */}
       <section
         aria-live="polite"
