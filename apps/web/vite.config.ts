@@ -4,15 +4,20 @@ import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [tailwindcss(), tanstackStart(), nitro(), viteReact()],
   resolve: {
     tsconfigPaths: true,
   },
-  ssr: {
-    noExternal: true,
-  },
+  ssr:
+    command === "build"
+      ? {
+          noExternal: true,
+        }
+      : {
+          noExternal: ["@linguamaxima/ui", "@linguamaxima/env"],
+        },
   server: {
     port: 3001,
   },
-});
+}));
