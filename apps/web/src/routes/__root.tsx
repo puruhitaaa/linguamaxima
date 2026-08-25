@@ -109,6 +109,53 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         content: "website",
         property: "og:type",
       },
+      {
+        content: "https://linguamaxima-web.vercel.app",
+        property: "og:url",
+      },
+      {
+        content: "https://linguamaxima-web.vercel.app/og-image.png",
+        property: "og:image",
+      },
+      {
+        content: "1200",
+        property: "og:image:width",
+      },
+      {
+        content: "630",
+        property: "og:image:height",
+      },
+      {
+        content: "image/png",
+        property: "og:image:type",
+      },
+      {
+        content:
+          "LinguaMaxima — AI-Powered Multi-Language Reader & Spaced Repetition Platform",
+        property: "og:image:alt",
+      },
+      {
+        content: "summary_large_image",
+        name: "twitter:card",
+      },
+      {
+        content: "LinguaMaxima — AI-Powered Multi-Language Reader",
+        name: "twitter:title",
+      },
+      {
+        content:
+          "Master languages through AI-generated parallel bilingual stories and smart spaced-repetition flashcards.",
+        name: "twitter:description",
+      },
+      {
+        content: "https://linguamaxima-web.vercel.app/og-image.png",
+        name: "twitter:image",
+      },
+      {
+        content:
+          "LinguaMaxima — AI-Powered Multi-Language Reader & Spaced Repetition Platform",
+        name: "twitter:image:alt",
+      },
     ],
   }),
 
