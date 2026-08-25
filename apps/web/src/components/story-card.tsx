@@ -66,7 +66,7 @@ export function StoryCard({ story }: { story: StoryListItem }) {
           {story.audio_url && (
             <span className="px-2 py-0.5 text-xs font-medium rounded-md border border-neutral-700/80 bg-neutral-950/80 text-sky-400 backdrop-blur-md flex items-center gap-1">
               <Headphones className="size-3" />
-              <span>Audio</span>
+              <span>{t("common.audio")}</span>
             </span>
           )}
         </div>

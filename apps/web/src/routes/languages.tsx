@@ -87,7 +87,7 @@ function LanguagesPageComponent() {
   const handleReset = () => {
     setSelectedOrigin(originLanguage);
     setSelectedTarget(targetLanguage);
-    toast.info("Reset selections to active language pair.");
+    toast.info(t("languages.resetToast"));
   };
 
   const handleApply = () => {
@@ -139,7 +139,15 @@ function LanguagesPageComponent() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link to="/">
+          <Link
+            to="/"
+            search={{
+              category: "all",
+              language_scope: "pair",
+              level: "all",
+              search: "",
+            }}
+          >
             <Button
               variant="outline"
               className="border-neutral-800 text-neutral-300 hover:bg-neutral-900 gap-2 text-xs"
@@ -157,9 +165,11 @@ function LanguagesPageComponent() {
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-neutral-300 flex items-center gap-1.5">
             <Sparkles className="size-3.5 text-amber-400" />
-            <span>Popular Learning Pairs</span>
+            <span>{t("languages.popularPairsTitle")}</span>
           </span>
-          <span className="text-xs text-neutral-500">Quick 1-click switch</span>
+          <span className="text-xs text-neutral-500">
+            {t("languages.quickSwitchSubtitle")}
+          </span>
         </div>
         <div className="flex flex-wrap gap-2 pt-1">
           {PRESETS.map((p) => {
@@ -278,10 +288,7 @@ function LanguagesPageComponent() {
         {isSameLanguage && (
           <div className="flex items-center gap-2 p-3 rounded-xl bg-red-950/40 border border-red-500/30 text-xs text-red-400 font-medium">
             <AlertCircle className="size-4 shrink-0" />
-            <span>
-              Source and target languages cannot be identical. Please choose two
-              distinct languages.
-            </span>
+            <span>{t("languages.sameLanguageError")}</span>
           </div>
         )}
 
@@ -313,7 +320,7 @@ function LanguagesPageComponent() {
               {createPairMutation.isPending ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  <span>Saving...</span>
+                  <span>{t("common.saving")}</span>
                 </>
               ) : (
                 <>
@@ -322,7 +329,15 @@ function LanguagesPageComponent() {
                 </>
               )}
             </Button>
-            <Link to="/">
+            <Link
+              to="/"
+              search={{
+                category: "all",
+                language_scope: "pair",
+                level: "all",
+                search: "",
+              }}
+            >
               <Button
                 variant="outline"
                 className="border-neutral-700 text-neutral-200 hover:bg-neutral-800 text-xs gap-1.5"
@@ -339,18 +354,17 @@ function LanguagesPageComponent() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
         <div className="space-y-0.5">
           <h2 className="text-lg font-bold text-white">
-            All Available Languages
+            {t("languages.allLanguagesTitle")}
           </h2>
           <p className="text-xs text-neutral-400">
-            Select an origin tongue and a learning target from the matrices
-            below.
+            {t("languages.allLanguagesDesc")}
           </p>
         </div>
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-neutral-500" />
           <Input
             type="text"
-            placeholder="Search language or code..."
+            placeholder={t("languages.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Search languages by name or code"
@@ -373,7 +387,7 @@ function LanguagesPageComponent() {
               </p>
             </div>
             <span className="shrink-0 text-xs px-2.5 py-0.5 rounded-full bg-neutral-800 text-neutral-400 font-medium whitespace-nowrap">
-              {filteredLanguages.length} languages
+              {t("common.languagesCount", { count: filteredLanguages.length })}
             </span>
           </div>
 
@@ -435,7 +449,7 @@ function LanguagesPageComponent() {
               </p>
             </div>
             <span className="shrink-0 text-xs px-2.5 py-0.5 rounded-full bg-neutral-800 text-neutral-400 font-medium whitespace-nowrap">
-              {filteredLanguages.length} languages
+              {t("common.languagesCount", { count: filteredLanguages.length })}
             </span>
           </div>
 
@@ -527,7 +541,9 @@ function LanguagesPageComponent() {
             <div className="flex items-center gap-2.5 min-w-0">
               <span className="size-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
               <div className="text-xs text-neutral-300 truncate">
-                <span className="font-semibold text-white">Unsaved pair:</span>{" "}
+                <span className="font-semibold text-white">
+                  {t("languages.unsavedPairBadge")}
+                </span>{" "}
                 <span className="font-medium text-neutral-200">
                   {selectedOrigin.name} ({getLanguageFlag(selectedOrigin.code)})
                 </span>{" "}
@@ -546,7 +562,7 @@ function LanguagesPageComponent() {
                 className="h-8 border-neutral-800 text-neutral-400 hover:text-neutral-200 text-xs px-2.5 gap-1.5"
               >
                 <RotateCcw className="size-3" />
-                <span>Reset</span>
+                <span>{t("common.reset")}</span>
               </Button>
               <Button
                 type="button"
@@ -557,12 +573,12 @@ function LanguagesPageComponent() {
                 {createPairMutation.isPending ? (
                   <>
                     <Loader2 className="size-3.5 animate-spin" />
-                    <span>Applying...</span>
+                    <span>{t("languages.applyingBtn")}</span>
                   </>
                 ) : (
                   <>
                     <Check className="size-3.5" />
-                    <span>Apply Active Pair</span>
+                    <span>{t("languages.applyActivePairBtn")}</span>
                   </>
                 )}
               </Button>

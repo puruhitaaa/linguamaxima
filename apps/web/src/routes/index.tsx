@@ -86,7 +86,7 @@ function HomeComponent() {
     navigate({
       search: (prev) => ({
         ...prev,
-        level: lvl === "all" ? undefined : lvl,
+        level: lvl,
       }),
     });
   };
@@ -95,7 +95,7 @@ function HomeComponent() {
     navigate({
       search: (prev) => ({
         ...prev,
-        category: catSlug === "all" ? undefined : catSlug,
+        category: catSlug,
       }),
     });
   };
@@ -104,7 +104,7 @@ function HomeComponent() {
     navigate({
       search: (prev) => ({
         ...prev,
-        language_scope: scope === "pair" ? undefined : "all",
+        language_scope: scope,
       }),
     });
   };
@@ -115,7 +115,7 @@ function HomeComponent() {
       replace: true,
       search: (prev) => ({
         ...prev,
-        search: undefined,
+        search: "",
       }),
     });
   };
@@ -142,10 +142,10 @@ function HomeComponent() {
           </div>
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-white">
-              Failed to load stories
+              {t("common.failedLoad", { item: t("common.stories") })}
             </h3>
             <p className="text-xs text-neutral-400">
-              There was a problem connecting to the server. Please try again.
+              {t("common.networkError")}
             </p>
           </div>
           <Button
@@ -154,7 +154,7 @@ function HomeComponent() {
             className="gap-2 border-neutral-700 text-neutral-200 hover:bg-neutral-800 text-xs"
           >
             <RotateCcw className="size-3.5" />
-            <span>Retry</span>
+            <span>{t("common.retry")}</span>
           </Button>
         </div>
       );

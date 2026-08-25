@@ -344,7 +344,9 @@ function StoryVocabularyTab({
 
   return (
     <TabsContent value="vocabulary" className="space-y-4 outline-none">
-      <h2 className="sr-only">Story Vocabulary</h2>
+      <h2 className="sr-only">
+        {t("story.tabVocabulary", { count: vocabulary.length })}
+      </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {vocabulary.map((vocab) => (
           <div
@@ -425,7 +427,9 @@ function StoryGrammarTab({ grammarTips }: { grammarTips: GrammarTip[] }) {
 
   return (
     <TabsContent value="grammar" className="space-y-4 outline-none">
-      <h2 className="sr-only">Grammar Tips</h2>
+      <h2 className="sr-only">
+        {t("story.tabGrammar", { count: grammarTips.length })}
+      </h2>
       <div className="grid gap-4">
         {grammarTips.map((tip, idx) => (
           <div

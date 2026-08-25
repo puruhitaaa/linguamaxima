@@ -26,19 +26,20 @@ import { z } from "zod";
 
 import { StoryCard } from "../components/story-card";
 import { useTranslation } from "../lib/i18n";
+import type { TranslationKey } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
 import { useProgress, useStories } from "../lib/queries";
 import type { StoryListItem } from "../types/api";
 
 const CEFR_TABS = ["all", "A1", "A2", "B1", "B2", "C1", "C2"] as const;
 
-const CEFR_DESCRIPTORS: Record<string, string> = {
-  A1: "Beginner",
-  A2: "Elementary",
-  B1: "Intermediate",
-  B2: "Upper Int.",
-  C1: "Advanced",
-  C2: "Mastery",
+const CEFR_DESCRIPTOR_KEYS: Record<string, TranslationKey> = {
+  A1: "progress.cefrA1",
+  A2: "progress.cefrA2",
+  B1: "progress.cefrB1",
+  B2: "progress.cefrB2",
+  C1: "progress.cefrC1",
+  C2: "progress.cefrC2",
 };
 
 const progressSearchSchema = z.object({
@@ -524,7 +525,8 @@ function ProgressComponent() {
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 max-w-full scrollbar-none">
           {CEFR_TABS.map((lvl) => {
             const isSelected = selectedLevel === lvl;
-            const descriptor = CEFR_DESCRIPTORS[lvl];
+            const descriptorKey = CEFR_DESCRIPTOR_KEYS[lvl];
+            const descriptor = descriptorKey ? t(descriptorKey) : undefined;
 
             return (
               <button

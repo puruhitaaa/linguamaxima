@@ -211,7 +211,7 @@ export function LanguagePairModal({
         {isSameLanguage && (
           <div className="flex items-center gap-1.5 text-xs text-red-400 font-medium px-1">
             <AlertCircle className="size-3.5 shrink-0" />
-            <span>Source and target languages cannot be identical.</span>
+            <span>{t("modal.sameLanguageError")}</span>
           </div>
         )}
 

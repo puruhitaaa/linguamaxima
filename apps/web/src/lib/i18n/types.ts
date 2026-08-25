@@ -2,6 +2,7 @@ export interface TranslationDictionary {
   common: {
     all: string;
     apply: string;
+    audio: string;
     back: string;
     cancel: string;
     change: string;
@@ -12,14 +13,19 @@ export interface TranslationDictionary {
     delete: string;
     edit: string;
     error: string;
+    failedLoad: string;
     favorites: string;
     inDeck: string;
+    languagesCount: string;
+    learn: string;
     level: string;
     loading: string;
     minRead: string;
+    networkError: string;
     next: string;
     overview: string;
     read: string;
+    reset: string;
     retry: string;
     save: string;
     saved: string;
@@ -75,6 +81,10 @@ export interface TranslationDictionary {
   languages: {
     activeBadge: string;
     activePairTitle: string;
+    allLanguagesDesc: string;
+    allLanguagesTitle: string;
+    applyActivePairBtn: string;
+    applyingBtn: string;
     badge: string;
     card1Desc: string;
     card1Title: string;
@@ -89,7 +99,11 @@ export interface TranslationDictionary {
     noStoriesForPair: string;
     originSectionDesc: string;
     originSectionTitle: string;
+    popularPairsTitle: string;
+    quickSwitchSubtitle: string;
+    resetToast: string;
     sameLanguageError: string;
+    searchPlaceholder: string;
     setActivePair: string;
     storiesCountForPair: string;
     subtitle: string;
@@ -100,6 +114,7 @@ export interface TranslationDictionary {
     title: string;
     toastSuccess: string;
     unsavedChanges: string;
+    unsavedPairBadge: string;
     viewStories: string;
   };
   flashcards: {
@@ -153,6 +168,12 @@ export interface TranslationDictionary {
     allFavoritesTitle: string;
     allLevels: string;
     averageQuiz: string;
+    cefrA1: string;
+    cefrA2: string;
+    cefrB1: string;
+    cefrB2: string;
+    cefrC1: string;
+    cefrC2: string;
     completedStories: string;
     completedTab: string;
     dailyStreak: string;
@@ -217,6 +238,7 @@ export interface TranslationDictionary {
   quiz: {
     answerReview: string;
     articlePractice: string;
+    checkAnswer: string;
     comprehension: string;
     correctAnswer: string;
     correctOutOf: string;
@@ -230,6 +252,7 @@ export interface TranslationDictionary {
     nextQuestion: string;
     passedDesc: string;
     passedTitle: string;
+    previousQuestion: string;
     questionOf: string;
     questionTypeFallback: string;
     retakeQuiz: string;
@@ -248,7 +271,14 @@ export interface TranslationDictionary {
     iLearnLabel: string;
     iSpeakLabel: string;
     languageDirection: string;
+    selectCategoryPlaceholder: string;
+    selectLanguagePlaceholder: string;
+    stepComposing: string;
+    stepDrafting: string;
+    stepExtracting: string;
+    stepSynthesizing: string;
     swapTooltip: string;
+    syncActivePairLabel: string;
     topicHintLabel: string;
     topicHintPlaceholder: string;
     triggerBtn: string;

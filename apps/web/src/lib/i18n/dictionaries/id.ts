@@ -4,6 +4,7 @@ export const id: TranslationDictionary = {
   common: {
     all: "Semua",
     apply: "Terapkan",
+    audio: "Audio",
     back: "Kembali",
     cancel: "Batal",
     change: "Ubah",
@@ -14,14 +15,20 @@ export const id: TranslationDictionary = {
     delete: "Hapus",
     edit: "Edit",
     error: "Error",
+    failedLoad: "Gagal memuat {item}",
     favorites: "Favorit",
     inDeck: "Di Deck",
+    languagesCount: "{count} bahasa",
+    learn: "Belajar",
     level: "Tingkat",
     loading: "Memuat...",
     minRead: "menit baca",
+    networkError:
+      "Terjadi masalah saat menghubungkan ke server. Silakan coba lagi.",
     next: "Lanjut",
     overview: "Ikhtisar",
     read: "Dibaca",
+    reset: "Reset",
     retry: "Coba Lagi",
     save: "Simpan",
     saved: "Tersimpan",
@@ -79,6 +86,11 @@ export const id: TranslationDictionary = {
   languages: {
     activeBadge: "Sedang Aktif",
     activePairTitle: "Pasangan Bahasa Aktif",
+    allLanguagesDesc:
+      "Pilih bahasa asal dan target belajar dari daftar di bawah ini.",
+    allLanguagesTitle: "Semua Bahasa yang Tersedia",
+    applyActivePairBtn: "Terapkan Pasangan Aktif",
+    applyingBtn: "Menerapkan...",
     badge: "Pusat Pembelajaran Multi-Bahasa",
     card1Desc:
       "Cerita dikalibrasi sesuai tingkat kesulitan CEFR yang Anda pilih, dari pemula A1 hingga mahir C2.",
@@ -98,7 +110,11 @@ export const id: TranslationDictionary = {
     originSectionDesc:
       "Terjemahan, definisi kosakata, dan tips tata bahasa akan disajikan dalam bahasa ini.",
     originSectionTitle: "Pilih Bahasa Asal / Bahasa Ibu Anda",
+    popularPairsTitle: "Pasangan Belajar Populer",
+    quickSwitchSubtitle: "Beralih cepat 1-klik",
+    resetToast: "Pilihan direset ke pasangan bahasa aktif.",
     sameLanguageError: "Bahasa asal dan bahasa target tidak boleh sama.",
+    searchPlaceholder: "Cari bahasa atau kode...",
     setActivePair: "Jadikan Pasangan Aktif",
     storiesCountForPair:
       "Ditemukan {count} cerita yang diterbitkan untuk pasangan bahasa ini.",
@@ -112,6 +128,7 @@ export const id: TranslationDictionary = {
     toastSuccess: "Bahasa aktif diatur ke {target} (dari {origin})!",
     unsavedChanges:
       'Perubahan belum disimpan — klik "Jadikan Pasangan Aktif" di bawah',
+    unsavedPairBadge: "Pasangan belum tersimpan:",
     viewStories: "Lihat Cerita",
   },
   flashcards: {
@@ -172,6 +189,12 @@ export const id: TranslationDictionary = {
     allFavoritesTitle: "Cerita Favorit ({count})",
     allLevels: "Semua Level",
     averageQuiz: "Rata-rata Kuis",
+    cefrA1: "Pemula",
+    cefrA2: "Dasar",
+    cefrB1: "Menengah",
+    cefrB2: "Menengah Atas",
+    cefrC1: "Mahir",
+    cefrC2: "Ahli",
     completedStories: "Cerita Selesai ({count})",
     completedTab: "Selesai ({count})",
     dailyStreak: "Streak Harian",
@@ -241,6 +264,7 @@ export const id: TranslationDictionary = {
   quiz: {
     answerReview: "Tinjauan Jawaban",
     articlePractice: "Latihan Artikel",
+    checkAnswer: "Periksa Jawaban",
     comprehension: "Pemahaman Membaca",
     correctAnswer: "Jawaban benar:",
     correctOutOf: "{correct} / {total}",
@@ -255,6 +279,7 @@ export const id: TranslationDictionary = {
     nextQuestion: "Pertanyaan Berikutnya",
     passedDesc: "Anda berhasil lulus kuis pemahaman membaca!",
     passedTitle: "Luar Biasa!",
+    previousQuestion: "Sebelumnya",
     questionOf: "Pertanyaan {current} dari {total}",
     questionTypeFallback: "Pertanyaan Kuis",
     retakeQuiz: "Ulangi Kuis",
@@ -274,7 +299,15 @@ export const id: TranslationDictionary = {
     iLearnLabel: "Saya Belajar (Target):",
     iSpeakLabel: "Saya Berbicara:",
     languageDirection: "Arah Bahasa",
+    selectCategoryPlaceholder: "Pilih kategori",
+    selectLanguagePlaceholder: "Pilih bahasa",
+    stepComposing: "Menyusun kuis pemahaman membaca interaktif...",
+    stepDrafting: "Menyusun narasi cerita yang menarik...",
+    stepExtracting: "Mengekstrak kosakata dan tata bahasa CEFR...",
+    stepSynthesizing: "Mensintesis terjemahan bilingual paralel...",
     swapTooltip: "Tukar",
+    syncActivePairLabel:
+      "Tetapkan sebagai pasangan belajar aktif untuk aplikasi",
     topicHintLabel: "Topik atau Kata Kunci (Opsional)",
     topicHintPlaceholder:
       "mis. Memesan di kafe, Tersesat di kereta, Membeli tiket...",

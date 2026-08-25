@@ -22,6 +22,7 @@ import { AlertCircle, ArrowLeftRight, Loader2, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useTranslation } from "../lib/i18n";
+import type { TranslationKey } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
 import { useGenerateStory } from "../lib/queries";
 import type { CEFRLevel } from "../types/api";
@@ -41,11 +42,11 @@ const CATEGORY_SLUGS = [
   "nature",
 ] as const;
 
-const GENERATION_STEPS = [
-  "Drafting engaging story narrative...",
-  "Synthesizing parallel bilingual translation...",
-  "Extracting CEFR vocabulary and grammar terms...",
-  "Composing interactive reading quiz...",
+const GENERATION_STEP_KEYS: TranslationKey[] = [
+  "generator.stepDrafting",
+  "generator.stepSynthesizing",
+  "generator.stepExtracting",
+  "generator.stepComposing",
 ];
 
 export function GenerateStoryDialog({
@@ -186,7 +187,9 @@ export function GenerateStoryDialog({
                     onValueChange={(val) => val && setOriginCode(val)}
                   >
                     <SelectTrigger className="w-full h-9 bg-neutral-950 border-neutral-700 text-xs text-neutral-200 focus:ring-sky-500 font-medium rounded-xl">
-                      <SelectValue placeholder="Select language" />
+                      <SelectValue
+                        placeholder={t("generator.selectLanguagePlaceholder")}
+                      />
                     </SelectTrigger>
                     <SelectContent className="bg-neutral-950 border-neutral-800 text-neutral-200">
                       {availableLanguages.map((l) => (
@@ -220,7 +223,9 @@ export function GenerateStoryDialog({
                     onValueChange={(val) => val && setTargetCode(val)}
                   >
                     <SelectTrigger className="w-full h-9 bg-neutral-950 border-sky-500/50 text-xs text-white focus:ring-sky-500 font-bold rounded-xl">
-                      <SelectValue placeholder="Select language" />
+                      <SelectValue
+                        placeholder={t("generator.selectLanguagePlaceholder")}
+                      />
                     </SelectTrigger>
                     <SelectContent className="bg-neutral-950 border-neutral-800 text-neutral-200">
                       {availableLanguages.map((l) => (
@@ -238,7 +243,7 @@ export function GenerateStoryDialog({
               {isSameLanguage && (
                 <div className="flex items-center gap-1.5 text-xs text-red-400 font-medium pt-1">
                   <AlertCircle className="size-3.5 shrink-0" />
-                  <span>Source and target languages cannot be identical.</span>
+                  <span>{t("modal.sameLanguageError")}</span>
                 </div>
               )}
 
@@ -256,7 +261,7 @@ export function GenerateStoryDialog({
                   htmlFor="sync-active-pair"
                   className="text-xs text-neutral-400 cursor-pointer font-normal"
                 >
-                  Set as active learning pair for the app
+                  {t("generator.syncActivePairLabel")}
                 </Label>
               </div>
             </div>
@@ -298,7 +303,9 @@ export function GenerateStoryDialog({
                 onValueChange={(val) => val && setCategory(val)}
               >
                 <SelectTrigger className="w-full h-10 bg-neutral-900 border-neutral-800 text-xs text-neutral-200 focus:ring-sky-500 rounded-xl">
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue
+                    placeholder={t("generator.selectCategoryPlaceholder")}
+                  />
                 </SelectTrigger>
                 <SelectContent className="bg-neutral-950 border-neutral-800 text-neutral-200">
                   {CATEGORY_SLUGS.map((slug) => (
@@ -332,10 +339,10 @@ export function GenerateStoryDialog({
               <div className="p-3.5 rounded-2xl bg-sky-950/40 border border-sky-500/30 space-y-2 animate-in fade-in duration-300">
                 <div className="flex items-center gap-2 text-sky-400 text-xs font-semibold">
                   <Loader2 className="size-4 animate-spin shrink-0" />
-                  <span>{GENERATION_STEPS[generationStep]}</span>
+                  <span>{t(GENERATION_STEP_KEYS[generationStep])}</span>
                 </div>
                 <div className="grid grid-cols-4 gap-1.5 pt-1">
-                  {GENERATION_STEPS.map((_, idx) => (
+                  {GENERATION_STEP_KEYS.map((_, idx) => (
                     <div
                       key={idx}
                       className={`h-1.5 rounded-full transition-all duration-500 ${

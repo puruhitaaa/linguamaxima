@@ -108,7 +108,7 @@ export default function Header() {
               {targetLanguage.code.toUpperCase()}
             </span>
             <span className="hidden lg:inline-block text-xs px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 font-semibold ml-0.5">
-              Learn
+              {t("common.learn")}
             </span>
           </button>
 

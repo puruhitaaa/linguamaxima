@@ -4,6 +4,7 @@ export const de: TranslationDictionary = {
   common: {
     all: "Alle",
     apply: "Anwenden",
+    audio: "Audio",
     back: "Zurück",
     cancel: "Abbrechen",
     change: "Ändern",
@@ -14,14 +15,20 @@ export const de: TranslationDictionary = {
     delete: "Löschen",
     edit: "Bearbeiten",
     error: "Fehler",
+    failedLoad: "{item} konnte nicht geladen werden",
     favorites: "Favoriten",
     inDeck: "Im Deck",
+    languagesCount: "{count} Sprachen",
+    learn: "Lernen",
     level: "Niveau",
     loading: "Laden...",
     minRead: "Min. Lesezeit",
+    networkError:
+      "Verbindung zum Server fehlgeschlagen. Bitte versuchen Sie es erneut.",
     next: "Weiter",
     overview: "Übersicht",
     read: "Gelesen",
+    reset: "Zurücksetzen",
     retry: "Wiederholen",
     save: "Speichern",
     saved: "Gespeichert",
@@ -80,6 +87,11 @@ export const de: TranslationDictionary = {
   languages: {
     activeBadge: "Aktuell Aktiv",
     activePairTitle: "Aktives Sprachpaar",
+    allLanguagesDesc:
+      "Wähle unten deine Muttersprache und die gewünschte Zielsprache aus.",
+    allLanguagesTitle: "Alle verfügbaren Sprachen",
+    applyActivePairBtn: "Aktives Paar anwenden",
+    applyingBtn: "Wird angewendet...",
     badge: "Mehrsprachiges Lernzentrum",
     card1Desc:
       "Geschichten sind für dein gewähltes CEFR-Niveau von A1 bis C2 kalibriert.",
@@ -99,7 +111,11 @@ export const de: TranslationDictionary = {
     originSectionDesc:
       "Übersetzungen, Wortdefinitionen und Grammatiktipps werden in dieser Sprache angezeigt.",
     originSectionTitle: "Wähle deine Muttersprache / Ausgangssprache",
+    popularPairsTitle: "Beliebte Sprachpaare",
+    quickSwitchSubtitle: "Schneller 1-Klick-Wechsel",
+    resetToast: "Auswahl auf aktives Sprachpaar zurückgesetzt.",
     sameLanguageError: "Ausgangs- und Zielsprache dürfen nicht identisch sein.",
+    searchPlaceholder: "Sprache oder Code suchen...",
     setActivePair: "Als aktives Paar festlegen",
     storiesCountForPair:
       "{count} veröffentlichte Geschichten für dieses Sprachpaar gefunden.",
@@ -114,6 +130,7 @@ export const de: TranslationDictionary = {
     toastSuccess: "Aktive Sprache auf {target} (von {origin}) gesetzt!",
     unsavedChanges:
       'Ungespeicherte Änderungen — klicke unten auf "Als aktives Paar festlegen"',
+    unsavedPairBadge: "Ungespeichertes Paar:",
     viewStories: "Geschichten anzeigen",
   },
   flashcards: {
@@ -174,6 +191,12 @@ export const de: TranslationDictionary = {
     allFavoritesTitle: "Favorisierte Geschichten ({count})",
     allLevels: "Alle Niveaus",
     averageQuiz: "Durchschnitts-Quiz",
+    cefrA1: "Anfänger",
+    cefrA2: "Grundlegend",
+    cefrB1: "Mittelstufe",
+    cefrB2: "Gute Mittelstufe",
+    cefrC1: "Fortgeschritten",
+    cefrC2: "Exzellent",
     completedStories: "Abgeschlossene Geschichten ({count})",
     completedTab: "Abgeschlossen ({count})",
     dailyStreak: "Tages-Serie",
@@ -243,9 +266,8 @@ export const de: TranslationDictionary = {
   quiz: {
     answerReview: "Antwort-Überprüfung",
     articlePractice: "Artikel-Übung",
-    comprehension: "Verständnisfragen",
     checkAnswer: "Antwort prüfen",
-    previousQuestion: "Zurück",
+    comprehension: "Verständnisfragen",
     correctAnswer: "Richtige Antwort:",
     correctOutOf: "{correct} / {total}",
     correctStat: "Richtig",
@@ -259,6 +281,7 @@ export const de: TranslationDictionary = {
     nextQuestion: "Nächste Frage",
     passedDesc: "Du hast das Verständnis-Quiz erfolgreich bestanden!",
     passedTitle: "Ausgezeichnet!",
+    previousQuestion: "Zurück",
     questionOf: "Frage {current} von {total}",
     questionTypeFallback: "Quizfrage",
     retakeQuiz: "Quiz wiederholen",
@@ -278,7 +301,15 @@ export const de: TranslationDictionary = {
     iLearnLabel: "Ich lerne (Ziel):",
     iSpeakLabel: "Ich spreche:",
     languageDirection: "Sprachrichtung",
+    selectCategoryPlaceholder: "Kategorie wählen",
+    selectLanguagePlaceholder: "Sprache wählen",
+    stepComposing: "Interaktives Lese-Quiz wird zusammengestellt...",
+    stepDrafting: "Spannende Geschichtenerzählung wird verfasst...",
+    stepExtracting: "CEFR-Wortschatz und Grammatikregeln werden extrahiert...",
+    stepSynthesizing:
+      "Parallele zweisprachige Übersetzung wird synthetisiert...",
     swapTooltip: "Tauschen",
+    syncActivePairLabel: "Als aktives Lernpaar für die App festlegen",
     topicHintLabel: "Thema oder Stichwort (Optional)",
     topicHintPlaceholder:
       "z. B. Bestellen im Café, Verloren in der U-Bahn, Ticket buchen...",
