@@ -302,14 +302,14 @@ function HomeComponent() {
       {/* Filter Controls & Search */}
       <div className="space-y-4">
         {/* Language Scope & CEFR Level Tabs */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 min-w-0">
             {/* Language Scope Switcher */}
-            <div className="flex items-center bg-neutral-900 p-1 rounded-xl border border-neutral-800 text-xs">
+            <div className="flex items-center bg-neutral-900 p-1 rounded-xl border border-neutral-800 text-xs shrink-0">
               <button
                 type="button"
                 onClick={() => handleToggleScope("pair")}
-                className={`px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   languageScope === "pair"
                     ? "bg-sky-500 text-white shadow-sm"
                     : "text-neutral-400 hover:text-neutral-200"
@@ -323,7 +323,7 @@ function HomeComponent() {
               <button
                 type="button"
                 onClick={() => handleToggleScope("all")}
-                className={`px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   languageScope === "all"
                     ? "bg-sky-500 text-white shadow-sm"
                     : "text-neutral-400 hover:text-neutral-200"
@@ -335,26 +335,28 @@ function HomeComponent() {
             </div>
 
             {/* CEFR Level Tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 max-w-full">
-              {CEFR_TABS.map((lvl) => (
-                <button
-                  key={lvl}
-                  type="button"
-                  onClick={() => handleSelectLevel(lvl)}
-                  className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all border ${
-                    selectedLevel === lvl
-                      ? "bg-neutral-800 border-neutral-700 text-white shadow-sm"
-                      : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
-                  }`}
-                >
-                  {lvl === "all" ? t("home.allLevels") : lvl}
-                </button>
-              ))}
+            <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0">
+              <div className="flex items-center gap-1.5 w-max sm:w-auto">
+                {CEFR_TABS.map((lvl) => (
+                  <button
+                    key={lvl}
+                    type="button"
+                    onClick={() => handleSelectLevel(lvl)}
+                    className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all border shrink-0 whitespace-nowrap cursor-pointer ${
+                      selectedLevel === lvl
+                        ? "bg-neutral-800 border-neutral-700 text-white shadow-sm"
+                        : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
+                    }`}
+                  >
+                    {lvl === "all" ? t("home.allLevels") : lvl}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Search Bar with Clear Button */}
-          <div className="relative w-full sm:w-64">
+          <div className="relative w-full lg:w-64 shrink-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-500 pointer-events-none" />
             <Input
               type="text"
@@ -372,7 +374,7 @@ function HomeComponent() {
                 type="button"
                 onClick={handleClearSearch}
                 aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white p-0.5"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white p-0.5 cursor-pointer"
               >
                 <X className="size-3.5" />
               </button>
@@ -381,32 +383,34 @@ function HomeComponent() {
         </div>
 
         {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-          <button
-            type="button"
-            onClick={() => handleSelectCategory("all")}
-            className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 ${
-              selectedCategory === "all"
-                ? "bg-neutral-100 text-neutral-900 font-semibold"
-                : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
-            }`}
-          >
-            {t("home.allCategories")}
-          </button>
-          {categories?.map((cat) => (
+        <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex items-center gap-2 text-xs w-max sm:w-auto pb-1 sm:pb-0">
             <button
-              key={cat.slug}
               type="button"
-              onClick={() => handleSelectCategory(cat.slug)}
-              className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 ${
-                selectedCategory === cat.slug
+              onClick={() => handleSelectCategory("all")}
+              className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
+                selectedCategory === "all"
                   ? "bg-neutral-100 text-neutral-900 font-semibold"
                   : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
               }`}
             >
-              {tCategory(cat.slug)}
+              {t("home.allCategories")}
             </button>
-          ))}
+            {categories?.map((cat) => (
+              <button
+                key={cat.slug}
+                type="button"
+                onClick={() => handleSelectCategory(cat.slug)}
+                className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
+                  selectedCategory === cat.slug
+                    ? "bg-neutral-100 text-neutral-900 font-semibold"
+                    : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
+                }`}
+              >
+                {tCategory(cat.slug)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

@@ -177,44 +177,48 @@ function StoryReadingComponent() {
         onValueChange={handleTabChange}
         className="space-y-6"
       >
-        <div className="flex items-center justify-between flex-wrap gap-4 border-b border-neutral-800 pb-2">
-          <TabsList className="bg-neutral-900 border border-neutral-800 p-1 rounded-2xl">
-            <TabsTrigger
-              value="story"
-              className="gap-2 text-xs font-semibold px-4 py-2 rounded-xl"
-            >
-              <BookOpen className="size-4" />
-              <span>{t("story.tabStory")}</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="vocabulary"
-              className="gap-2 text-xs font-semibold px-4 py-2 rounded-xl"
-            >
-              <Layers className="size-4" />
-              <span>
-                {t("story.tabVocabulary", { count: story.vocabulary.length })}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="grammar"
-              className="gap-2 text-xs font-semibold px-4 py-2 rounded-xl"
-            >
-              <GraduationCap className="size-4" />
-              <span>
-                {t("story.tabGrammar", { count: story.grammar_tips.length })}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="quiz"
-              className="gap-2 text-xs font-semibold px-4 py-2 rounded-xl"
-            >
-              <HelpCircle className="size-4" />
-              <span>{t("story.tabQuiz", { count: story.quizzes.length })}</span>
-            </TabsTrigger>
-          </TabsList>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-neutral-800 pb-3">
+          <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0">
+            <TabsList className="bg-neutral-900 border border-neutral-800 p-1 rounded-2xl h-auto min-h-10 w-max sm:w-auto flex-nowrap shrink-0">
+              <TabsTrigger
+                value="story"
+                className="gap-2 text-xs font-semibold px-3.5 sm:px-4 py-2 rounded-xl shrink-0 whitespace-nowrap cursor-pointer"
+              >
+                <BookOpen className="size-4 shrink-0" />
+                <span>{t("story.tabStory")}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="vocabulary"
+                className="gap-2 text-xs font-semibold px-3.5 sm:px-4 py-2 rounded-xl shrink-0 whitespace-nowrap cursor-pointer"
+              >
+                <Layers className="size-4 shrink-0" />
+                <span>
+                  {t("story.tabVocabulary", { count: story.vocabulary.length })}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="grammar"
+                className="gap-2 text-xs font-semibold px-3.5 sm:px-4 py-2 rounded-xl shrink-0 whitespace-nowrap cursor-pointer"
+              >
+                <GraduationCap className="size-4 shrink-0" />
+                <span>
+                  {t("story.tabGrammar", { count: story.grammar_tips.length })}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="quiz"
+                className="gap-2 text-xs font-semibold px-3.5 sm:px-4 py-2 rounded-xl shrink-0 whitespace-nowrap cursor-pointer"
+              >
+                <HelpCircle className="size-4 shrink-0" />
+                <span>
+                  {t("story.tabQuiz", { count: story.quizzes.length })}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {activeTab === "story" && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Button
                 type="button"
                 variant="outline"
@@ -222,7 +226,7 @@ function StoryReadingComponent() {
                 onClick={() =>
                   setShowParallelTranslation(!showParallelTranslation)
                 }
-                className={`text-xs font-semibold rounded-xl h-9 px-3.5 border-neutral-700 transition-colors ${
+                className={`text-xs font-semibold rounded-xl h-9 px-3.5 border-neutral-700 transition-colors w-full sm:w-auto justify-center cursor-pointer ${
                   showParallelTranslation
                     ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
                     : "bg-neutral-900 text-neutral-300 hover:text-white"
