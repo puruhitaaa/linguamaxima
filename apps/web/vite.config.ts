@@ -10,11 +10,7 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   ssr: {
-    external: ["react", "react-dom"],
-    noExternal:
-      process.env.NODE_ENV === "production"
-        ? true
-        : ["@linguamaxima/ui", "@linguamaxima/env"],
+    noExternal: true,
   },
   server: {
     port: 3001,
