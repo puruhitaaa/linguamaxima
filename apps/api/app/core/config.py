@@ -90,7 +90,7 @@ class Settings(BaseSettings):
 
     # AI Configuration (via LiteLLM)
     default_ai_model: str = "gemini/gemini-2.5-flash"
-    fallback_ai_model: str = "groq/llama-4-scout"
+    fallback_ai_model: str = "groq/llama-3.3-70b-versatile"
 
     # API Keys
     gemini_api_key: str = ""
