@@ -86,76 +86,56 @@ function StoryNotFound({ onBackText }: { onBackText: string }) {
   );
 }
 
-interface StoryReadingToolbarProps {
-  highlightWords: boolean;
-  onToggleHighlightWords: () => void;
-  highlightStoryItem: boolean;
-  onToggleHighlightStoryItem: () => void;
-  showParallelTranslation: boolean;
-  onToggleParallelTranslation: () => void;
-}
-
-function StoryReadingToolbar({
-  highlightWords,
-  onToggleHighlightWords,
-  highlightStoryItem,
-  onToggleHighlightStoryItem,
-  showParallelTranslation,
-  onToggleParallelTranslation,
-}: StoryReadingToolbarProps) {
+function StoryTopBar({
+  storyId,
+  isFavorite,
+  isPending,
+  onToggleFavorite,
+}: {
+  storyId: number;
+  isFavorite: boolean;
+  isPending: boolean;
+  onToggleFavorite: (id: number) => void;
+}) {
   const { t } = useTranslation();
 
   return (
-    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={onToggleHighlightWords}
-        className={`text-xs font-semibold rounded-xl h-9 px-3 border-neutral-700 transition-colors cursor-pointer ${
-          highlightWords
-            ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
-            : "bg-neutral-900 text-neutral-400 hover:text-white"
-        }`}
-        title={t("story.highlightWord")}
-        aria-pressed={highlightWords}
+    <div className="flex items-center justify-between gap-4">
+      <Link
+        to="/"
+        search={{
+          category: "all",
+          language_scope: "pair",
+          level: "all",
+          search: "",
+        }}
+        className="inline-flex items-center gap-2 text-xs font-semibold text-neutral-400 hover:text-white transition-colors"
       >
-        <Sparkles className="size-3.5 mr-1.5 shrink-0 text-sky-400" />
-        <span>{t("story.highlightWord")}</span>
-      </Button>
+        <ArrowLeft className="size-4" />
+        <span>{t("story.backToStories")}</span>
+      </Link>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={onToggleHighlightStoryItem}
-        className={`text-xs font-semibold rounded-xl h-9 px-3 border-neutral-700 transition-colors cursor-pointer ${
-          highlightStoryItem
-            ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
-            : "bg-neutral-900 text-neutral-400 hover:text-white"
-        }`}
-        title={t("story.highlightOutline")}
-        aria-pressed={highlightStoryItem}
-      >
-        <Layers className="size-3.5 mr-1.5 shrink-0 text-sky-400" />
-        <span>{t("story.highlightOutline")}</span>
-      </Button>
-
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={onToggleParallelTranslation}
-        className={`text-xs font-semibold rounded-xl h-9 px-3.5 border-neutral-700 transition-colors w-full sm:w-auto justify-center cursor-pointer ${
-          showParallelTranslation
-            ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
-            : "bg-neutral-900 text-neutral-300 hover:text-white"
-        }`}
-      >
-        {showParallelTranslation
-          ? t("story.hideParallelTranslation")
-          : t("story.showParallelTranslation")}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onToggleFavorite(storyId)}
+          disabled={isPending}
+          className={`gap-1.5 border-neutral-800 text-xs font-semibold rounded-xl h-9 px-3 transition-colors ${
+            isFavorite
+              ? "text-rose-400 bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20 hover:text-rose-300"
+              : "text-neutral-300 hover:text-white"
+          } ${isPending ? "opacity-70" : ""}`}
+        >
+          <Heart
+            className={`size-3.5 transition-transform active:scale-125 ${
+              isFavorite ? "fill-rose-400" : ""
+            }`}
+          />
+          <span>{isFavorite ? t("story.favorited") : t("story.favorite")}</span>
+        </Button>
+      </div>
     </div>
   );
 }
@@ -238,59 +218,28 @@ function StoryReadingComponent() {
   return (
     <div className="container mx-auto max-w-4xl px-4 py-6 sm:py-8 space-y-6">
       {/* Top Bar with Back Link and Actions */}
-      <div className="flex items-center justify-between gap-4">
-        <Link
-          to="/"
-          search={{
-            category: "all",
-            language_scope: "pair",
-            level: "all",
-            search: "",
-          }}
-          className="inline-flex items-center gap-2 text-xs font-semibold text-neutral-400 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="size-4" />
-          <span>{t("story.backToStories")}</span>
-        </Link>
+      <StoryTopBar
+        storyId={story.id}
+        isFavorite={story.is_favorite}
+        isPending={
+          toggleFavorite.isPending && toggleFavorite.variables === story.id
+        }
+        onToggleFavorite={(id) => toggleFavorite.mutate(id)}
+      />
 
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => toggleFavorite.mutate(story.id)}
-            disabled={
-              toggleFavorite.isPending && toggleFavorite.variables === story.id
-            }
-            className={`gap-1.5 border-neutral-800 text-xs font-semibold rounded-xl h-9 px-3 transition-colors ${
-              story.is_favorite
-                ? "text-rose-400 bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20 hover:text-rose-300"
-                : "text-neutral-300 hover:text-white"
-            } ${
-              toggleFavorite.isPending && toggleFavorite.variables === story.id
-                ? "opacity-70"
-                : ""
-            }`}
-          >
-            <Heart
-              className={`size-3.5 transition-transform active:scale-125 ${
-                story.is_favorite ? "fill-rose-400" : ""
-              }`}
-            />
-            <span>
-              {story.is_favorite ? t("story.favorited") : t("story.favorite")}
-            </span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Story Header Banner */}
+      {/* Story Header Banner with Integrated Audio Player */}
       <StoryHeaderBanner
         story={story}
         audioPlayerRef={audioPlayerRef}
         onTimeUpdate={setCurrentTime}
         onDurationChange={setDuration}
         onPlayStateChange={setIsPlaying}
+        highlightWords={highlightWords}
+        onToggleHighlightWords={() => setHighlightWords(!highlightWords)}
+        highlightStoryItem={highlightStoryItem}
+        onToggleHighlightStoryItem={() =>
+          setHighlightStoryItem(!highlightStoryItem)
+        }
       />
 
       {/* Main Content Tabs */}
@@ -340,18 +289,23 @@ function StoryReadingComponent() {
           </div>
 
           {activeTab === "story" && (
-            <StoryReadingToolbar
-              highlightWords={highlightWords}
-              onToggleHighlightWords={() => setHighlightWords(!highlightWords)}
-              highlightStoryItem={highlightStoryItem}
-              onToggleHighlightStoryItem={() =>
-                setHighlightStoryItem(!highlightStoryItem)
-              }
-              showParallelTranslation={showParallelTranslation}
-              onToggleParallelTranslation={() =>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
                 setShowParallelTranslation(!showParallelTranslation)
               }
-            />
+              className={`text-xs font-semibold rounded-xl h-9 px-3.5 border-neutral-700 transition-colors w-full sm:w-auto justify-center cursor-pointer shrink-0 ${
+                showParallelTranslation
+                  ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
+                  : "bg-neutral-900 text-neutral-300 hover:text-white"
+              }`}
+            >
+              {showParallelTranslation
+                ? t("story.hideParallelTranslation")
+                : t("story.showParallelTranslation")}
+            </Button>
           )}
         </div>
 
@@ -408,12 +362,20 @@ function StoryHeaderBanner({
   onTimeUpdate,
   onDurationChange,
   onPlayStateChange,
+  highlightWords,
+  onToggleHighlightWords,
+  highlightStoryItem,
+  onToggleHighlightStoryItem,
 }: {
   story: StoryDetail;
   audioPlayerRef?: React.Ref<AudioPlayerHandle>;
   onTimeUpdate?: (currentTime: number) => void;
   onDurationChange?: (duration: number) => void;
   onPlayStateChange?: (isPlaying: boolean) => void;
+  highlightWords?: boolean;
+  onToggleHighlightWords?: () => void;
+  highlightStoryItem?: boolean;
+  onToggleHighlightStoryItem?: () => void;
 }) {
   const { t, tCategory } = useTranslation();
   const levelColorClass = LEVEL_COLORS[story.cefr_level] || LEVEL_COLORS.A1;
@@ -477,6 +439,10 @@ function StoryHeaderBanner({
             onTimeUpdate={onTimeUpdate}
             onDurationChange={onDurationChange}
             onPlayStateChange={onPlayStateChange}
+            highlightWords={highlightWords}
+            onToggleHighlightWords={onToggleHighlightWords}
+            highlightStoryItem={highlightStoryItem}
+            onToggleHighlightStoryItem={onToggleHighlightStoryItem}
           />
         </div>
       )}

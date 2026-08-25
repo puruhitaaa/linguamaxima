@@ -2,10 +2,12 @@ import { Button } from "@linguamaxima/ui/components/button";
 import { Slider } from "@linguamaxima/ui/components/slider";
 import {
   Globe,
+  Layers,
   Loader2,
   Pause,
   Play,
   RotateCcw,
+  Sparkles,
   Volume2,
   VolumeX,
   X,
@@ -40,6 +42,10 @@ export interface AudioPlayerProps {
   onTimeUpdate?: (currentTime: number) => void;
   onDurationChange?: (duration: number) => void;
   onPlayStateChange?: (isPlaying: boolean) => void;
+  highlightWords?: boolean;
+  onToggleHighlightWords?: () => void;
+  highlightStoryItem?: boolean;
+  onToggleHighlightStoryItem?: () => void;
   ref?: React.Ref<AudioPlayerHandle>;
 }
 
@@ -52,6 +58,127 @@ function formatTime(secs: number) {
   return `${mins}:${remainingSecs < 10 ? "0" : ""}${remainingSecs}`;
 }
 
+interface AudioSyncControlsProps {
+  highlightWords?: boolean;
+  onToggleHighlightWords?: () => void;
+  highlightStoryItem?: boolean;
+  onToggleHighlightStoryItem?: () => void;
+}
+
+function AudioSyncControls({
+  highlightWords,
+  onToggleHighlightWords,
+  highlightStoryItem,
+  onToggleHighlightStoryItem,
+}: AudioSyncControlsProps) {
+  const { t } = useTranslation();
+
+  if (!onToggleHighlightWords && !onToggleHighlightStoryItem) {
+    return null;
+  }
+
+  return (
+    <div className="flex items-center gap-1 bg-neutral-950/60 p-1 rounded-xl border border-neutral-800/90">
+      {onToggleHighlightWords && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onToggleHighlightWords}
+          aria-label={t("story.highlightWord")}
+          title={t("story.highlightWord")}
+          aria-pressed={highlightWords}
+          className={`h-9 px-2.5 rounded-lg text-xs font-semibold gap-1.5 transition-all cursor-pointer ${
+            highlightWords
+              ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm"
+              : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
+          }`}
+        >
+          <Sparkles
+            className={`size-3.5 ${
+              highlightWords ? "text-sky-400" : "text-neutral-400"
+            }`}
+          />
+          <span className="hidden sm:inline">{t("story.highlightWord")}</span>
+        </Button>
+      )}
+
+      {onToggleHighlightStoryItem && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onToggleHighlightStoryItem}
+          aria-label={t("story.highlightOutline")}
+          title={t("story.highlightOutline")}
+          aria-pressed={highlightStoryItem}
+          className={`h-9 px-2.5 rounded-lg text-xs font-semibold gap-1.5 transition-all cursor-pointer ${
+            highlightStoryItem
+              ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm"
+              : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
+          }`}
+        >
+          <Layers
+            className={`size-3.5 ${
+              highlightStoryItem ? "text-sky-400" : "text-neutral-400"
+            }`}
+          />
+          <span className="hidden sm:inline">
+            {t("story.highlightOutline")}
+          </span>
+        </Button>
+      )}
+    </div>
+  );
+}
+
+interface AudioVpnHintProps {
+  onRetry: () => void;
+  onDismiss: () => void;
+}
+
+function AudioVpnHintBanner({ onRetry, onDismiss }: AudioVpnHintProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="mt-1 flex items-start justify-between gap-3 p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs animate-in fade-in slide-in-from-top-1 duration-200">
+      <div className="flex items-start gap-2.5">
+        <Globe className="size-4 text-amber-400 shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="font-semibold text-amber-300">
+            {t("audio.timeoutWarningTitle")}
+          </p>
+          <p className="text-amber-200/90 leading-relaxed">
+            {t("audio.vpnRecommendation")}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1 shrink-0">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onRetry}
+          className="h-7 px-2.5 text-xs font-semibold rounded-lg border-amber-500/40 bg-amber-900/30 text-amber-200 hover:bg-amber-800/40 hover:text-white cursor-pointer"
+        >
+          {t("audio.retry")}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onDismiss}
+          className="size-7 p-0 text-amber-400 hover:text-white hover:bg-amber-900/40 rounded-lg cursor-pointer"
+          aria-label="Dismiss warning"
+        >
+          <X className="size-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 const SPEED_STEPS = [0.75, 1, 1.25, 1.5];
 
 export function AudioPlayer({
@@ -62,6 +189,10 @@ export function AudioPlayer({
   onTimeUpdate,
   onDurationChange,
   onPlayStateChange,
+  highlightWords,
+  onToggleHighlightWords,
+  highlightStoryItem,
+  onToggleHighlightStoryItem,
   ref,
 }: AudioPlayerProps) {
   const { t } = useTranslation();
@@ -274,19 +405,16 @@ export function AudioPlayer({
   }, [isPlaying]);
 
   const seekTo = useCallback(
-    async (timeInSeconds: number, autoPlay = false) => {
-      const audio = audioRef.current;
-      const targetTime = Math.max(0, timeInSeconds);
-      if (audio) {
-        audio.currentTime = targetTime;
-        setCurrentTime(targetTime);
-        onTimeUpdate?.(targetTime);
+    async (timeInSeconds: number, autoPlay = true) => {
+      if (audioRef.current) {
+        audioRef.current.currentTime = timeInSeconds;
+        setCurrentTime(timeInSeconds);
         if (autoPlay && !isPlaying) {
           await togglePlay();
         }
       }
     },
-    [isPlaying, onTimeUpdate, togglePlay]
+    [isPlaying, togglePlay]
   );
 
   useImperativeHandle(
@@ -336,7 +464,6 @@ export function AudioPlayer({
     }
   }, [currentTime]);
 
-  // Keyboard shortcut listener for space (play/pause), M (mute), J (rewind 5s)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -391,7 +518,7 @@ export function AudioPlayer({
 
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          {/* Main Play/Pause Button - 44px min touch target */}
+          {/* Main Play/Pause Button */}
           <Button
             type="button"
             size="sm"
@@ -403,7 +530,7 @@ export function AudioPlayer({
             {renderPlayIcon()}
           </Button>
 
-          {/* Rewind 5 seconds - 44px min touch target */}
+          {/* Rewind 5 seconds */}
           <Button
             type="button"
             variant="ghost"
@@ -416,7 +543,7 @@ export function AudioPlayer({
             <RotateCcw className="size-4" />
           </Button>
 
-          {/* Speed Toggle - 44px min touch target */}
+          {/* Speed Toggle */}
           <Button
             type="button"
             variant="outline"
@@ -430,8 +557,16 @@ export function AudioPlayer({
           </Button>
         </div>
 
+        {/* Audio Sync Controls: Word Highlighting & Story Item Glow */}
+        <AudioSyncControls
+          highlightWords={highlightWords}
+          onToggleHighlightWords={onToggleHighlightWords}
+          highlightStoryItem={highlightStoryItem}
+          onToggleHighlightStoryItem={onToggleHighlightStoryItem}
+        />
+
         {storyTitle && (
-          <div className="hidden sm:block text-xs font-semibold text-neutral-300 truncate max-w-[220px]">
+          <div className="hidden lg:block text-xs font-semibold text-neutral-300 truncate max-w-[200px]">
             {storyTitle}
           </div>
         )}
@@ -441,7 +576,7 @@ export function AudioPlayer({
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
 
-          {/* Mute Button - 44px min touch target */}
+          {/* Mute Button */}
           <Button
             type="button"
             variant="ghost"
@@ -474,43 +609,12 @@ export function AudioPlayer({
         />
       </div>
 
-      {/* VPN / Cloudflare Warp Guidance Banner */}
+      {/* VPN / Timeout Guidance Banner */}
       {showVpnHint && (
-        <div className="mt-1 flex items-start justify-between gap-3 p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs animate-in fade-in slide-in-from-top-1 duration-200">
-          <div className="flex items-start gap-2.5">
-            <Globe className="size-4 text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-semibold text-amber-300">
-                {t("audio.timeoutWarningTitle")}
-              </p>
-              <p className="text-amber-200/90 leading-relaxed">
-                {t("audio.vpnRecommendation")}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={togglePlay}
-              className="h-7 px-2.5 text-xs font-semibold rounded-lg border-amber-500/40 bg-amber-900/30 text-amber-200 hover:bg-amber-800/40 hover:text-white cursor-pointer"
-            >
-              {t("audio.retry")}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowVpnHint(false)}
-              className="size-7 p-0 text-amber-400 hover:text-white hover:bg-amber-900/40 rounded-lg cursor-pointer"
-              aria-label="Dismiss warning"
-            >
-              <X className="size-3.5" />
-            </Button>
-          </div>
-        </div>
+        <AudioVpnHintBanner
+          onRetry={togglePlay}
+          onDismiss={() => setShowVpnHint(false)}
+        />
       )}
     </section>
   );
