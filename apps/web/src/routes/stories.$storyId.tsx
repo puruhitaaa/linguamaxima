@@ -28,7 +28,12 @@ import {
 import { QuizSection } from "../components/quiz-section";
 import { useTranslation } from "../lib/i18n";
 import { useSaveFlashcard, useStory, useToggleFavorite } from "../lib/queries";
-import type { CEFRLevel } from "../types/api";
+import type {
+  CEFRLevel,
+  GrammarTip,
+  StoryDetail,
+  VocabularyItem,
+} from "../types/api";
 
 const storyDetailSearchSchema = z.object({
   tab: z
@@ -57,7 +62,7 @@ function StoryReadingComponent() {
   const navigate = Route.useNavigate();
   const searchParams = Route.useSearch();
   const activeTab = searchParams.tab ?? "story";
-  const { t, tCategory } = useTranslation();
+  const { t } = useTranslation();
 
   const { data: story, isLoading, error } = useStory(storyId);
   const toggleFavorite = useToggleFavorite();
@@ -112,8 +117,6 @@ function StoryReadingComponent() {
     saveFlashcard.mutate(vocabId);
   };
 
-  const levelColorClass = LEVEL_COLORS[story.cefr_level] || LEVEL_COLORS.A1;
-
   return (
     <div className="container mx-auto max-w-4xl px-4 py-6 sm:py-8 space-y-6">
       {/* Top Bar with Back Link and Actions */}
@@ -138,14 +141,23 @@ function StoryReadingComponent() {
             variant="outline"
             size="sm"
             onClick={() => toggleFavorite.mutate(story.id)}
-            className={`gap-1.5 border-neutral-800 text-xs font-semibold rounded-xl h-9 px-3 ${
+            disabled={
+              toggleFavorite.isPending && toggleFavorite.variables === story.id
+            }
+            className={`gap-1.5 border-neutral-800 text-xs font-semibold rounded-xl h-9 px-3 transition-colors ${
               story.is_favorite
-                ? "text-rose-400 bg-rose-500/10 border-rose-500/30"
+                ? "text-rose-400 bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20 hover:text-rose-300"
                 : "text-neutral-300 hover:text-white"
+            } ${
+              toggleFavorite.isPending && toggleFavorite.variables === story.id
+                ? "opacity-70"
+                : ""
             }`}
           >
             <Heart
-              className={`size-3.5 ${story.is_favorite ? "fill-rose-400" : ""}`}
+              className={`size-3.5 transition-transform active:scale-125 ${
+                story.is_favorite ? "fill-rose-400" : ""
+              }`}
             />
             <span>
               {story.is_favorite ? t("story.favorited") : t("story.favorite")}
@@ -155,59 +167,7 @@ function StoryReadingComponent() {
       </div>
 
       {/* Story Header Banner */}
-      <header className="p-6 sm:p-8 rounded-3xl bg-neutral-900/60 border border-neutral-800 space-y-4 shadow-lg">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className={`px-2.5 py-0.5 text-xs font-bold rounded-md border ${levelColorClass}`}
-          >
-            {t("story.levelBadge", { level: story.cefr_level })}
-          </span>
-          {story.language_pair && (
-            <span className="px-2.5 py-0.5 text-xs font-bold rounded-md border border-sky-500/30 bg-sky-500/10 text-sky-300">
-              {story.language_pair.target_language.name} ←{" "}
-              {story.language_pair.origin_language.name}
-            </span>
-          )}
-          {story.category && (
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-md border border-neutral-700 bg-neutral-800 text-neutral-300">
-              {tCategory(story.category.slug)}
-            </span>
-          )}
-          <span className="text-xs text-neutral-400 font-medium ml-auto">
-            {t("story.readingStats", {
-              minutes: story.estimated_reading_minutes,
-              words: story.word_count,
-            })}
-          </span>
-        </div>
-
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            {story.title}
-          </h1>
-          {story.title_translated && (
-            <p className="text-sm sm:text-base text-neutral-400 font-medium mt-1">
-              {story.title_translated}
-            </p>
-          )}
-        </div>
-
-        {story.summary && (
-          <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed border-t border-neutral-800/80 pt-3 italic">
-            <span className="font-semibold text-neutral-400 not-italic">
-              {t("story.summaryLabel")}{" "}
-            </span>
-            {story.summary}
-          </p>
-        )}
-
-        {/* Audio Player */}
-        {story.audio_url && (
-          <div className="pt-2">
-            <AudioPlayer audioUrl={story.audio_url} storyTitle={story.title} />
-          </div>
-        )}
-      </header>
+      <StoryHeaderBanner story={story} />
 
       {/* Main Content Tabs */}
       <Tabs
@@ -292,124 +252,14 @@ function StoryReadingComponent() {
         </TabsContent>
 
         {/* TAB 2: VOCABULARY LIST */}
-        <TabsContent value="vocabulary" className="space-y-4 outline-none">
-          <h2 className="sr-only">Story Vocabulary</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {story.vocabulary.map((vocab) => (
-              <div
-                key={vocab.id}
-                className="p-5 rounded-2xl bg-neutral-900/60 border border-neutral-800 flex flex-col justify-between gap-3 hover:border-neutral-700 transition-colors shadow-sm"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-bold text-white">
-                        {vocab.word}
-                      </h3>
-                      {vocab.gender && (
-                        <span
-                          className={`px-2 py-0.5 text-xs font-bold rounded-md border ${
-                            GENDER_BADGE_STYLE[vocab.gender.toLowerCase()] ||
-                            "bg-neutral-800 text-neutral-300 border-neutral-700"
-                          }`}
-                        >
-                          {vocab.gender}
-                        </span>
-                      )}
-                    </div>
-                    {vocab.part_of_speech && (
-                      <span className="text-xs uppercase font-bold text-neutral-400 tracking-wider">
-                        {vocab.part_of_speech}
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-sm font-semibold text-sky-400">
-                    {vocab.translation}
-                  </p>
-
-                  {vocab.example_sentence && (
-                    <div className="text-xs bg-neutral-950/60 p-3 rounded-xl border border-neutral-800/80 space-y-0.5 mt-2">
-                      <p className="text-neutral-200 italic font-medium">
-                        &ldquo;{vocab.example_sentence}&rdquo;
-                      </p>
-                      {vocab.example_translation && (
-                        <p className="text-neutral-400">
-                          {vocab.example_translation}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <Button
-                  size="sm"
-                  onClick={() => handleSaveVocab(vocab.id)}
-                  disabled={
-                    vocab.is_saved_as_flashcard || saveFlashcard.isPending
-                  }
-                  className={`w-full text-xs font-semibold gap-1.5 h-10 rounded-xl mt-1 ${
-                    vocab.is_saved_as_flashcard
-                      ? "bg-emerald-950/40 text-emerald-400 border border-emerald-500/30"
-                      : "bg-neutral-800 hover:bg-neutral-700 text-neutral-200 hover:text-white"
-                  }`}
-                >
-                  {vocab.is_saved_as_flashcard ? (
-                    <>
-                      <Check className="size-4" />
-                      <span>{t("story.savedInDeck")}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Bookmark className="size-4" />
-                      <span>{t("story.saveFlashcard")}</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-            ))}
-          </div>
-        </TabsContent>
+        <StoryVocabularyTab
+          vocabulary={story.vocabulary}
+          onSaveVocab={handleSaveVocab}
+          isSaving={saveFlashcard.isPending}
+        />
 
         {/* TAB 3: GRAMMAR TIPS */}
-        <TabsContent value="grammar" className="space-y-4 outline-none">
-          <h2 className="sr-only">Grammar Tips</h2>
-          <div className="grid gap-4">
-            {story.grammar_tips.map((tip, idx) => (
-              <div
-                key={tip.id || idx}
-                className="p-5 sm:p-6 rounded-3xl bg-neutral-900/60 border border-neutral-800 space-y-3 shadow-sm"
-              >
-                <div className="flex items-center gap-2 text-sky-400">
-                  <GraduationCap className="size-5" />
-                  <h3 className="text-base sm:text-lg font-bold text-white">
-                    {tip.title}
-                  </h3>
-                </div>
-
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  {tip.explanation}
-                </p>
-
-                {tip.example && (
-                  <div className="p-4 rounded-2xl bg-neutral-950/70 border border-neutral-800/80 space-y-1.5">
-                    <span className="text-xs uppercase font-bold tracking-wider text-sky-400 block">
-                      {t("story.grammarExampleLabel")}
-                    </span>
-                    <p className="text-sm font-semibold text-white italic">
-                      {tip.example}
-                    </p>
-                    {tip.example_translation && (
-                      <p className="text-xs text-neutral-400">
-                        {tip.example_translation}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </TabsContent>
+        <StoryGrammarTab grammarTips={story.grammar_tips} />
 
         {/* TAB 4: COMPREHENSION QUIZ */}
         <TabsContent value="quiz" className="outline-none">
@@ -417,5 +267,200 @@ function StoryReadingComponent() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function StoryHeaderBanner({ story }: { story: StoryDetail }) {
+  const { t, tCategory } = useTranslation();
+  const levelColorClass = LEVEL_COLORS[story.cefr_level] || LEVEL_COLORS.A1;
+
+  return (
+    <header className="p-6 sm:p-8 rounded-3xl bg-neutral-900/60 border border-neutral-800 space-y-4 shadow-lg">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span
+          className={`px-2.5 py-0.5 text-xs font-bold rounded-md border ${levelColorClass}`}
+        >
+          {t("story.levelBadge", { level: story.cefr_level })}
+        </span>
+        {story.language_pair && (
+          <span className="px-2.5 py-0.5 text-xs font-bold rounded-md border border-sky-500/30 bg-sky-500/10 text-sky-300">
+            {story.language_pair.target_language.name} ←{" "}
+            {story.language_pair.origin_language.name}
+          </span>
+        )}
+        {story.category && (
+          <span className="px-2.5 py-0.5 text-xs font-semibold rounded-md border border-neutral-700 bg-neutral-800 text-neutral-300">
+            {tCategory(story.category.slug)}
+          </span>
+        )}
+        <span className="text-xs text-neutral-400 font-medium ml-auto">
+          {t("story.readingStats", {
+            minutes: story.estimated_reading_minutes,
+            words: story.word_count,
+          })}
+        </span>
+      </div>
+
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          {story.title}
+        </h1>
+        {story.title_translated && (
+          <p className="text-sm sm:text-base text-neutral-400 font-medium mt-1">
+            {story.title_translated}
+          </p>
+        )}
+      </div>
+
+      {story.summary && (
+        <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed border-t border-neutral-800/80 pt-3 italic">
+          <span className="font-semibold text-neutral-400 not-italic">
+            {t("story.summaryLabel")}{" "}
+          </span>
+          {story.summary}
+        </p>
+      )}
+
+      {/* Audio Player */}
+      {story.audio_url && (
+        <div className="pt-2">
+          <AudioPlayer audioUrl={story.audio_url} storyTitle={story.title} />
+        </div>
+      )}
+    </header>
+  );
+}
+
+function StoryVocabularyTab({
+  vocabulary,
+  onSaveVocab,
+  isSaving,
+}: {
+  vocabulary: VocabularyItem[];
+  onSaveVocab: (vocabId: number) => void;
+  isSaving: boolean;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <TabsContent value="vocabulary" className="space-y-4 outline-none">
+      <h2 className="sr-only">Story Vocabulary</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {vocabulary.map((vocab) => (
+          <div
+            key={vocab.id}
+            className="p-5 rounded-2xl bg-neutral-900/60 border border-neutral-800 flex flex-col justify-between gap-3 hover:border-neutral-700 transition-colors shadow-sm"
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-white">{vocab.word}</h3>
+                  {vocab.gender && (
+                    <span
+                      className={`px-2 py-0.5 text-xs font-bold rounded-md border ${
+                        GENDER_BADGE_STYLE[vocab.gender.toLowerCase()] ||
+                        "bg-neutral-800 text-neutral-300 border-neutral-700"
+                      }`}
+                    >
+                      {vocab.gender}
+                    </span>
+                  )}
+                </div>
+                {vocab.part_of_speech && (
+                  <span className="text-xs uppercase font-bold text-neutral-400 tracking-wider">
+                    {vocab.part_of_speech}
+                  </span>
+                )}
+              </div>
+
+              <p className="text-sm font-semibold text-sky-400">
+                {vocab.translation}
+              </p>
+
+              {vocab.example_sentence && (
+                <div className="text-xs bg-neutral-950/60 p-3 rounded-xl border border-neutral-800/80 space-y-0.5 mt-2">
+                  <p className="text-neutral-200 italic font-medium">
+                    &ldquo;{vocab.example_sentence}&rdquo;
+                  </p>
+                  {vocab.example_translation && (
+                    <p className="text-neutral-400">
+                      {vocab.example_translation}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <Button
+              size="sm"
+              onClick={() => onSaveVocab(vocab.id)}
+              disabled={vocab.is_saved_as_flashcard || isSaving}
+              className={`w-full text-xs font-semibold gap-1.5 h-10 rounded-xl mt-1 ${
+                vocab.is_saved_as_flashcard
+                  ? "bg-emerald-950/40 text-emerald-400 border border-emerald-500/30"
+                  : "bg-neutral-800 hover:bg-neutral-700 text-neutral-200 hover:text-white"
+              }`}
+            >
+              {vocab.is_saved_as_flashcard ? (
+                <>
+                  <Check className="size-4" />
+                  <span>{t("story.savedInDeck")}</span>
+                </>
+              ) : (
+                <>
+                  <Bookmark className="size-4" />
+                  <span>{t("story.saveFlashcard")}</span>
+                </>
+              )}
+            </Button>
+          </div>
+        ))}
+      </div>
+    </TabsContent>
+  );
+}
+
+function StoryGrammarTab({ grammarTips }: { grammarTips: GrammarTip[] }) {
+  const { t } = useTranslation();
+
+  return (
+    <TabsContent value="grammar" className="space-y-4 outline-none">
+      <h2 className="sr-only">Grammar Tips</h2>
+      <div className="grid gap-4">
+        {grammarTips.map((tip, idx) => (
+          <div
+            key={tip.id || idx}
+            className="p-5 sm:p-6 rounded-3xl bg-neutral-900/60 border border-neutral-800 space-y-3 shadow-sm"
+          >
+            <div className="flex items-center gap-2 text-sky-400">
+              <GraduationCap className="size-5" />
+              <h3 className="text-base sm:text-lg font-bold text-white">
+                {tip.title}
+              </h3>
+            </div>
+
+            <p className="text-sm text-neutral-300 leading-relaxed">
+              {tip.explanation}
+            </p>
+
+            {tip.example && (
+              <div className="p-4 rounded-2xl bg-neutral-950/70 border border-neutral-800/80 space-y-1.5">
+                <span className="text-xs uppercase font-bold tracking-wider text-sky-400 block">
+                  {t("story.grammarExampleLabel")}
+                </span>
+                <p className="text-sm font-semibold text-white italic">
+                  {tip.example}
+                </p>
+                {tip.example_translation && (
+                  <p className="text-xs text-neutral-400">
+                    {tip.example_translation}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </TabsContent>
   );
 }

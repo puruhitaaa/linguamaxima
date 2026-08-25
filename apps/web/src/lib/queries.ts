@@ -32,7 +32,7 @@ export const queryKeys = {
     search?: string;
     target_language_code?: string;
   }) => ["stories", filters] as const,
-  story: (id: number | string) => ["story", id] as const,
+  story: (id: number | string) => ["story", String(id)] as const,
 };
 
 export function useStories(filters?: {
