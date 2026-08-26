@@ -282,11 +282,16 @@ async def test_monologue_story_bundle_fallback():
 @pytest.mark.asyncio
 async def test_list_words_and_filters(client):
     # 1. List German words
-    res = await client.get("/api/v1/words?lang=de")
+    res = await client.get("/api/v1/words?lang=de&page=1&page_size=10")
     assert res.status_code == 200
     data = res.json()
     assert "items" in data
     assert "total" in data
+    assert "has_next" in data
+    assert "has_prev" in data
+    assert data["has_prev"] is False
+    if data["total"] > 10:
+        assert data["has_next"] is True
     assert data["total"] > 0
     assert len(data["items"]) > 0
 

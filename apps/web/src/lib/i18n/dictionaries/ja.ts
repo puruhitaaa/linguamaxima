@@ -89,6 +89,9 @@ export const ja: TranslationDictionary = {
     previousPage: "前へ",
     nextPage: "次へ",
     pageOf: "{page} / {total} ページ",
+    allLoaded: "全 {total} 単語を読み込みました",
+    loadingMore: "さらに単語を読み込み中...",
+    loadMore: "さらに単語を読み込む",
   },
   audio: {
     errorDesc:

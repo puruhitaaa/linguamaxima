@@ -87,6 +87,9 @@ export const zh: TranslationDictionary = {
     previousPage: "上一页",
     nextPage: "下一页",
     pageOf: "第 {page} / {total} 页",
+    allLoaded: "已加载全部 {total} 个词汇",
+    loadingMore: "正在加载更多词汇...",
+    loadMore: "加载更多词汇",
   },
   audio: {
     errorDesc:

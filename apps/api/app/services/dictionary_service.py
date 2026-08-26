@@ -68,6 +68,8 @@ class DictionaryService:
         ]
 
         total_pages = max(1, math.ceil(total / page_size))
+        has_next = page < total_pages
+        has_prev = page > 1
 
         return WordListResponse(
             items=items,
@@ -75,6 +77,8 @@ class DictionaryService:
             page=page,
             page_size=page_size,
             total_pages=total_pages,
+            has_next=has_next,
+            has_prev=has_prev,
         )
 
     async def get_filter_meta(

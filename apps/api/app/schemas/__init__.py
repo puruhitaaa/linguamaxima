@@ -59,6 +59,8 @@ class WordListResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+    has_next: bool = False
+    has_prev: bool = False
 
 class FilterCountItem(BaseModel):
     key: str

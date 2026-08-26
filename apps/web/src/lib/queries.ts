@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { InfiniteData } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import type {
@@ -10,6 +16,7 @@ import type {
   StoryDetail,
   StoryGeneratePayload,
   StoryListItem,
+  WordListResponse,
 } from "../types/api";
 import { api } from "./api";
 
@@ -528,6 +535,32 @@ export function useWords(filters?: {
   });
 }
 
+export function useInfiniteWords(filters?: {
+  lang?: string;
+  level?: string;
+  page_size?: number;
+  pos?: string;
+  search?: string;
+}) {
+  const pageSize = filters?.page_size ?? 24;
+  return useInfiniteQuery({
+    getNextPageParam: (lastPage) =>
+      lastPage.has_next || lastPage.page < lastPage.total_pages
+        ? lastPage.page + 1
+        : undefined,
+    getPreviousPageParam: (firstPage) =>
+      firstPage.has_prev || firstPage.page > 1 ? firstPage.page - 1 : undefined,
+    initialPageParam: 1,
+    queryFn: ({ pageParam = 1 }) =>
+      api.getWords({
+        ...filters,
+        page: pageParam,
+        page_size: pageSize,
+      }),
+    queryKey: queryKeys.words(filters),
+  });
+}
+
 export function useWordFilters(lang = "de") {
   return useQuery({
     queryFn: () => api.getWordFilters(lang),
@@ -550,7 +583,12 @@ export function useSaveWordFlashcard() {
     Error,
     number,
     {
+      previousInfiniteWords?: [
+        readonly unknown[],
+        InfiniteData<WordListResponse> | undefined,
+      ][];
       previousProgress?: ProgressSummary;
+      previousWords?: [readonly unknown[], WordListResponse | undefined][];
     }
   >({
     mutationFn: (wordId: number) => api.saveWordFlashcard(wordId),
@@ -558,15 +596,58 @@ export function useSaveWordFlashcard() {
       if (context?.previousProgress) {
         queryClient.setQueryData(queryKeys.progress, context.previousProgress);
       }
+      if (context?.previousInfiniteWords) {
+        for (const [key, data] of context.previousInfiniteWords) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      if (context?.previousWords) {
+        for (const [key, data] of context.previousWords) {
+          queryClient.setQueryData(key, data);
+        }
+      }
       toast.error(error.message || "Failed to save word to flashcards");
     },
-    onMutate: async () => {
+    onMutate: async (wordId: number) => {
       await queryClient.cancelQueries({ queryKey: ["words"] });
       await queryClient.cancelQueries({ queryKey: queryKeys.progress });
 
       const previousProgress = queryClient.getQueryData<ProgressSummary>(
         queryKeys.progress
       );
+      const previousInfiniteWords = queryClient.getQueriesData<
+        InfiniteData<WordListResponse>
+      >({
+        queryKey: ["words"],
+      });
+      const previousWords = queryClient.getQueriesData<WordListResponse>({
+        queryKey: ["words"],
+      });
+
+      for (const [key, data] of previousInfiniteWords) {
+        if (data?.pages) {
+          queryClient.setQueryData<InfiniteData<WordListResponse>>(key, {
+            ...data,
+            pages: data.pages.map((page) => ({
+              ...page,
+              items: page.items.map((w) =>
+                w.id === wordId ? { ...w, is_saved_as_flashcard: true } : w
+              ),
+            })),
+          });
+        }
+      }
+
+      for (const [key, data] of previousWords) {
+        if (data?.items) {
+          queryClient.setQueryData<WordListResponse>(key, {
+            ...data,
+            items: data.items.map((w) =>
+              w.id === wordId ? { ...w, is_saved_as_flashcard: true } : w
+            ),
+          });
+        }
+      }
 
       if (previousProgress) {
         queryClient.setQueryData<ProgressSummary>(queryKeys.progress, {
@@ -575,7 +656,7 @@ export function useSaveWordFlashcard() {
         });
       }
 
-      return { previousProgress };
+      return { previousInfiniteWords, previousProgress, previousWords };
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["words"] });

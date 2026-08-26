@@ -89,6 +89,9 @@ export const id: TranslationDictionary = {
     previousPage: "Sebelumnya",
     nextPage: "Berikutnya",
     pageOf: "Halaman {page} dari {total}",
+    allLoaded: "Semua {total} kata telah dimuat",
+    loadingMore: "Memuat lebih banyak kata...",
+    loadMore: "Muat lebih banyak kata",
   },
   audio: {
     errorDesc:

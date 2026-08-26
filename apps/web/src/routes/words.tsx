@@ -8,13 +8,14 @@ import {
   Check,
   Globe,
   Layers,
+  Loader2,
   RotateCcw,
   Search,
   Sparkles,
   Volume2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
 import { playPronunciationAudio } from "../lib/audio";
@@ -22,23 +23,21 @@ import type { TranslationKey } from "../lib/i18n";
 import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
 import {
+  useInfiniteWords,
   useLanguages,
   useSaveWordFlashcard,
   useWordFilters,
-  useWords,
 } from "../lib/queries";
 import type {
   CEFRLevel,
   LanguageItem,
   WordFilterMeta,
   WordItem,
-  WordListResponse,
 } from "../types/api";
 
 const wordsSearchSchema = z.object({
   lang: z.string().optional().default(""),
   level: z.string().optional().default("all"),
-  page: z.number().optional().default(1),
   pos: z.string().optional().default("all"),
   search: z.string().optional().default(""),
 });
@@ -467,23 +466,23 @@ function WordsEmptyState({ onReset }: { onReset: () => void }) {
 interface WordsGridProps {
   activeLangCode: string;
   isLoading: boolean;
+  isSaving: boolean;
   onPlayAudio: (word: WordItem) => void;
   onReset: () => void;
   onSaveFlashcard: (id: number) => void;
-  isSaving: boolean;
   playingWordId: number | null;
-  wordsData?: WordListResponse;
+  words: WordItem[];
 }
 
 function WordsGrid({
   activeLangCode,
   isLoading,
+  isSaving,
   onPlayAudio,
   onReset,
   onSaveFlashcard,
-  isSaving,
   playingWordId,
-  wordsData,
+  words,
 }: WordsGridProps) {
   if (isLoading) {
     return (
@@ -508,13 +507,13 @@ function WordsGrid({
     );
   }
 
-  if (!wordsData || wordsData.items.length === 0) {
+  if (words.length === 0) {
     return <WordsEmptyState onReset={onReset} />;
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {wordsData.items.map((word) => (
+      {words.map((word) => (
         <WordCardItem
           key={word.id}
           activeLangCode={activeLangCode}
@@ -529,54 +528,8 @@ function WordsGrid({
   );
 }
 
-interface WordsPaginationProps {
-  onPageChange: (page: number) => void;
-  page: number;
-  totalPages: number;
-}
-
-function WordsPagination({
-  onPageChange,
-  page,
-  totalPages,
-}: WordsPaginationProps) {
-  const { t } = useTranslation();
-  if (totalPages <= 1) {
-    return null;
-  }
-
-  return (
-    <div className="flex items-center justify-center gap-3 pt-6">
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page <= 1}
-        onClick={() => onPageChange(Math.max(1, page - 1))}
-        className="border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white hover:bg-neutral-800 rounded-xl text-xs h-9 px-4 disabled:opacity-40 cursor-pointer"
-      >
-        {t("dictionary.previousPage")}
-      </Button>
-      <span className="text-xs font-semibold text-neutral-400">
-        {t("dictionary.pageOf", {
-          page,
-          total: totalPages,
-        })}
-      </span>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page >= totalPages}
-        onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-        className="border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white hover:bg-neutral-800 rounded-xl text-xs h-9 px-4 disabled:opacity-40 cursor-pointer"
-      >
-        {t("dictionary.nextPage")}
-      </Button>
-    </div>
-  );
-}
-
 function WordsExplorerComponent() {
-  const { lang, level, page, pos, search } = Route.useSearch();
+  const { lang, level, pos, search } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { t } = useTranslation();
   const { targetLanguage } = useLanguagePair();
@@ -592,7 +545,6 @@ function WordsExplorerComponent() {
         navigate({
           search: (prev) => ({
             ...prev,
-            page: 1,
             search: searchInput,
           }),
         });
@@ -601,17 +553,57 @@ function WordsExplorerComponent() {
     return () => clearTimeout(timer);
   }, [searchInput, search, navigate]);
 
-  const { data: wordsData, isLoading } = useWords({
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteWords({
     lang: activeLangCode,
     level: level === "all" ? undefined : level,
-    page,
     page_size: 24,
     pos: pos === "all" ? undefined : pos,
     search: search || undefined,
   });
 
+  const allWords = useMemo(
+    () => infiniteData?.pages.flatMap((p) => p.items) ?? [],
+    [infiniteData]
+  );
+  const totalWordsCount = infiniteData?.pages[0]?.total ?? 0;
+
   const { data: filterMeta } = useWordFilters(activeLangCode);
   const saveWordFlashcard = useSaveWordFlashcard();
+
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [first] = entries;
+        if (first?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "300px",
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.unobserve(sentinel);
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleLanguageChange = useCallback(
     (newLangCode: string) => {
@@ -620,7 +612,6 @@ function WordsExplorerComponent() {
           ...prev,
           lang: newLangCode,
           level: "all",
-          page: 1,
           pos: "all",
         }),
       });
@@ -631,7 +622,7 @@ function WordsExplorerComponent() {
   const handleLevelChange = useCallback(
     (newLevel: string) => {
       navigate({
-        search: (prev) => ({ ...prev, level: newLevel, page: 1 }),
+        search: (prev) => ({ ...prev, level: newLevel }),
       });
     },
     [navigate]
@@ -640,7 +631,7 @@ function WordsExplorerComponent() {
   const handlePosChange = useCallback(
     (newPos: string) => {
       navigate({
-        search: (prev) => ({ ...prev, page: 1, pos: newPos }),
+        search: (prev) => ({ ...prev, pos: newPos }),
       });
     },
     [navigate]
@@ -652,7 +643,6 @@ function WordsExplorerComponent() {
       search: () => ({
         lang: activeLangCode,
         level: "all",
-        page: 1,
         pos: "all",
         search: "",
       }),
@@ -712,17 +702,18 @@ function WordsExplorerComponent() {
       <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-400 font-medium px-1">
         <span>
           {t("dictionary.showingCount", {
-            count: wordsData?.items.length || 0,
+            count: allWords.length,
             language: currentLanguageName,
-            total: wordsData?.total || 0,
+            total: totalWordsCount,
           })}
         </span>
-        {wordsData && wordsData.total_pages > 1 && (
-          <span>
-            {t("dictionary.pageOf", {
-              page: wordsData.page,
-              total: wordsData.total_pages,
-            })}
+        {totalWordsCount > 0 && (
+          <span className="text-xs text-neutral-500 font-medium">
+            {Math.min(
+              100,
+              Math.round((allWords.length / totalWordsCount) * 100)
+            )}
+            % loaded
           </span>
         )}
       </div>
@@ -735,18 +726,44 @@ function WordsExplorerComponent() {
         onSaveFlashcard={(id) => saveWordFlashcard.mutate(id)}
         isSaving={saveWordFlashcard.isPending}
         playingWordId={playingWordId}
-        wordsData={wordsData}
+        words={allWords}
       />
 
-      <WordsPagination
-        onPageChange={(p) =>
-          navigate({
-            search: (prev) => ({ ...prev, page: p }),
-          })
-        }
-        page={page}
-        totalPages={wordsData?.total_pages || 1}
-      />
+      {/* Infinite scroll sentinel and status */}
+      <div
+        ref={loadMoreRef}
+        className="py-8 flex flex-col items-center justify-center gap-3 min-h-16"
+      >
+        {isFetchingNextPage && (
+          <div className="flex items-center gap-2.5 text-xs font-semibold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-4 py-2.5 rounded-full animate-pulse shadow-sm">
+            <Loader2 className="size-4 animate-spin text-sky-400" />
+            <span>{t("dictionary.loadingMore")}</span>
+          </div>
+        )}
+
+        {!isFetchingNextPage && hasNextPage && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => fetchNextPage()}
+            className="border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white hover:bg-neutral-800 rounded-xl text-xs h-9 px-4 cursor-pointer"
+          >
+            {t("dictionary.loadMore")}
+          </Button>
+        )}
+
+        {!hasNextPage && allWords.length > 0 && !isLoading && (
+          <div className="flex items-center gap-2 text-xs text-neutral-500 font-medium py-2 px-3.5 rounded-full bg-neutral-900/50 border border-neutral-800/60">
+            <Check className="size-3.5 text-emerald-500" />
+            <span>
+              {t("dictionary.allLoaded", {
+                total: totalWordsCount.toLocaleString(),
+              })}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -89,6 +89,9 @@ export const en: TranslationDictionary = {
     previousPage: "Previous",
     nextPage: "Next",
     pageOf: "Page {page} of {total}",
+    allLoaded: "All {total} words loaded",
+    loadingMore: "Loading more words...",
+    loadMore: "Load more words",
   },
   audio: {
     errorDesc:

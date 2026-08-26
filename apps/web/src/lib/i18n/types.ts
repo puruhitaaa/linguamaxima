@@ -84,6 +84,9 @@ export interface TranslationDictionary {
     previousPage: string;
     nextPage: string;
     pageOf: string;
+    allLoaded: string;
+    loadingMore: string;
+    loadMore: string;
   };
   audio: {
     errorDesc: string;
