@@ -11,10 +11,12 @@ from app.models import (
     GrammarTip,
     Language,
     LanguagePair,
+    ProficiencyFramework,
     Quiz,
     Story,
     UserProgress,
     Vocabulary,
+    Word,
 )
 from app.schemas import (
     GeneratedGrammarTip,
@@ -350,7 +352,8 @@ class FlashcardRepository:
             select(Flashcard)
             .where(Flashcard.next_review <= now)
             .options(
-                joinedload(Flashcard.vocabulary).joinedload(Vocabulary.story)
+                joinedload(Flashcard.vocabulary).joinedload(Vocabulary.story),
+                joinedload(Flashcard.word).joinedload(Word.language),
             )
             .order_by(Flashcard.next_review)
         )
@@ -360,14 +363,22 @@ class FlashcardRepository:
     async def get_all_flashcards(
         self, session: AsyncSession, search: Optional[str] = None
     ) -> List[Flashcard]:
-        stmt = select(Flashcard)
+        stmt = (
+            select(Flashcard)
+            .outerjoin(Vocabulary, Flashcard.vocabulary_id == Vocabulary.id)
+            .outerjoin(Word, Flashcard.word_id == Word.id)
+        )
         if search:
-            stmt = stmt.join(Vocabulary, Flashcard.vocabulary_id == Vocabulary.id).where(
-                (Vocabulary.word.ilike(f"%{search}%")) | (Vocabulary.translation.ilike(f"%{search}%"))
+            stmt = stmt.where(
+                (Vocabulary.word.ilike(f"%{search}%"))
+                | (Vocabulary.translation.ilike(f"%{search}%"))
+                | (Word.lemma.ilike(f"%{search}%"))
+                | (Word.translation.ilike(f"%{search}%"))
             )
         stmt = (
             stmt.options(
-                joinedload(Flashcard.vocabulary).joinedload(Vocabulary.story)
+                joinedload(Flashcard.vocabulary).joinedload(Vocabulary.story),
+                joinedload(Flashcard.word).joinedload(Word.language),
             )
             .order_by(desc(Flashcard.created_at))
         )
@@ -385,6 +396,29 @@ class FlashcardRepository:
 
         flashcard = Flashcard(
             vocabulary_id=vocabulary_id,
+            word_id=None,
+            ease_factor=2.5,
+            interval_days=0,
+            repetitions=0,
+            next_review=datetime.now(timezone.utc),
+        )
+        session.add(flashcard)
+        await session.commit()
+        await session.refresh(flashcard)
+        return flashcard
+
+    async def save_word_to_flashcard(
+        self, session: AsyncSession, word_id: int
+    ) -> Flashcard:
+        stmt = select(Flashcard).where(Flashcard.word_id == word_id)
+        res = await session.execute(stmt)
+        existing = res.scalar_one_or_none()
+        if existing:
+            return existing
+
+        flashcard = Flashcard(
+            vocabulary_id=None,
+            word_id=word_id,
             ease_factor=2.5,
             interval_days=0,
             repetitions=0,
@@ -400,7 +434,8 @@ class FlashcardRepository:
             select(Flashcard)
             .where(Flashcard.id == flashcard_id)
             .options(
-                joinedload(Flashcard.vocabulary)
+                joinedload(Flashcard.vocabulary),
+                joinedload(Flashcard.word),
             )
         )
         res = await session.execute(stmt)
@@ -426,6 +461,113 @@ class FlashcardRepository:
         await session.commit()
         await session.refresh(flashcard)
         return flashcard
+
+# ----------------- Word Repo -----------------
+class WordRepository:
+    async def list_words(
+        self,
+        session: AsyncSession,
+        language_code: Optional[str] = None,
+        normalized_level: Optional[CEFRLevel] = None,
+        part_of_speech: Optional[str] = None,
+        search: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> Tuple[List[Word], int]:
+        stmt = select(Word).join(Language, Word.language_id == Language.id)
+        count_stmt = select(func.count(Word.id)).join(Language, Word.language_id == Language.id)
+
+        conditions = []
+        if language_code:
+            conditions.append(Language.code == language_code)
+        if normalized_level:
+            conditions.append(Word.normalized_level == normalized_level)
+        if part_of_speech and part_of_speech.lower() != "all":
+            conditions.append(Word.part_of_speech.ilike(part_of_speech))
+        if search and search.strip():
+            term = f"%{search.strip()}%"
+            conditions.append((Word.lemma.ilike(term)) | (Word.translation.ilike(term)))
+
+        if conditions:
+            stmt = stmt.where(and_(*conditions))
+            count_stmt = count_stmt.where(and_(*conditions))
+
+        stmt = stmt.options(joinedload(Word.language)).order_by(
+            Word.normalized_level, Word.frequency_rank.nulls_last(), Word.lemma
+        ).limit(limit).offset(offset)
+
+        total_res = await session.execute(count_stmt)
+        total = total_res.scalar() or 0
+
+        res = await session.execute(stmt)
+        words = list(res.scalars().all())
+
+        return words, total
+
+    async def get_by_id(self, session: AsyncSession, word_id: int) -> Optional[Word]:
+        stmt = select(Word).where(Word.id == word_id).options(joinedload(Word.language))
+        res = await session.execute(stmt)
+        return res.scalar_one_or_none()
+
+    async def get_filter_meta(self, session: AsyncSession, language_code: str):
+        lang = (
+            await session.execute(select(Language).where(Language.code == language_code))
+        ).scalar_one_or_none()
+        if not lang:
+            return None
+
+        # Level counts
+        level_stmt = (
+            select(Word.normalized_level, Word.native_level, func.count(Word.id))
+            .where(Word.language_id == lang.id)
+            .group_by(Word.normalized_level, Word.native_level)
+            .order_by(Word.normalized_level)
+        )
+        level_rows = (await session.execute(level_stmt)).all()
+
+        # Group levels by normalized level
+        levels_map = {}
+        for norm_lvl, nat_lvl, cnt in level_rows:
+            key = norm_lvl.value if hasattr(norm_lvl, "value") else str(norm_lvl)
+            label = nat_lvl if nat_lvl else key
+            if key not in levels_map:
+                levels_map[key] = {"key": key, "label": label, "count": cnt}
+            else:
+                levels_map[key]["count"] += cnt
+
+        # POS counts
+        pos_stmt = (
+            select(Word.part_of_speech, func.count(Word.id))
+            .where(Word.language_id == lang.id)
+            .group_by(Word.part_of_speech)
+            .order_by(func.count(Word.id).desc())
+        )
+        pos_rows = (await session.execute(pos_stmt)).all()
+        pos_list = [
+            {"key": str(p[0]).lower(), "label": str(p[0]).capitalize(), "count": p[1]}
+            for p in pos_rows
+        ]
+
+        total_words_stmt = select(func.count(Word.id)).where(Word.language_id == lang.id)
+        total_words = (await session.execute(total_words_stmt)).scalar() or 0
+
+        # Fill any missing levels with 0 count
+        all_levels = ["A1", "A2", "B1", "B2", "C1", "C2"]
+        final_levels = []
+        for l in all_levels:
+            if l in levels_map:
+                final_levels.append(levels_map[l])
+            else:
+                final_levels.append({"key": l, "label": l, "count": 0})
+
+        return {
+            "language_code": lang.code,
+            "language_name": lang.name,
+            "proficiency_framework": lang.proficiency_framework,
+            "total_words": total_words,
+            "levels": final_levels,
+            "parts_of_speech": pos_list,
+        }
 
 # ----------------- Progress Repo -----------------
 class ProgressRepository:
@@ -459,4 +601,5 @@ language_repo = LanguageRepository()
 category_repo = CategoryRepository()
 story_repo = StoryRepository()
 flashcard_repo = FlashcardRepository()
+word_repo = WordRepository()
 progress_repo = ProgressRepository()

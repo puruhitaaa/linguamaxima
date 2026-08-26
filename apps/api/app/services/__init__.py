@@ -23,8 +23,10 @@ from app.schemas import (
     StoryGenerateRequest,
     StoryListItemResponse,
     VocabularyResponse,
+    WordResponse,
 )
 from app.services.ai_service import ai_service
+from app.services.dictionary_service import dictionary_service
 from app.services.image_service import image_service
 from app.services.srs_service import calculate_sm2
 from app.services.tts_service import tts_service
@@ -282,93 +284,80 @@ class QuizService:
         )
 
 class FlashcardService:
+    def _format_flashcard(self, fc) -> FlashcardResponse:
+        vocab_resp = None
+        if fc.vocabulary:
+            vocab_resp = VocabularyResponse(
+                id=fc.vocabulary.id,
+                story_id=fc.vocabulary.story_id,
+                word=fc.vocabulary.word,
+                translation=fc.vocabulary.translation,
+                part_of_speech=fc.vocabulary.part_of_speech,
+                gender=fc.vocabulary.gender,
+                example_sentence=fc.vocabulary.example_sentence,
+                example_translation=fc.vocabulary.example_translation,
+                pronunciation_url=fc.vocabulary.pronunciation_url,
+                difficulty_rank=fc.vocabulary.difficulty_rank,
+                is_saved_as_flashcard=True,
+            )
+
+        word_resp = None
+        if fc.word:
+            word_resp = WordResponse(
+                id=fc.word.id,
+                language_id=fc.word.language_id,
+                lemma=fc.word.lemma,
+                normalized_level=fc.word.normalized_level,
+                native_level=fc.word.native_level,
+                part_of_speech=fc.word.part_of_speech,
+                gender=fc.word.gender,
+                phonetic=fc.word.phonetic,
+                translation=fc.word.translation,
+                definition=fc.word.definition,
+                example_sentence=fc.word.example_sentence,
+                example_translation=fc.word.example_translation,
+                audio_url=fc.word.audio_url,
+                frequency_rank=fc.word.frequency_rank,
+                is_saved_as_flashcard=True,
+                created_at=fc.word.created_at,
+            )
+
+        return FlashcardResponse(
+            id=fc.id,
+            vocabulary_id=fc.vocabulary_id,
+            vocabulary=vocab_resp,
+            word_id=fc.word_id,
+            word=word_resp,
+            ease_factor=fc.ease_factor,
+            interval_days=fc.interval_days,
+            repetitions=fc.repetitions,
+            next_review=fc.next_review,
+            last_reviewed=fc.last_reviewed,
+            created_at=fc.created_at,
+        )
+
     async def get_due_flashcards(self, session: AsyncSession) -> List[FlashcardResponse]:
         flashcards = await flashcard_repo.get_due_flashcards(session)
-        return [
-            FlashcardResponse(
-                id=fc.id,
-                vocabulary_id=fc.vocabulary_id,
-                vocabulary=VocabularyResponse(
-                    id=fc.vocabulary.id,
-                    story_id=fc.vocabulary.story_id,
-                    word=fc.vocabulary.word,
-                    translation=fc.vocabulary.translation,
-                    part_of_speech=fc.vocabulary.part_of_speech,
-                    gender=fc.vocabulary.gender,
-                    example_sentence=fc.vocabulary.example_sentence,
-                    example_translation=fc.vocabulary.example_translation,
-                    pronunciation_url=fc.vocabulary.pronunciation_url,
-                    difficulty_rank=fc.vocabulary.difficulty_rank,
-                    is_saved_as_flashcard=True,
-                ),
-                ease_factor=fc.ease_factor,
-                interval_days=fc.interval_days,
-                repetitions=fc.repetitions,
-                next_review=fc.next_review,
-                last_reviewed=fc.last_reviewed,
-                created_at=fc.created_at,
-            )
-            for fc in flashcards
-        ]
+        return [self._format_flashcard(fc) for fc in flashcards]
 
     async def get_all_flashcards(
         self, session: AsyncSession, search: Optional[str] = None
     ) -> List[FlashcardResponse]:
         flashcards = await flashcard_repo.get_all_flashcards(session, search=search)
-        return [
-            FlashcardResponse(
-                id=fc.id,
-                vocabulary_id=fc.vocabulary_id,
-                vocabulary=VocabularyResponse(
-                    id=fc.vocabulary.id,
-                    story_id=fc.vocabulary.story_id,
-                    word=fc.vocabulary.word,
-                    translation=fc.vocabulary.translation,
-                    part_of_speech=fc.vocabulary.part_of_speech,
-                    gender=fc.vocabulary.gender,
-                    example_sentence=fc.vocabulary.example_sentence,
-                    example_translation=fc.vocabulary.example_translation,
-                    pronunciation_url=fc.vocabulary.pronunciation_url,
-                    difficulty_rank=fc.vocabulary.difficulty_rank,
-                    is_saved_as_flashcard=True,
-                ),
-                ease_factor=fc.ease_factor,
-                interval_days=fc.interval_days,
-                repetitions=fc.repetitions,
-                next_review=fc.next_review,
-                last_reviewed=fc.last_reviewed,
-                created_at=fc.created_at,
-            )
-            for fc in flashcards
-        ]
+        return [self._format_flashcard(fc) for fc in flashcards]
 
-    async def save_flashcard(self, session: AsyncSession, vocabulary_id: int) -> FlashcardResponse:
-        fc = await flashcard_repo.save_vocabulary_to_flashcard(session, vocabulary_id)
-        # Reload with vocabulary
+    async def save_flashcard(
+        self, session: AsyncSession, vocabulary_id: Optional[int] = None, word_id: Optional[int] = None
+    ) -> FlashcardResponse:
+        if word_id:
+            fc = await flashcard_repo.save_word_to_flashcard(session, word_id)
+        elif vocabulary_id:
+            fc = await flashcard_repo.save_vocabulary_to_flashcard(session, vocabulary_id)
+        else:
+            raise HTTPException(status_code=400, detail="Either vocabulary_id or word_id must be provided")
+
         loaded = await flashcard_repo.get_by_id(session, fc.id)
-        return FlashcardResponse(
-            id=loaded.id,
-            vocabulary_id=loaded.vocabulary_id,
-            vocabulary=VocabularyResponse(
-                id=loaded.vocabulary.id,
-                story_id=loaded.vocabulary.story_id,
-                word=loaded.vocabulary.word,
-                translation=loaded.vocabulary.translation,
-                part_of_speech=loaded.vocabulary.part_of_speech,
-                gender=loaded.vocabulary.gender,
-                example_sentence=loaded.vocabulary.example_sentence,
-                example_translation=loaded.vocabulary.example_translation,
-                pronunciation_url=loaded.vocabulary.pronunciation_url,
-                difficulty_rank=loaded.vocabulary.difficulty_rank,
-                is_saved_as_flashcard=True,
-            ),
-            ease_factor=loaded.ease_factor,
-            interval_days=loaded.interval_days,
-            repetitions=loaded.repetitions,
-            next_review=loaded.next_review,
-            last_reviewed=loaded.last_reviewed,
-            created_at=loaded.created_at,
-        )
+        return self._format_flashcard(loaded)
 
     async def review_flashcard(
         self, session: AsyncSession, flashcard_id: int, quality: int

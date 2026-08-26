@@ -27,6 +27,14 @@ class CEFRLevel(str, enum.Enum):
     C1 = "C1"
     C2 = "C2"
 
+class ProficiencyFramework(str, enum.Enum):
+    CEFR = "cefr"
+    JLPT = "jlpt"
+    HSK = "hsk"
+    BIPA = "bipa"
+    TORFL = "torfl"
+    FREQUENCY = "frequency"
+
 class Language(Base):
     __tablename__ = "languages"
 
@@ -34,6 +42,11 @@ class Language(Base):
     code = Column(String(10), unique=True, nullable=False, index=True)
     name = Column(String(100), nullable=False)
     native_name = Column(String(100), nullable=True)
+    proficiency_framework = Column(
+        Enum(ProficiencyFramework, values_callable=lambda x: [e.value for e in x], native_enum=False),
+        default=ProficiencyFramework.CEFR,
+        nullable=False,
+    )
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
 class LanguagePair(Base):
@@ -106,6 +119,28 @@ class Vocabulary(Base):
     story = relationship("Story", back_populates="vocabulary")
     flashcards = relationship("Flashcard", back_populates="vocabulary", cascade="all, delete-orphan")
 
+class Word(Base):
+    __tablename__ = "words"
+
+    id = Column(Integer, primary_key=True, index=True)
+    language_id = Column(Integer, ForeignKey("languages.id", ondelete="CASCADE"), nullable=False, index=True)
+    lemma = Column(String(200), nullable=False, index=True)
+    normalized_level = Column(Enum(CEFRLevel, native_enum=False), nullable=False, index=True)
+    native_level = Column(String(50), nullable=True)  # e.g., "JLPT N5", "HSK 1", "BIPA 1", "A1"
+    part_of_speech = Column(String(50), nullable=False, index=True)  # noun, verb, adjective, adverb, conjunction, preposition, pronoun, interjection, phrase
+    gender = Column(String(20), nullable=True)  # der, die, das, el, la, le, etc.
+    phonetic = Column(String(100), nullable=True)  # IPA / Pinyin / Romaji / Furigana
+    translation = Column(Text, nullable=False)
+    definition = Column(Text, nullable=True)
+    example_sentence = Column(Text, nullable=True)
+    example_translation = Column(Text, nullable=True)
+    audio_url = Column(String(500), nullable=True)
+    frequency_rank = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+
+    language = relationship("Language", lazy="joined")
+    flashcards = relationship("Flashcard", back_populates="word", cascade="all, delete-orphan")
+
 class GrammarTip(Base):
     __tablename__ = "grammar_tips"
 
@@ -152,7 +187,8 @@ class Flashcard(Base):
     __tablename__ = "flashcards"
 
     id = Column(Integer, primary_key=True, index=True)
-    vocabulary_id = Column(Integer, ForeignKey("vocabulary.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    vocabulary_id = Column(Integer, ForeignKey("vocabulary.id", ondelete="CASCADE"), nullable=True, unique=True, index=True)
+    word_id = Column(Integer, ForeignKey("words.id", ondelete="CASCADE"), nullable=True, unique=True, index=True)
     ease_factor = Column(Float, default=2.5)
     interval_days = Column(Integer, default=0)
     repetitions = Column(Integer, default=0)
@@ -161,3 +197,4 @@ class Flashcard(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     vocabulary = relationship("Vocabulary", back_populates="flashcards", lazy="joined")
+    word = relationship("Word", back_populates="flashcards", lazy="joined")

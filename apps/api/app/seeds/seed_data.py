@@ -325,19 +325,19 @@ SAMPLE_STORIES = [
 ]
 
 SUPPORTED_LANGUAGES = [
-    {"code": "de", "name": "German", "native_name": "Deutsch"},
-    {"code": "id", "name": "Indonesian", "native_name": "Bahasa Indonesia"},
-    {"code": "en", "name": "English", "native_name": "English"},
-    {"code": "es", "name": "Spanish", "native_name": "Español"},
-    {"code": "fr", "name": "French", "native_name": "Français"},
-    {"code": "it", "name": "Italian", "native_name": "Italiano"},
-    {"code": "ja", "name": "Japanese", "native_name": "日本語"},
-    {"code": "zh", "name": "Chinese", "native_name": "中文"},
-    {"code": "ko", "name": "Korean", "native_name": "한국어"},
-    {"code": "pt", "name": "Portuguese", "native_name": "Português"},
-    {"code": "nl", "name": "Dutch", "native_name": "Nederlands"},
-    {"code": "ru", "name": "Russian", "native_name": "Русский"},
-    {"code": "ar", "name": "Arabic", "native_name": "العربية"},
+    {"code": "de", "name": "German", "native_name": "Deutsch", "framework": "cefr"},
+    {"code": "id", "name": "Indonesian", "native_name": "Bahasa Indonesia", "framework": "bipa"},
+    {"code": "en", "name": "English", "native_name": "English", "framework": "cefr"},
+    {"code": "es", "name": "Spanish", "native_name": "Español", "framework": "cefr"},
+    {"code": "fr", "name": "French", "native_name": "Français", "framework": "cefr"},
+    {"code": "it", "name": "Italian", "native_name": "Italiano", "framework": "cefr"},
+    {"code": "ja", "name": "Japanese", "native_name": "日本語", "framework": "jlpt"},
+    {"code": "zh", "name": "Chinese", "native_name": "中文", "framework": "hsk"},
+    {"code": "ko", "name": "Korean", "native_name": "한국어", "framework": "frequency"},
+    {"code": "pt", "name": "Portuguese", "native_name": "Português", "framework": "cefr"},
+    {"code": "nl", "name": "Dutch", "native_name": "Nederlands", "framework": "cefr"},
+    {"code": "ru", "name": "Russian", "native_name": "Русский", "framework": "torfl"},
+    {"code": "ar", "name": "Arabic", "native_name": "العربية", "framework": "frequency"},
 ]
 
 POPULAR_PAIRS = [
@@ -370,9 +370,12 @@ async def seed_database(session: AsyncSession) -> None:
                 code=lang_data["code"],
                 name=lang_data["name"],
                 native_name=lang_data["native_name"],
+                proficiency_framework=lang_data.get("framework", "cefr"),
             )
             session.add(lang)
             await session.flush()
+        else:
+            lang.proficiency_framework = lang_data.get("framework", "cefr")
         lang_map[lang_data["code"]] = lang
 
     await session.flush()
@@ -490,9 +493,12 @@ async def seed_database(session: AsyncSession) -> None:
                 is_favorite=False,
                 quiz_attempts=0,
             )
-            session.add(progress)
-
     await session.commit()
+    
+    # 5. Seed dictionary words
+    from app.seeds.dictionary_seed import seed_dictionary
+    await seed_dictionary(session)
+
     logger.info("Database seeding completed successfully.")
 
 if __name__ == "__main__":

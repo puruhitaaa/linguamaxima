@@ -10,6 +10,9 @@ import type {
   StoryDetail,
   StoryGeneratePayload,
   StoryListItem,
+  WordFilterMeta,
+  WordItem,
+  WordListResponse,
 } from "../types/api";
 
 const API_BASE_URL =
@@ -127,6 +130,39 @@ export const api = {
     request<FlashcardReviewResult>(`/api/v1/flashcards/${flashcardId}/review`, {
       body: JSON.stringify({ quality }),
       method: "PATCH",
+    }),
+
+  // Words / Dictionary
+  getWords: (params?: {
+    lang?: string;
+    level?: string;
+    page?: number;
+    page_size?: number;
+    pos?: string;
+    search?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== "all" && value !== "") {
+          query.set(key, String(value));
+        }
+      }
+    }
+    const qs = query.toString();
+    return request<WordListResponse>(`/api/v1/words${qs ? `?${qs}` : ""}`);
+  },
+
+  getWordFilters: (lang = "de") =>
+    request<WordFilterMeta>(
+      `/api/v1/words/filters?lang=${encodeURIComponent(lang)}`
+    ),
+
+  getWord: (id: number | string) => request<WordItem>(`/api/v1/words/${id}`),
+
+  saveWordFlashcard: (wordId: number) =>
+    request<Flashcard>(`/api/v1/words/${wordId}/flashcard`, {
+      method: "POST",
     }),
 
   // Quizzes

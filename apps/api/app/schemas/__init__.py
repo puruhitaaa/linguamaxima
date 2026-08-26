@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 from pydantic import BaseModel, ConfigDict, Field
-from app.models import CEFRLevel
+from app.models import CEFRLevel, ProficiencyFramework
 
 # ----------------- Base / Common -----------------
 class ORMModel(BaseModel):
@@ -13,6 +13,7 @@ class LanguageResponse(ORMModel):
     code: str
     name: str
     native_name: Optional[str] = None
+    proficiency_framework: ProficiencyFramework = ProficiencyFramework.CEFR
 
 class LanguagePairResponse(ORMModel):
     id: int
@@ -30,6 +31,50 @@ class CategoryResponse(ORMModel):
     name: str
     slug: str
     icon: Optional[str] = None
+
+# ----------------- Words / Dictionary -----------------
+class WordBase(BaseModel):
+    lemma: str
+    normalized_level: CEFRLevel
+    native_level: Optional[str] = None
+    part_of_speech: str
+    gender: Optional[str] = None
+    phonetic: Optional[str] = None
+    translation: str
+    definition: Optional[str] = None
+    example_sentence: Optional[str] = None
+    example_translation: Optional[str] = None
+    audio_url: Optional[str] = None
+    frequency_rank: Optional[int] = None
+
+class WordResponse(WordBase, ORMModel):
+    id: int
+    language_id: int
+    is_saved_as_flashcard: Optional[bool] = False
+    created_at: datetime
+
+class WordListResponse(BaseModel):
+    items: List[WordResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+class FilterCountItem(BaseModel):
+    key: str
+    label: str
+    count: int
+
+class WordFilterMetaResponse(BaseModel):
+    language_code: str
+    language_name: str
+    proficiency_framework: ProficiencyFramework
+    total_words: int
+    levels: List[FilterCountItem]
+    parts_of_speech: List[FilterCountItem]
+
+class WordSaveFlashcardRequest(BaseModel):
+    word_id: int
 
 # ----------------- Vocabulary -----------------
 class VocabularyBase(BaseModel):
@@ -128,8 +173,10 @@ class FavoriteToggleResponse(BaseModel):
 # ----------------- Flashcards -----------------
 class FlashcardResponse(ORMModel):
     id: int
-    vocabulary_id: int
-    vocabulary: VocabularyResponse
+    vocabulary_id: Optional[int] = None
+    vocabulary: Optional[VocabularyResponse] = None
+    word_id: Optional[int] = None
+    word: Optional[WordResponse] = None
     ease_factor: float
     interval_days: int
     repetitions: int
@@ -138,7 +185,8 @@ class FlashcardResponse(ORMModel):
     created_at: datetime
 
 class FlashcardCreateRequest(BaseModel):
-    vocabulary_id: int
+    vocabulary_id: Optional[int] = None
+    word_id: Optional[int] = None
 
 class FlashcardReviewRequest(BaseModel):
     # Quality rating: 0 (Again/Blackout), 3 (Hard), 4 (Good), 5 (Easy)

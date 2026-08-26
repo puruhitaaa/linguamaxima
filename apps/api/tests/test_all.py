@@ -278,3 +278,77 @@ async def test_monologue_story_bundle_fallback():
     assert bundle.speaker_name is not None
     assert bundle.speaker_gender in ("male", "female")
     assert bundle.content is not None
+
+@pytest.mark.asyncio
+async def test_list_words_and_filters(client):
+    # 1. List German words
+    res = await client.get("/api/v1/words?lang=de")
+    assert res.status_code == 200
+    data = res.json()
+    assert "items" in data
+    assert "total" in data
+    assert data["total"] > 0
+    assert len(data["items"]) > 0
+
+    # Check word schema
+    first_word = data["items"][0]
+    assert "lemma" in first_word
+    assert "normalized_level" in first_word
+    assert "part_of_speech" in first_word
+    assert "translation" in first_word
+
+    # 2. Filter by POS (conjunction)
+    res_pos = await client.get("/api/v1/words?lang=de&pos=conjunction")
+    assert res_pos.status_code == 200
+    pos_data = res_pos.json()
+    assert all(w["part_of_speech"].lower() == "conjunction" for w in pos_data["items"])
+    assert any(w["lemma"] in ["weil", "obwohl", "während"] for w in pos_data["items"])
+
+    # 3. Filter by Level (B1)
+    res_lvl = await client.get("/api/v1/words?lang=de&level=B1")
+    assert res_lvl.status_code == 200
+    lvl_data = res_lvl.json()
+    assert all(w["normalized_level"] == "B1" for w in lvl_data["items"])
+
+    # 4. Search word
+    res_search = await client.get("/api/v1/words?lang=de&search=obwohl")
+    assert res_search.status_code == 200
+    search_data = res_search.json()
+    assert len(search_data["items"]) >= 1
+    assert search_data["items"][0]["lemma"] == "obwohl"
+
+@pytest.mark.asyncio
+async def test_word_filter_metadata(client):
+    # Test German filter metadata
+    res_de = await client.get("/api/v1/words/filters?lang=de")
+    assert res_de.status_code == 200
+    meta_de = res_de.json()
+    assert meta_de["language_code"] == "de"
+    assert meta_de["proficiency_framework"] == "cefr"
+    assert len(meta_de["levels"]) == 6
+    assert any(p["key"] == "conjunction" for p in meta_de["parts_of_speech"])
+
+    # Test Japanese filter metadata (JLPT framework)
+    res_ja = await client.get("/api/v1/words/filters?lang=ja")
+    assert res_ja.status_code == 200
+    meta_ja = res_ja.json()
+    assert meta_ja["language_code"] == "ja"
+    assert meta_ja["proficiency_framework"] == "jlpt"
+
+@pytest.mark.asyncio
+async def test_save_word_flashcard(client):
+    # Get a word
+    words_res = await client.get("/api/v1/words?lang=de&pos=conjunction")
+    word = words_res.json()["items"][0]
+    word_id = word["id"]
+
+    # Save to flashcard via POST /api/v1/words/{id}/flashcard
+    save_res = await client.post(f"/api/v1/words/{word_id}/flashcard")
+    assert save_res.status_code == 200
+    fc_data = save_res.json()
+    assert fc_data["word_id"] == word_id
+
+    # Verify word is returned with is_saved_as_flashcard = True
+    words_after = (await client.get("/api/v1/words?lang=de&pos=conjunction")).json()
+    saved_word = next(w for w in words_after["items"] if w["id"] == word_id)
+    assert saved_word["is_saved_as_flashcard"] is True

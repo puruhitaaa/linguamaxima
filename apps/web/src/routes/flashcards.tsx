@@ -81,6 +81,43 @@ function getGenderBadge(gender?: string | null) {
   };
 }
 
+function getFlashcardVocab(fc: Flashcard) {
+  if (fc.vocabulary) {
+    return {
+      example_sentence: fc.vocabulary.example_sentence,
+      example_translation: fc.vocabulary.example_translation,
+      gender: fc.vocabulary.gender,
+      part_of_speech: fc.vocabulary.part_of_speech,
+      pronunciation_url: fc.vocabulary.pronunciation_url,
+      story_id: fc.vocabulary.story_id,
+      translation: fc.vocabulary.translation,
+      word: fc.vocabulary.word,
+    };
+  }
+  if (fc.word) {
+    return {
+      example_sentence: fc.word.example_sentence || undefined,
+      example_translation: fc.word.example_translation || undefined,
+      gender: fc.word.gender as "der" | "die" | "das" | null,
+      part_of_speech: fc.word.part_of_speech,
+      pronunciation_url: fc.word.audio_url || undefined,
+      story_id: undefined,
+      translation: fc.word.translation,
+      word: fc.word.lemma,
+    };
+  }
+  return {
+    example_sentence: undefined,
+    example_translation: undefined,
+    gender: null,
+    part_of_speech: undefined,
+    pronunciation_url: undefined,
+    story_id: undefined,
+    translation: "",
+    word: "",
+  };
+}
+
 interface ReviewTabProps {
   dueCards?: Flashcard[];
   allCards?: Flashcard[];
@@ -444,7 +481,8 @@ function FlashcardsDeckTab({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCards.map((fc) => {
             const tier = getMasteryTier(fc);
-            const genderBadge = getGenderBadge(fc.vocabulary.gender);
+            const vocab = getFlashcardVocab(fc);
+            const genderBadge = getGenderBadge(vocab.gender);
 
             return (
               <div
@@ -455,7 +493,7 @@ function FlashcardsDeckTab({
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="text-base font-bold text-white tracking-tight">
-                        {fc.vocabulary.word}
+                        {vocab.word}
                       </h4>
                       {genderBadge && (
                         <span
@@ -471,13 +509,10 @@ function FlashcardsDeckTab({
                         aria-label={t("flashcards.playPronunciation")}
                         title={t("flashcards.playPronunciation")}
                         onClick={() =>
-                          playWordAudio(
-                            fc.vocabulary.pronunciation_url,
-                            fc.vocabulary.word
-                          )
+                          playWordAudio(vocab.pronunciation_url, vocab.word)
                         }
                         className={`size-7 p-0 rounded-full text-neutral-400 hover:text-sky-400 hover:bg-neutral-800 cursor-pointer ${
-                          playingWord === fc.vocabulary.word
+                          playingWord === vocab.word
                             ? "text-sky-400 bg-sky-500/10 animate-pulse"
                             : ""
                         }`}
@@ -486,20 +521,20 @@ function FlashcardsDeckTab({
                       </Button>
                     </div>
 
-                    {fc.vocabulary.part_of_speech && (
+                    {vocab.part_of_speech && (
                       <span className="text-xs uppercase tracking-wider font-semibold text-neutral-400 shrink-0">
-                        {fc.vocabulary.part_of_speech}
+                        {vocab.part_of_speech}
                       </span>
                     )}
                   </div>
 
                   <p className="text-sm text-sky-400 font-semibold">
-                    {fc.vocabulary.translation}
+                    {vocab.translation}
                   </p>
 
-                  {fc.vocabulary.example_sentence && (
+                  {vocab.example_sentence && (
                     <p className="text-xs text-neutral-400 italic line-clamp-2 pt-1 border-t border-neutral-800/60">
-                      &ldquo;{fc.vocabulary.example_sentence}&rdquo;
+                      &ldquo;{vocab.example_sentence}&rdquo;
                     </p>
                   )}
                 </div>
@@ -523,10 +558,10 @@ function FlashcardsDeckTab({
                     )}
                   </div>
 
-                  {fc.vocabulary.story_id ? (
+                  {vocab.story_id ? (
                     <Link
                       to="/stories/$storyId"
-                      params={{ storyId: fc.vocabulary.story_id.toString() }}
+                      params={{ storyId: vocab.story_id.toString() }}
                       className="text-xs text-neutral-400 hover:text-sky-400 flex items-center gap-1 transition-colors"
                       title={t("flashcards.sourceStory")}
                     >

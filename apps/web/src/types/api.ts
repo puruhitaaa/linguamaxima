@@ -1,10 +1,19 @@
 export type CEFRLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 
+export type ProficiencyFramework =
+  | "cefr"
+  | "jlpt"
+  | "hsk"
+  | "bipa"
+  | "torfl"
+  | "frequency";
+
 export interface Language {
   id: number;
   code: string;
   name: string;
   native_name?: string;
+  proficiency_framework?: ProficiencyFramework;
 }
 
 export interface LanguagePair {
@@ -19,6 +28,48 @@ export interface Category {
   name: string;
   slug: string;
   icon?: string;
+}
+
+export interface WordItem {
+  id: number;
+  language_id: number;
+  lemma: string;
+  normalized_level: CEFRLevel;
+  native_level?: string | null;
+  part_of_speech: string;
+  gender?: string | null;
+  phonetic?: string | null;
+  translation: string;
+  definition?: string | null;
+  example_sentence?: string | null;
+  example_translation?: string | null;
+  audio_url?: string | null;
+  frequency_rank?: number | null;
+  is_saved_as_flashcard?: boolean;
+  created_at: string;
+}
+
+export interface WordListResponse {
+  items: WordItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface FilterCountItem {
+  key: string;
+  label: string;
+  count: number;
+}
+
+export interface WordFilterMeta {
+  language_code: string;
+  language_name: string;
+  proficiency_framework: ProficiencyFramework;
+  total_words: number;
+  levels: FilterCountItem[];
+  parts_of_speech: FilterCountItem[];
 }
 
 export interface VocabularyItem {
@@ -115,8 +166,10 @@ export interface QuizSubmissionResult {
 
 export interface Flashcard {
   id: number;
-  vocabulary_id: number;
-  vocabulary: VocabularyItem;
+  vocabulary_id?: number | null;
+  vocabulary?: VocabularyItem | null;
+  word_id?: number | null;
+  word?: WordItem | null;
   ease_factor: number;
   interval_days: number;
   repetitions: number;

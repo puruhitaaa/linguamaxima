@@ -42,6 +42,38 @@ function getGenderBadge(gender?: string | null) {
   };
 }
 
+function getFlashcardVocab(card: Flashcard) {
+  if (card.vocabulary) {
+    return card.vocabulary;
+  }
+  if (card.word) {
+    return {
+      difficulty_rank: card.word.frequency_rank || 1,
+      example_sentence: card.word.example_sentence || undefined,
+      example_translation: card.word.example_translation || undefined,
+      gender: (card.word.gender as "der" | "die" | "das" | null) || null,
+      id: card.word.id,
+      part_of_speech: card.word.part_of_speech,
+      pronunciation_url: card.word.audio_url || undefined,
+      story_id: 0,
+      translation: card.word.translation,
+      word: card.word.lemma,
+    };
+  }
+  return {
+    difficulty_rank: 1,
+    example_sentence: undefined,
+    example_translation: undefined,
+    gender: null,
+    id: 0,
+    part_of_speech: undefined,
+    pronunciation_url: undefined,
+    story_id: 0,
+    translation: "",
+    word: "",
+  };
+}
+
 export function FlashcardCard({
   card,
   onRate,
@@ -54,7 +86,7 @@ export function FlashcardCard({
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const cancelAudioRef = useRef<(() => void) | null>(null);
 
-  const vocab = card.vocabulary;
+  const vocab = getFlashcardVocab(card);
   const genderBadge = getGenderBadge(vocab.gender);
 
   // Play pronunciation via server audio, dynamic neural TTS, or speech synthesis fallback with 5s timeout

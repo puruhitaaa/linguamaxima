@@ -28,7 +28,7 @@ async def save_flashcard(
     req: FlashcardCreateRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    return await flashcard_service.save_flashcard(db, req.vocabulary_id)
+    return await flashcard_service.save_flashcard(db, vocabulary_id=req.vocabulary_id, word_id=req.word_id)
 
 @router.patch("/{flashcard_id}/review", response_model=FlashcardReviewResponse)
 async def review_flashcard(

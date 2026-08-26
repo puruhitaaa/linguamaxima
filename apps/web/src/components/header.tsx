@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+  BookA,
   BookOpen,
   Flame,
   Globe,
@@ -29,6 +30,7 @@ export default function Header() {
 
   const navLinks = [
     { icon: BookOpen, label: t("header.stories"), to: "/" },
+    { icon: BookA, label: t("header.words"), to: "/words" },
     { icon: Globe, label: t("header.languages"), to: "/languages" },
     { icon: Layers, label: t("header.flashcards"), to: "/flashcards" },
     { icon: GraduationCap, label: t("header.progress"), to: "/progress" },
