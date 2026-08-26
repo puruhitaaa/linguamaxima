@@ -567,16 +567,34 @@ function WordsExplorerComponent() {
     search: search || undefined,
   });
 
-  const allWords = useMemo(
-    () => infiniteData?.pages.flatMap((p) => p.items) ?? [],
-    [infiniteData]
-  );
+  const allWords = useMemo(() => {
+    if (!infiniteData?.pages) {
+      return [];
+    }
+    const seen = new Set<number>();
+    const items: WordItem[] = [];
+    for (const page of infiniteData.pages) {
+      for (const item of page.items) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          items.push(item);
+        }
+      }
+    }
+    return items;
+  }, [infiniteData]);
+
   const totalWordsCount = infiniteData?.pages[0]?.total ?? 0;
 
   const { data: filterMeta } = useWordFilters(activeLangCode);
   const saveWordFlashcard = useSaveWordFlashcard();
 
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  // When filters change, reset window scroll to top so lower sentinel is not prematurely triggered
+  useEffect(() => {
+    window.scrollTo({ behavior: "instant", top: 0 });
+  }, [activeLangCode, level, pos, search]);
 
   useEffect(() => {
     const sentinel = loadMoreRef.current;
@@ -587,7 +605,12 @@ function WordsExplorerComponent() {
     const observer = new IntersectionObserver(
       (entries) => {
         const [first] = entries;
-        if (first?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        if (
+          first?.isIntersecting &&
+          hasNextPage &&
+          !isFetchingNextPage &&
+          !isLoading
+        ) {
           fetchNextPage();
         }
       },
@@ -603,7 +626,7 @@ function WordsExplorerComponent() {
     return () => {
       observer.unobserve(sentinel);
     };
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage]);
 
   const handleLanguageChange = useCallback(
     (newLangCode: string) => {

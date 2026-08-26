@@ -493,7 +493,10 @@ class WordRepository:
             count_stmt = count_stmt.where(and_(*conditions))
 
         stmt = stmt.options(joinedload(Word.language)).order_by(
-            Word.normalized_level, Word.frequency_rank.nulls_last(), Word.lemma
+            Word.normalized_level,
+            Word.frequency_rank.nulls_last(),
+            Word.lemma,
+            Word.id,
         ).limit(limit).offset(offset)
 
         total_res = await session.execute(count_stmt)
