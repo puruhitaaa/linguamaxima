@@ -63,12 +63,12 @@ const POS_CATEGORIES: readonly { key: string; labelKey: TranslationKey }[] = [
 ];
 
 const CEFR_LEVEL_COLORS: Record<CEFRLevel, string> = {
-  A1: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  A2: "bg-teal-500/10 text-teal-400 border-teal-500/20",
-  B1: "bg-sky-500/10 text-sky-400 border-sky-500/20",
-  B2: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  C1: "bg-violet-500/10 text-violet-400 border-violet-500/20",
-  C2: "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20",
+  A1: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  A2: "bg-teal-500/15 text-teal-400 border-teal-500/30",
+  B1: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  B2: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+  C1: "bg-purple-500/15 text-purple-400 border-purple-500/30",
+  C2: "bg-rose-500/15 text-rose-400 border-rose-500/30",
 };
 
 interface HeroSectionProps {
@@ -76,6 +76,7 @@ interface HeroSectionProps {
   frameworkLabel: string;
   languages?: LanguageItem[];
   onLanguageChange: (langCode: string) => void;
+  totalWords?: number;
 }
 
 function WordsHeroSection({
@@ -83,43 +84,44 @@ function WordsHeroSection({
   frameworkLabel,
   languages,
   onLanguageChange,
+  totalWords,
 }: HeroSectionProps) {
   const { t } = useTranslation();
   const { getLanguageFlag } = useLanguagePair();
 
   return (
-    <section className="border-b border-neutral-800/80 bg-gradient-to-b from-neutral-900/60 via-neutral-950 to-neutral-950 px-4 py-8 sm:py-12">
-      <div className="container mx-auto max-w-7xl">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2.5 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
-              <Sparkles className="size-3.5" />
-              <span>{t("dictionary.badge")}</span>
-              <span className="text-neutral-500">•</span>
-              <span>
-                {t("dictionary.nativeFrameworkBadge", {
-                  framework: frameworkLabel,
-                })}
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white flex items-center gap-3">
-              <BookA className="size-8 sm:size-10 text-sky-400 shrink-0" />
-              <span>{t("dictionary.title")}</span>
-            </h1>
-            <p className="text-sm sm:text-base text-neutral-400 leading-relaxed">
-              {t("dictionary.subtitle")}
-            </p>
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-sky-950/40 via-neutral-900 to-neutral-950 border border-neutral-800/80 p-6 sm:p-8">
+      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-3.5 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
+            <Sparkles className="size-3.5" />
+            <span>{t("dictionary.badge")}</span>
+            <span className="text-neutral-500">•</span>
+            <span>
+              {t("dictionary.nativeFrameworkBadge", {
+                framework: frameworkLabel,
+              })}
+            </span>
           </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+            <BookA className="size-7 sm:size-8 text-sky-400 shrink-0" />
+            <span>{t("dictionary.title")}</span>
+          </h1>
+          <p className="text-sm text-neutral-400 leading-relaxed">
+            {t("dictionary.subtitle")}
+          </p>
+        </div>
 
-          <div className="flex items-center gap-2 self-start md:self-auto bg-neutral-900 border border-neutral-800 rounded-2xl p-1.5 shadow-sm shrink-0">
-            <span className="text-xs font-semibold text-neutral-400 pl-2.5 flex items-center gap-1.5">
+        <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row items-stretch sm:items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 bg-neutral-950/80 border border-neutral-800/90 rounded-2xl p-2 shadow-sm">
+            <span className="text-xs font-semibold text-neutral-400 pl-2 flex items-center gap-1.5 shrink-0">
               <Globe className="size-3.5 text-neutral-400" />
               <span>{t("common.target")}:</span>
             </span>
             <select
               value={activeLangCode}
               onChange={(e) => onLanguageChange(e.target.value)}
-              className="bg-neutral-950 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-xl border border-neutral-800 focus:outline-none focus:border-sky-500 transition-colors cursor-pointer"
+              className="bg-neutral-900 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-xl border border-neutral-800 focus:outline-none focus:border-sky-500 transition-colors cursor-pointer"
               aria-label="Select Target Language"
             >
               {languages?.map((langItem) => (
@@ -130,9 +132,21 @@ function WordsHeroSection({
               ))}
             </select>
           </div>
+
+          {typeof totalWords === "number" && totalWords > 0 && (
+            <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-neutral-950/80 border border-neutral-800/90 text-neutral-300 text-xs font-medium">
+              <BookOpen className="size-4 text-sky-400 shrink-0" />
+              <span>
+                <strong className="text-white font-bold">
+                  {totalWords.toLocaleString()}
+                </strong>{" "}
+                {t("common.words").toLowerCase()}
+              </span>
+            </div>
+          )}
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -160,7 +174,7 @@ function WordCardItem({
     "bg-neutral-800 text-neutral-300 border-neutral-700";
 
   return (
-    <div className="group flex flex-col justify-between rounded-2xl bg-neutral-900/50 border border-neutral-800/80 hover:border-neutral-700 p-5 transition-all shadow-sm hover:shadow-md hover:bg-neutral-900/70">
+    <div className="group flex flex-col justify-between rounded-2xl bg-neutral-900/60 border border-neutral-800/80 hover:border-neutral-700 p-5 transition-all shadow-sm hover:shadow-lg hover:shadow-sky-500/5 hover:bg-neutral-900/90">
       <div className="space-y-3.5">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1 min-w-0">
@@ -169,7 +183,7 @@ function WordCardItem({
                 {word.lemma}
               </span>
               {word.gender && (
-                <span className="text-xs px-2 py-0.5 rounded-md bg-neutral-800 text-neutral-300 font-semibold">
+                <span className="text-xs px-2 py-0.5 rounded-md bg-neutral-800 text-neutral-300 font-semibold border border-neutral-700/60">
                   {word.gender}
                 </span>
               )}
@@ -186,7 +200,7 @@ function WordCardItem({
               type="button"
               onClick={() => onPlayAudio(word)}
               disabled={isPlaying}
-              className="flex items-center justify-center size-8 rounded-xl bg-neutral-800/80 hover:bg-sky-500/20 text-neutral-300 hover:text-sky-400 transition-colors cursor-pointer"
+              className="flex items-center justify-center size-8 rounded-xl bg-neutral-800/80 hover:bg-sky-500/20 text-neutral-300 hover:text-sky-400 border border-neutral-700/60 transition-colors cursor-pointer"
               title={t("dictionary.listenPronunciation")}
               aria-label={`Listen to ${word.lemma}`}
             >
@@ -206,7 +220,7 @@ function WordCardItem({
         </div>
 
         <div className="space-y-1.5">
-          <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-neutral-800/60 text-neutral-400 text-[11px] font-medium uppercase tracking-wider">
+          <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-neutral-800/80 text-neutral-400 text-[11px] font-medium uppercase tracking-wider border border-neutral-800">
             {word.part_of_speech}
           </div>
           <p className="text-sm font-semibold text-neutral-100 leading-snug">
@@ -220,7 +234,7 @@ function WordCardItem({
         </div>
 
         {word.example_sentence && (
-          <div className="mt-3 pt-3 border-t border-neutral-800/60 space-y-1.5 rounded-xl bg-neutral-950/40 p-3">
+          <div className="mt-3 pt-3 border-t border-neutral-800/60 space-y-1.5 rounded-xl bg-neutral-950/60 border border-neutral-800/70 p-3">
             <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-1">
               <span>{getLanguageFlag(activeLangCode)}</span>
               <span>{t("dictionary.exampleLabel")}</span>
@@ -246,7 +260,7 @@ function WordCardItem({
           onClick={() => onSaveFlashcard(word.id)}
           className={`w-full h-9 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
             word.is_saved_as_flashcard
-              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 cursor-default"
+              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 cursor-default"
               : "bg-neutral-900 border-neutral-800 text-neutral-200 hover:bg-neutral-800 hover:text-white hover:border-neutral-700"
           }`}
         >
@@ -294,25 +308,26 @@ function WordFiltersBar({
   const hasActiveFilters = level !== "all" || pos !== "all" || search !== "";
 
   return (
-    <div className="space-y-4 bg-neutral-900/40 border border-neutral-800/80 rounded-2xl p-4 sm:p-5 backdrop-blur-sm">
-      <div className="flex flex-col sm:flex-row items-center gap-3">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-neutral-500" />
+    <div className="space-y-4">
+      {/* Top filter row: Search bar & Reset */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-500 pointer-events-none" />
           <Input
             type="text"
             placeholder={t("dictionary.searchPlaceholder")}
             value={searchInput}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 pr-10 bg-neutral-950 border-neutral-800 text-white placeholder:text-neutral-500 h-11 rounded-xl focus-visible:ring-1 focus-visible:ring-sky-500"
+            className="pl-9 pr-8 h-9 text-xs bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 rounded-xl focus-visible:ring-1 focus-visible:ring-sky-500"
           />
           {searchInput && (
             <button
               type="button"
               onClick={() => onSearchChange("")}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 cursor-pointer"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white p-0.5 cursor-pointer"
               aria-label="Clear search"
             >
-              <X className="size-4" />
+              <X className="size-3.5" />
             </button>
           )}
         </div>
@@ -322,7 +337,7 @@ function WordFiltersBar({
             variant="outline"
             size="sm"
             onClick={onReset}
-            className="w-full sm:w-auto h-11 px-4 border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white hover:bg-neutral-800 rounded-xl shrink-0 flex items-center gap-2 text-xs font-semibold cursor-pointer"
+            className="self-start sm:self-auto h-9 px-3.5 border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white hover:bg-neutral-800 rounded-xl shrink-0 flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
           >
             <RotateCcw className="size-3.5" />
             <span>{t("dictionary.resetFilters")}</span>
@@ -330,100 +345,91 @@ function WordFiltersBar({
         )}
       </div>
 
-      <div className="space-y-2 pt-2 border-t border-neutral-800/50">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
-            {t("dictionary.levelFilter")}
-          </span>
-          {filterMeta && (
-            <span className="text-xs text-neutral-500">
-              {t("dictionary.totalWordsCount", {
-                count: filterMeta.total_words,
-              })}
-            </span>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-          <button
-            type="button"
-            onClick={() => onLevelChange("all")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-              level === "all"
-                ? "bg-white text-neutral-950 border-white shadow-sm"
-                : "bg-neutral-950 text-neutral-400 border-neutral-800 hover:border-neutral-700 hover:text-neutral-200"
-            }`}
-          >
-            {t("dictionary.allLevels")}
-          </button>
+      {/* CEFR Level filter row */}
+      <div className="space-y-1.5">
+        <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0">
+          <div className="flex items-center gap-1.5 w-max sm:w-auto pb-0.5">
+            <button
+              type="button"
+              onClick={() => onLevelChange("all")}
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all border shrink-0 whitespace-nowrap cursor-pointer ${
+                level === "all"
+                  ? "bg-neutral-800 border-neutral-700 text-white shadow-sm"
+                  : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
+              }`}
+            >
+              {t("dictionary.allLevels")}
+            </button>
 
-          {filterMeta?.levels.map((lvl) => {
-            const isActive = level === lvl.key;
-            return (
-              <button
-                key={lvl.key}
-                type="button"
-                onClick={() => onLevelChange(lvl.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                  isActive
-                    ? "bg-sky-500 text-neutral-950 border-sky-500 shadow-sm"
-                    : "bg-neutral-950 text-neutral-300 border-neutral-800 hover:border-sky-500/50 hover:text-white"
-                }`}
-              >
-                <span>{lvl.label}</span>
-                {lvl.count > 0 && (
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
-                      isActive
-                        ? "bg-neutral-950/20 text-neutral-950"
-                        : "bg-neutral-900 text-neutral-400"
-                    }`}
-                  >
-                    {lvl.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+            {filterMeta?.levels.map((lvl) => {
+              const isActive = level === lvl.key;
+              return (
+                <button
+                  key={lvl.key}
+                  type="button"
+                  onClick={() => onLevelChange(lvl.key)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 whitespace-nowrap cursor-pointer ${
+                    isActive
+                      ? "bg-neutral-800 border-neutral-700 text-white shadow-sm"
+                      : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
+                  }`}
+                >
+                  <span>{lvl.label}</span>
+                  {lvl.count > 0 && (
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
+                        isActive
+                          ? "bg-neutral-700 text-neutral-200"
+                          : "bg-neutral-950 text-neutral-500"
+                      }`}
+                    >
+                      {lvl.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <div className="space-y-2 pt-2 border-t border-neutral-800/50">
-        <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
-          {t("dictionary.posFilter")}
-        </span>
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-          {POS_CATEGORIES.map(({ key, labelKey }) => {
-            const isActive = pos === key;
-            const countMeta = filterMeta?.parts_of_speech.find(
-              (p) => p.key === key
-            );
+      {/* Part of speech filter pills */}
+      <div className="space-y-1.5">
+        <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex items-center gap-2 text-xs w-max sm:w-auto pb-1 sm:pb-0">
+            {POS_CATEGORIES.map(({ key, labelKey }) => {
+              const isActive = pos === key;
+              const countMeta = filterMeta?.parts_of_speech.find(
+                (p) => p.key === key
+              );
 
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onPosChange(key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
-                  isActive
-                    ? "bg-neutral-100 text-neutral-950 border-white shadow-sm font-bold"
-                    : "bg-neutral-950 text-neutral-400 border-neutral-800 hover:border-neutral-700 hover:text-neutral-200"
-                }`}
-              >
-                <span>{t(labelKey)}</span>
-                {countMeta && countMeta.count > 0 && (
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
-                      isActive
-                        ? "bg-neutral-950/20 text-neutral-950"
-                        : "bg-neutral-900 text-neutral-500"
-                    }`}
-                  >
-                    {countMeta.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => onPosChange(key)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
+                    isActive
+                      ? "bg-neutral-100 text-neutral-900 font-semibold"
+                      : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
+                  }`}
+                >
+                  <span>{t(labelKey)}</span>
+                  {countMeta && countMeta.count > 0 && (
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
+                        isActive
+                          ? "bg-neutral-900/20 text-neutral-900"
+                          : "bg-neutral-950 text-neutral-500"
+                      }`}
+                    >
+                      {countMeta.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -433,15 +439,15 @@ function WordFiltersBar({
 function WordsEmptyState({ onReset }: { onReset: () => void }) {
   const { t } = useTranslation();
   return (
-    <div className="py-16 text-center space-y-4 max-w-md mx-auto">
-      <div className="size-16 rounded-2xl bg-neutral-900 border border-neutral-800 flex items-center justify-center mx-auto text-neutral-500">
-        <BookOpen className="size-8" />
+    <div className="text-center py-16 px-4 rounded-2xl bg-neutral-900/30 border border-neutral-800/80 space-y-4 max-w-md mx-auto">
+      <div className="size-12 rounded-full bg-sky-500/10 text-sky-400 flex items-center justify-center mx-auto">
+        <BookOpen className="size-6" />
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <h2 className="text-lg font-bold text-white">
           {t("dictionary.emptyTitle")}
         </h2>
-        <p className="text-xs sm:text-sm text-neutral-400">
+        <p className="text-xs text-neutral-400 leading-relaxed">
           {t("dictionary.emptyDesc")}
         </p>
       </div>
@@ -449,9 +455,10 @@ function WordsEmptyState({ onReset }: { onReset: () => void }) {
         variant="outline"
         size="sm"
         onClick={onReset}
-        className="mt-2 border-neutral-800 bg-neutral-900 text-neutral-200 hover:text-white rounded-xl text-xs cursor-pointer"
+        className="border-neutral-700 text-neutral-300 hover:bg-neutral-800 text-xs rounded-xl cursor-pointer"
       >
-        {t("dictionary.resetFilters")}
+        <RotateCcw className="size-3.5 mr-1.5" />
+        <span>{t("dictionary.resetFilters")}</span>
       </Button>
     </div>
   );
@@ -480,11 +487,11 @@ function WordsGrid({
 }: WordsGridProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 9 }).map((_, i) => (
           <div
             key={i}
-            className="h-56 rounded-2xl bg-neutral-900/40 border border-neutral-800/60 p-5 space-y-4 animate-pulse"
+            className="h-64 rounded-2xl bg-neutral-900/60 border border-neutral-800 p-5 space-y-4 animate-pulse"
           >
             <div className="flex justify-between items-center">
               <div className="h-6 w-32 bg-neutral-800 rounded-lg" />
@@ -506,7 +513,7 @@ function WordsGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {wordsData.items.map((word) => (
         <WordCardItem
           key={word.id}
@@ -545,7 +552,7 @@ function WordsPagination({
         size="sm"
         disabled={page <= 1}
         onClick={() => onPageChange(Math.max(1, page - 1))}
-        className="border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white rounded-xl text-xs h-10 px-4 disabled:opacity-40 cursor-pointer"
+        className="border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white hover:bg-neutral-800 rounded-xl text-xs h-9 px-4 disabled:opacity-40 cursor-pointer"
       >
         {t("dictionary.previousPage")}
       </Button>
@@ -560,7 +567,7 @@ function WordsPagination({
         size="sm"
         disabled={page >= totalPages}
         onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-        className="border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white rounded-xl text-xs h-10 px-4 disabled:opacity-40 cursor-pointer"
+        className="border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white hover:bg-neutral-800 rounded-xl text-xs h-9 px-4 disabled:opacity-40 cursor-pointer"
       >
         {t("dictionary.nextPage")}
       </Button>
@@ -681,66 +688,65 @@ function WordsExplorerComponent() {
   }, [filterMeta]);
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100 pb-20">
+    <div className="container mx-auto max-w-6xl px-4 py-8 space-y-8">
       <WordsHeroSection
         activeLangCode={activeLangCode}
         frameworkLabel={frameworkLabel}
         languages={languages}
         onLanguageChange={handleLanguageChange}
+        totalWords={filterMeta?.total_words}
       />
 
-      <div className="container mx-auto max-w-7xl px-4 py-8 space-y-6">
-        <WordFiltersBar
-          filterMeta={filterMeta}
-          level={level}
-          onLevelChange={handleLevelChange}
-          onPosChange={handlePosChange}
-          onReset={handleResetFilters}
-          onSearchChange={setSearchInput}
-          pos={pos}
-          search={search}
-          searchInput={searchInput}
-        />
+      <WordFiltersBar
+        filterMeta={filterMeta}
+        level={level}
+        onLevelChange={handleLevelChange}
+        onPosChange={handlePosChange}
+        onReset={handleResetFilters}
+        onSearchChange={setSearchInput}
+        pos={pos}
+        search={search}
+        searchInput={searchInput}
+      />
 
-        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-400 font-medium px-1">
+      <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-400 font-medium px-1">
+        <span>
+          {t("dictionary.showingCount", {
+            count: wordsData?.items.length || 0,
+            language: currentLanguageName,
+            total: wordsData?.total || 0,
+          })}
+        </span>
+        {wordsData && wordsData.total_pages > 1 && (
           <span>
-            {t("dictionary.showingCount", {
-              count: wordsData?.items.length || 0,
-              language: currentLanguageName,
-              total: wordsData?.total || 0,
+            {t("dictionary.pageOf", {
+              page: wordsData.page,
+              total: wordsData.total_pages,
             })}
           </span>
-          {wordsData && wordsData.total_pages > 1 && (
-            <span>
-              {t("dictionary.pageOf", {
-                page: wordsData.page,
-                total: wordsData.total_pages,
-              })}
-            </span>
-          )}
-        </div>
-
-        <WordsGrid
-          activeLangCode={activeLangCode}
-          isLoading={isLoading}
-          onPlayAudio={handlePlayAudio}
-          onReset={handleResetFilters}
-          onSaveFlashcard={(id) => saveWordFlashcard.mutate(id)}
-          isSaving={saveWordFlashcard.isPending}
-          playingWordId={playingWordId}
-          wordsData={wordsData}
-        />
-
-        <WordsPagination
-          onPageChange={(p) =>
-            navigate({
-              search: (prev) => ({ ...prev, page: p }),
-            })
-          }
-          page={page}
-          totalPages={wordsData?.total_pages || 1}
-        />
+        )}
       </div>
-    </main>
+
+      <WordsGrid
+        activeLangCode={activeLangCode}
+        isLoading={isLoading}
+        onPlayAudio={handlePlayAudio}
+        onReset={handleResetFilters}
+        onSaveFlashcard={(id) => saveWordFlashcard.mutate(id)}
+        isSaving={saveWordFlashcard.isPending}
+        playingWordId={playingWordId}
+        wordsData={wordsData}
+      />
+
+      <WordsPagination
+        onPageChange={(p) =>
+          navigate({
+            search: (prev) => ({ ...prev, page: p }),
+          })
+        }
+        page={page}
+        totalPages={wordsData?.total_pages || 1}
+      />
+    </div>
   );
 }
