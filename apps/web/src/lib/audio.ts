@@ -7,7 +7,7 @@ export interface PlayPronunciationOptions {
   onError?: (error: unknown) => void;
   onEnd?: () => void;
   onStart?: () => void;
-  t: (key: string) => string;
+  t?: (key: string) => string;
   url?: string | null;
   word?: string;
 }
@@ -25,7 +25,9 @@ export async function playPronunciationAudio(
     onEnd,
     onError,
     t,
-  } = options;
+  } = options || {};
+
+  const safeT = typeof t === "function" ? t : (key: string) => key;
 
   let hasStarted = false;
   let isCancelled = false;
@@ -44,8 +46,8 @@ export async function playPronunciationAudio(
   // 5-second timeout to warn user about VPN / Cloudflare WARP / DNS changes
   const timeoutId = setTimeout(() => {
     if (!hasStarted && !isCancelled) {
-      toast.warning(t("audio.timeoutWarningTitle"), {
-        description: t("audio.timeoutWarningDesc"),
+      toast.warning(safeT("audio.timeoutWarningTitle"), {
+        description: safeT("audio.timeoutWarningDesc"),
         duration: 8000,
         id: "audio-vpn-timeout-warning",
       });
@@ -145,8 +147,8 @@ export async function playPronunciationAudio(
         "error",
         () => {
           if (!trySpeechSynthesisFallback()) {
-            toast.error(t("audio.errorTitle"), {
-              description: t("audio.errorDesc"),
+            toast.error(safeT("audio.errorTitle"), {
+              description: safeT("audio.errorDesc"),
               duration: 8000,
               id: "audio-vpn-error",
             });
@@ -162,8 +164,8 @@ export async function playPronunciationAudio(
       return cleanup;
     } catch (error) {
       if (!trySpeechSynthesisFallback()) {
-        toast.error(t("audio.errorTitle"), {
-          description: t("audio.errorDesc"),
+        toast.error(safeT("audio.errorTitle"), {
+          description: safeT("audio.errorDesc"),
           duration: 8000,
           id: "audio-vpn-error",
         });
@@ -176,8 +178,8 @@ export async function playPronunciationAudio(
 
   if (!trySpeechSynthesisFallback()) {
     clearTimeout(timeoutId);
-    toast.error(t("audio.errorTitle"), {
-      description: t("audio.errorDesc"),
+    toast.error(safeT("audio.errorTitle"), {
+      description: safeT("audio.errorDesc"),
       duration: 8000,
       id: "audio-vpn-error",
     });

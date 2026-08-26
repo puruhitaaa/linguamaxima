@@ -592,6 +592,15 @@ function WordsExplorerComponent() {
   const activeLangCode = lang || targetLanguage.code || "de";
   const [searchInput, setSearchInput] = useState(search);
   const [playingWordId, setPlayingWordId] = useState<number | null>(null);
+  const cancelAudioRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => 
+    () => {
+      if (cancelAudioRef.current) {
+        cancelAudioRef.current();
+      }
+    }
+  , []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -728,20 +737,28 @@ function WordsExplorerComponent() {
 
   const handlePlayAudio = useCallback(
     async (word: WordItem) => {
+      if (cancelAudioRef.current) {
+        cancelAudioRef.current();
+      }
+
       setPlayingWordId(word.id);
       try {
-        await playPronunciationAudio(
-          word.lemma,
-          activeLangCode,
-          word.audio_url || undefined
-        );
+        const cleanup = await playPronunciationAudio({
+          languageCode: activeLangCode,
+          onError: () => setPlayingWordId(null),
+          onEnd: () => setPlayingWordId(null),
+          onStart: () => setPlayingWordId(word.id),
+          t,
+          url: word.audio_url || undefined,
+          word: word.lemma,
+        });
+        cancelAudioRef.current = cleanup;
       } catch (error) {
         console.error("Audio playback error:", error);
-      } finally {
         setPlayingWordId(null);
       }
     },
-    [activeLangCode]
+    [activeLangCode, t]
   );
 
   const currentLanguageName = useMemo(() => {
