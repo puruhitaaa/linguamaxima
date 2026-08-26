@@ -68,8 +68,12 @@ export interface TranslationDictionary {
     adverb: string;
     preposition: string;
     pronoun: string;
+    article: string;
+    particle: string;
+    numeral: string;
     interjection: string;
     phrase: string;
+    affix: string;
     exampleLabel: string;
     definitionLabel: string;
     saveToFlashcards: string;

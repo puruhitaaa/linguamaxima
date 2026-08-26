@@ -463,6 +463,29 @@ class FlashcardRepository:
         return flashcard
 
 # ----------------- Word Repo -----------------
+POS_CANONICAL_MAP: dict[str, list[str]] = {
+    "noun": ["noun"],
+    "verb": ["verb"],
+    "adjective": ["adjective", "adnominal"],
+    "adverb": ["adverb"],
+    "pronoun": ["pron", "pronoun"],
+    "article": ["article", "det"],
+    "preposition": ["preposition", "postp", "prep_phrase"],
+    "conjunction": ["conjunction"],
+    "particle": ["particle"],
+    "numeral": ["num", "counter", "classifier"],
+    "interjection": ["intj", "interjection"],
+    "phrase": ["phrase", "idiom", "proverb"],
+    "affix": ["prefix", "suffix", "infix", "interfix", "affix"],
+}
+
+RAW_TO_CANONICAL_POS: dict[str, str] = {
+    raw: canonical
+    for canonical, raw_list in POS_CANONICAL_MAP.items()
+    for raw in raw_list
+}
+
+# ----------------- Word Repo -----------------
 class WordRepository:
     async def list_words(
         self,
@@ -483,7 +506,16 @@ class WordRepository:
         if normalized_level:
             conditions.append(Word.normalized_level == normalized_level)
         if part_of_speech and part_of_speech.lower() != "all":
-            conditions.append(Word.part_of_speech.ilike(part_of_speech))
+            clean_pos = part_of_speech.strip().lower()
+            if clean_pos in POS_CANONICAL_MAP:
+                raw_tags = POS_CANONICAL_MAP[clean_pos]
+                conditions.append(func.lower(Word.part_of_speech).in_(raw_tags))
+            elif clean_pos in RAW_TO_CANONICAL_POS:
+                canonical = RAW_TO_CANONICAL_POS[clean_pos]
+                raw_tags = POS_CANONICAL_MAP[canonical]
+                conditions.append(func.lower(Word.part_of_speech).in_(raw_tags))
+            else:
+                conditions.append(Word.part_of_speech.ilike(part_of_speech.strip()))
         if search and search.strip():
             term = f"%{search.strip()}%"
             conditions.append((Word.lemma.ilike(term)) | (Word.translation.ilike(term)))
@@ -538,17 +570,26 @@ class WordRepository:
             else:
                 levels_map[key]["count"] += cnt
 
-        # POS counts
+        # POS counts aggregated into canonical groups
         pos_stmt = (
             select(Word.part_of_speech, func.count(Word.id))
             .where(Word.language_id == lang.id)
             .group_by(Word.part_of_speech)
-            .order_by(func.count(Word.id).desc())
         )
         pos_rows = (await session.execute(pos_stmt)).all()
+        
+        canonical_counts: dict[str, int] = {}
+        for raw_pos, cnt in pos_rows:
+            if not raw_pos:
+                continue
+            raw_key = str(raw_pos).strip().lower()
+            canonical_key = RAW_TO_CANONICAL_POS.get(raw_key, raw_key)
+            canonical_counts[canonical_key] = canonical_counts.get(canonical_key, 0) + cnt
+
         pos_list = [
-            {"key": str(p[0]).lower(), "label": str(p[0]).capitalize(), "count": p[1]}
-            for p in pos_rows
+            {"key": k, "label": k.capitalize(), "count": v}
+            for k, v in sorted(canonical_counts.items(), key=lambda item: item[1], reverse=True)
+            if v > 0
         ]
 
         total_words_stmt = select(func.count(Word.id)).where(Word.language_id == lang.id)

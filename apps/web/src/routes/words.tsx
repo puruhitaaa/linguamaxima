@@ -50,16 +50,51 @@ export const Route = createFileRoute("/words")({
 
 const POS_CATEGORIES: readonly { key: string; labelKey: TranslationKey }[] = [
   { key: "all", labelKey: "dictionary.allPos" },
-  { key: "conjunction", labelKey: "dictionary.conjunction" },
-  { key: "verb", labelKey: "dictionary.verb" },
   { key: "noun", labelKey: "dictionary.noun" },
+  { key: "verb", labelKey: "dictionary.verb" },
   { key: "adjective", labelKey: "dictionary.adjective" },
   { key: "adverb", labelKey: "dictionary.adverb" },
-  { key: "preposition", labelKey: "dictionary.preposition" },
   { key: "pronoun", labelKey: "dictionary.pronoun" },
+  { key: "article", labelKey: "dictionary.article" },
+  { key: "preposition", labelKey: "dictionary.preposition" },
+  { key: "conjunction", labelKey: "dictionary.conjunction" },
+  { key: "particle", labelKey: "dictionary.particle" },
+  { key: "numeral", labelKey: "dictionary.numeral" },
   { key: "interjection", labelKey: "dictionary.interjection" },
   { key: "phrase", labelKey: "dictionary.phrase" },
+  { key: "affix", labelKey: "dictionary.affix" },
 ];
+
+const RAW_POS_LABEL_MAP: Record<string, TranslationKey> = {
+  adjective: "dictionary.adjective",
+  adnominal: "dictionary.adjective",
+  adverb: "dictionary.adverb",
+  affix: "dictionary.affix",
+  article: "dictionary.article",
+  classifier: "dictionary.numeral",
+  conjunction: "dictionary.conjunction",
+  counter: "dictionary.numeral",
+  det: "dictionary.article",
+  idiom: "dictionary.phrase",
+  infix: "dictionary.affix",
+  interfix: "dictionary.affix",
+  interjection: "dictionary.interjection",
+  intj: "dictionary.interjection",
+  noun: "dictionary.noun",
+  num: "dictionary.numeral",
+  numeral: "dictionary.numeral",
+  particle: "dictionary.particle",
+  postp: "dictionary.preposition",
+  prefix: "dictionary.affix",
+  prep_phrase: "dictionary.preposition",
+  preposition: "dictionary.preposition",
+  phrase: "dictionary.phrase",
+  pron: "dictionary.pronoun",
+  pronoun: "dictionary.pronoun",
+  proverb: "dictionary.phrase",
+  suffix: "dictionary.affix",
+  verb: "dictionary.verb",
+};
 
 const CEFR_LEVEL_COLORS: Record<CEFRLevel, string> = {
   A1: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -172,6 +207,12 @@ function WordCardItem({
     CEFR_LEVEL_COLORS[word.normalized_level] ??
     "bg-neutral-800 text-neutral-300 border-neutral-700";
 
+  const posTranslationKey =
+    RAW_POS_LABEL_MAP[word.part_of_speech.toLowerCase()];
+  const posLabel = posTranslationKey
+    ? t(posTranslationKey)
+    : word.part_of_speech;
+
   return (
     <div className="group flex flex-col justify-between rounded-2xl bg-neutral-900/60 border border-neutral-800/80 hover:border-neutral-700 p-5 transition-all shadow-sm hover:shadow-lg hover:shadow-sky-500/5 hover:bg-neutral-900/90">
       <div className="space-y-3.5">
@@ -219,8 +260,8 @@ function WordCardItem({
         </div>
 
         <div className="space-y-1.5">
-          <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-neutral-800/80 text-neutral-400 text-[11px] font-medium uppercase tracking-wider border border-neutral-800">
-            {word.part_of_speech}
+          <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-neutral-800/80 text-neutral-300 text-[11px] font-medium uppercase tracking-wider border border-neutral-800">
+            {posLabel}
           </div>
           <p className="text-sm font-semibold text-neutral-100 leading-snug">
             {word.translation}
@@ -305,6 +346,19 @@ function WordFiltersBar({
 }: FilterBarProps) {
   const { t } = useTranslation();
   const hasActiveFilters = level !== "all" || pos !== "all" || search !== "";
+
+  const visiblePosCategories = useMemo(() => {
+    if (!filterMeta?.parts_of_speech) {
+      return POS_CATEGORIES;
+    }
+    return POS_CATEGORIES.filter(({ key }) => {
+      if (key === "all" || pos === key) {
+        return true;
+      }
+      const countMeta = filterMeta.parts_of_speech.find((p) => p.key === key);
+      return Boolean(countMeta && countMeta.count > 0);
+    });
+  }, [filterMeta, pos]);
 
   return (
     <div className="space-y-4">
@@ -396,7 +450,7 @@ function WordFiltersBar({
       <div className="space-y-1.5">
         <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex items-center gap-2 text-xs w-max sm:w-auto pb-1 sm:pb-0">
-            {POS_CATEGORIES.map(({ key, labelKey }) => {
+            {visiblePosCategories.map(({ key, labelKey }) => {
               const isActive = pos === key;
               const countMeta = filterMeta?.parts_of_speech.find(
                 (p) => p.key === key
