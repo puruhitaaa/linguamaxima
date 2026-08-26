@@ -85,7 +85,7 @@ export const fr: TranslationDictionary = {
     emptyTitleGeneric: "Aucune histoire trouvée",
     emptyTitlePair: "Pas encore d'histoire en {target}",
     heroSubtitle:
-      "Enrichissez votre vocabulaire, maîtrisez la grammaire contextuelle en {origin} et améliorez votre compréhension orale avec des histoires CECRL et l'audio neuronal.",
+      "Enrichissez votre vocabulaire, maîtrisez la grammaire contextuelle en {origin} et améliorez votre compréhension orale avec des histoires interactives graduées et l'audio neuronal.",
     heroTitle: "Apprenez le {target} avec des histoires interactives graduées",
     learningBadge:
       "Apprentissage du {targetFlag} {target} depuis le {originFlag} {origin}",
@@ -105,15 +105,15 @@ export const fr: TranslationDictionary = {
     applyingBtn: "Application...",
     badge: "Centre d'apprentissage multilingue",
     card1Desc:
-      "Les histoires sont calibrées pour votre niveau CECRL choisi, du débutant A1 à la maîtrise C2.",
-    card1Title: "Histoires graduées CECRL par IA",
+      "Les histoires sont calibrées pour votre niveau de compétence choisi, du débutant (A1) à la maîtrise (C2).",
+    card1Title: "Histoires graduées par IA",
     card2Desc:
       "Points de grammaire, astuces d'articles et quiz de compréhension expliqués dans votre langue maternelle.",
     card2Title: "Grammaire et quiz bilingues",
     card3Desc:
       "Des voix neuronales haute fidélité lisent chaque histoire et mot de vocabulaire avec un accent authentique.",
     card3Title: "Prononciation native neuronale",
-    cefrBadge: "CECRL A1-C2",
+    cefrBadge: "Niveaux A1–C2",
     goToStories: "Aller aux histoires",
     iLearn: "2. Je veux apprendre (Langue cible)",
     iSpeak: "1. Je parle (Langue d'origine)",
@@ -307,9 +307,9 @@ export const fr: TranslationDictionary = {
   },
   generator: {
     categoryLabel: "Catégorie",
-    cefrLabel: "Niveau de compétence CECRL",
+    cefrLabel: "Niveau de compétence",
     dialogDesc:
-      "Générez en quelques secondes une histoire en {target} adaptée au niveau CECRL avec traductions en {origin}, vocabulaire, astuces de grammaire et quiz.",
+      "Générez en quelques secondes une histoire en {target} adaptée à votre niveau avec traductions en {origin}, vocabulaire, astuces de grammaire et quiz.",
     dialogTitle: "Générer une histoire IA",
     generateBtn: "Générer l'histoire en {target}",
     generatingBtn: "Génération en cours...",
@@ -321,7 +321,7 @@ export const fr: TranslationDictionary = {
     stepComposing: "Composition du quiz de lecture interactif...",
     stepDrafting: "Rédaction du récit captivant de l'histoire...",
     stepExtracting:
-      "Extraction du vocabulaire et des notions de grammaire CECRL...",
+      "Extraction du vocabulaire et des notions de grammaire par niveau...",
     stepSynthesizing: "Synthèse de la traduction bilingue parallèle...",
     swapTooltip: "Échanger",
     syncActivePairLabel:
@@ -392,9 +392,9 @@ export const fr: TranslationDictionary = {
     feat1Title: "Paires de Langues Libres",
     feat1Desc:
       "Lisez dans la langue cible de votre choix avec des traductions et des notes de grammaire dans votre langue maternelle.",
-    feat2Title: "Calibré CECR A1–C2",
+    feat2Title: "Calibrage par Niveaux Gradués",
     feat2Desc:
-      "Des récits IA adaptés dynamiquement aux niveaux du CECR, du grand débutant au texte littéraire.",
+      "Des récits IA calibrés dynamiquement sur 6 niveaux progressifs, des bases pour débutants jusqu'à la maîtrise fluide.",
     feat3Title: "Synthèse Audio Neuronale",
     feat3Desc:
       "Une prononciation authentique avec contrôle de la vitesse de lecture et retour rapide de 5 secondes.",

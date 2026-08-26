@@ -7,7 +7,7 @@
 <p align="center">
   <img src="docs/assets/home-linguamaxima.png" alt="LinguaMaxima Home & Story Library" width="100%" />
   <br />
-  <em>Interactive Story Library with CEFR Filtering, Progress Tracking, and Dynamic Language Pair Support</em>
+  <em>Interactive Story Library with Multi-Level Filtering, Progress Tracking, and Dynamic Language Pair Support</em>
 </p>
 
 <p align="center">
@@ -26,15 +26,15 @@
 
 ## 📖 Overview
 
-**LinguaMaxima** is an AI-powered language acquisition platform inspired by the proven pedagogy of graded readers (e.g. Readle), but engineered with modern AI generation pipelines to support **any arbitrary language pair** at zero marginal content cost.
+**LinguaMaxima** is an AI-powered language acquisition platform inspired by the proven pedagogy of graded readers, engineered with modern AI generation pipelines to support **any arbitrary language pair** at zero marginal content cost.
 
-Whether you are an Indonesian speaker learning German, an English speaker mastering Japanese, or a French speaker learning Spanish, LinguaMaxima produces CEFR-graded stories (A1–C2) with native-tongue translations, contextual grammar explanations, comprehension quizzes, neural audio pronunciation, and an integrated SuperMemo SM-2 spaced repetition flashcard system.
+Whether you are an Indonesian speaker learning German, an English speaker mastering Japanese, or a French speaker learning Spanish, LinguaMaxima produces level-graded stories (A1 Beginner to C2 Mastery) with native-tongue translations, contextual grammar explanations, comprehension quizzes, neural audio pronunciation, and an integrated SuperMemo SM-2 spaced repetition flashcard system.
 
 ---
 
 ## ✨ Key Features
 
-- **📚 AI-Generated CEFR Graded Stories (A1 to C2)** Calibrated short stories across diverse topics (Travel, Culture, Food, Daily Life, Technology, Science, History, Nature) tailored to exact CEFR proficiency levels.
+- **📚 AI-Generated Graded Stories (A1 to C2)** Calibrated short stories across diverse topics (Travel, Culture, Food, Daily Life, Technology, Science, History, Nature) tailored across 6 progressive proficiency tiers from beginner basics to fluent mastery.
 - **🔄 Universal Language Pair Engine** Learn any target language from any native language (e.g., German from Indonesian, Japanese from English, French from Spanish). All stories, definitions, grammar tips, and quizzes adapt symmetrically.
 - **⚡ Interactive Tap-to-Translate & Parallel Reader** Tap any word in a story to open an instant breakdown with grammatical gender (`der`/`die`/`das`, `el`/`la`, `le`/`la`), part of speech, definition in your native tongue, and example sentences. Toggle full parallel bilingual translations at any time.
 - **🧠 SuperMemo SM-2 Spaced Repetition Flashcards** Save new vocabulary directly from stories into your personal review deck. Review daily with the SM-2 algorithm (Again, Hard, Good, Easy) for long-term retention.

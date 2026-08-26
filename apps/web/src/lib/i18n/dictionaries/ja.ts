@@ -85,7 +85,7 @@ export const ja: TranslationDictionary = {
     emptyTitleGeneric: "ストーリーが見つかりません",
     emptyTitlePair: "{target}のストーリーはまだありません",
     heroSubtitle:
-      "CEFRストーリーとニューラル音声で、語彙を増やし、{origin}での文脈文法をマスターし、リスニング理解力を高めましょう。",
+      "段階別インタラクティブストーリーとニューラル音声で、語彙を増やし、{origin}での文脈文法をマスターし、リスニング理解力を高めましょう。",
     heroTitle: "段階別インタラクティブストーリーで{target}を学ぶ",
     learningBadge: "{originFlag} {origin}から{targetFlag} {target}を学習中",
     searchPlaceholder: "{target}のストーリーを検索...",
@@ -104,15 +104,15 @@ export const ja: TranslationDictionary = {
     applyingBtn: "適用中...",
     badge: "多言語学習センター",
     card1Desc:
-      "初心者A1から上級C2まで、選択したCEFR難易度に合わせて調整されたストーリー。",
-    card1Title: "AIによるCEFR段階別ストーリー",
+      "初心者（A1）から最上級（C2）まで、選択した習熟度レベルに合わせて調整されたストーリー。",
+    card1Title: "AIによる段階別ストーリー",
     card2Desc:
       "文法ポイント、冠詞のヒント、理解度クイズを母国語で分かりやすく解説。",
     card2Title: "2言語対応の文法＆クイズ",
     card3Desc:
       "高精度のニューラル音声が、本場のアクセントでストーリーと語彙を読み上げます。",
     card3Title: "ネイティブ級ニューラル音声発音",
-    cefrBadge: "CEFR A1-C2",
+    cefrBadge: "レベル A1–C2",
     goToStories: "ストーリー一覧へ",
     iLearn: "2. 学びたい言語 (ターゲット言語)",
     iSpeak: "1. 母国語 / 使用言語 (原言語)",
@@ -303,9 +303,9 @@ export const ja: TranslationDictionary = {
   },
   generator: {
     categoryLabel: "カテゴリー",
-    cefrLabel: "CEFR習熟度レベル",
+    cefrLabel: "習熟度レベル",
     dialogDesc:
-      "{origin}の翻訳、語彙、文法のヒント、理解度クイズを備えたCEFRレベル別{target}ストーリーを瞬時に生成します。",
+      "{origin}の翻訳、語彙、文法のヒント、理解度クイズを備えたレベル別{target}ストーリーを瞬時に生成します。",
     dialogTitle: "AIストーリー生成",
     generateBtn: "{target}ストーリーを生成",
     generatingBtn: "{target}ストーリーを生成中...",
@@ -316,7 +316,7 @@ export const ja: TranslationDictionary = {
     selectLanguagePlaceholder: "言語を選択",
     stepComposing: "インタラクティブな読解クイズを作成中...",
     stepDrafting: "魅力的な物語のドラフトを作成中...",
-    stepExtracting: "CEFR語彙と文法項目の抽出中...",
+    stepExtracting: "レベル別語彙と文法項目の抽出中...",
     stepSynthesizing: "パラレル対訳の合成中...",
     swapTooltip: "入れ替え",
     syncActivePairLabel: "アプリのアクティブな学習ペアとして設定",
@@ -382,9 +382,9 @@ export const ja: TranslationDictionary = {
     feat1Title: "自由な言語ペア設定",
     feat1Desc:
       "母国語での翻訳と文法解説を添えて、学びたい任意の言語で読書を楽しめます。",
-    feat2Title: "CEFR A1〜C2レベル対応",
+    feat2Title: "段階的レベル校正",
     feat2Desc:
-      "初心者向けの基礎文章からネイティブレベルの物語まで、CEFR基準に調整されたAIストーリー。",
+      "初心者向けの基礎からネイティブレベルの流暢な表現まで、6段階の習熟度レベルに動的調整されたAIストーリー。",
     feat3Title: "ニューラル音声合成",
     feat3Desc:
       "ネイティブスピーカーによる自然な発音、再生速度調整、5秒巻き戻し機能を搭載。",

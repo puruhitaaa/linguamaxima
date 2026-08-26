@@ -85,7 +85,7 @@ export const es: TranslationDictionary = {
     emptyTitleGeneric: "No se encontraron historias",
     emptyTitlePair: "Aún no hay historias en {target}",
     heroSubtitle:
-      "Amplía tu vocabulario, domina la gramática contextual en {origin} y mejora tu comprensión auditiva con historias CEFR y audio neuronal.",
+      "Amplía tu vocabulario, domina la gramática contextual en {origin} y mejora tu comprensión auditiva con historias interactivas graduadas y audio neuronal.",
     heroTitle: "Aprende {target} con Historias Interactivas Graduadas",
     learningBadge:
       "Aprendiendo {targetFlag} {target} desde {originFlag} {origin}",
@@ -105,15 +105,15 @@ export const es: TranslationDictionary = {
     applyingBtn: "Aplicando...",
     badge: "Centro de Aprendizaje Multilingüe",
     card1Desc:
-      "Las historias se calibran para tu nivel CEFR elegido, desde principiante A1 hasta dominio C2.",
-    card1Title: "Historias Graduadas CEFR con IA",
+      "Las historias se calibran para tu nivel de competencia elegido, desde principiante (A1) hasta dominio (C2).",
+    card1Title: "Historias Graduadas con IA",
     card2Desc:
       "Puntos gramaticales, artículos y preguntas de comprensión explicados en tu lengua materna.",
     card2Title: "Gramática y Cuestionarios Bilingües",
     card3Desc:
       "Voces neuronales de alta fidelidad leen cada historia y palabra con acento auténtico.",
     card3Title: "Pronunciación Nativa Neuronal",
-    cefrBadge: "CEFR A1-C2",
+    cefrBadge: "Niveles A1–C2",
     goToStories: "Ir a las Historias",
     iLearn: "2. Quiero Aprender (Idioma Objetivo)",
     iSpeak: "1. Yo Hablo (Idioma de Origen)",
@@ -307,9 +307,9 @@ export const es: TranslationDictionary = {
   },
   generator: {
     categoryLabel: "Categoría",
-    cefrLabel: "Nivel de Competencia CEFR",
+    cefrLabel: "Nivel de Competencia",
     dialogDesc:
-      "Genera en segundos una historia graduada en {target} con traducciones en {origin}, vocabulario, notas de gramática y cuestionario.",
+      "Genera en segundos una historia adaptada a tu nivel en {target} con traducciones en {origin}, vocabulario, notas de gramática y cuestionario.",
     dialogTitle: "Generar Historia con IA",
     generateBtn: "Generar Historia en {target}",
     generatingBtn: "Generando Historia en {target}...",
@@ -320,7 +320,8 @@ export const es: TranslationDictionary = {
     selectLanguagePlaceholder: "Seleccionar idioma",
     stepComposing: "Componiendo cuestionario de lectura interactivo...",
     stepDrafting: "Redactando narrativa atractiva de la historia...",
-    stepExtracting: "Extrayendo vocabulario y términos gramaticales MCER...",
+    stepExtracting:
+      "Extrayendo vocabulario y términos gramaticales por nivel...",
     stepSynthesizing: "Sintetizando traducción bilingüe paralela...",
     swapTooltip: "Intercambiar",
     syncActivePairLabel:
@@ -391,9 +392,9 @@ export const es: TranslationDictionary = {
     feat1Title: "Pares de Idiomas Arbitrarios",
     feat1Desc:
       "Lee en cualquier idioma objetivo con traducciones y notas gramaticales en tu lengua materna.",
-    feat2Title: "Calibrado CEFR A1–C2",
+    feat2Title: "Calibración por Niveles Graduados",
     feat2Desc:
-      "Historias de IA adaptadas dinámicamente a los niveles del MCER, desde principiante hasta avanzado.",
+      "Historias de IA calibradas dinámicamente en 6 niveles progresivos de dificultad, desde lo básico hasta el dominio fluido.",
     feat3Title: "Síntesis de Audio Neural",
     feat3Desc:
       "Pronunciación natural con control de velocidad de reproducción y rebobinado rápido de 5 segundos.",

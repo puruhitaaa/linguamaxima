@@ -86,7 +86,7 @@ export const de: TranslationDictionary = {
     emptyTitleGeneric: "Keine Geschichten gefunden",
     emptyTitlePair: "Noch keine {target}-Geschichten",
     heroSubtitle:
-      "Erweitere deinen Wortschatz, meistere kontextbezogene Grammatik auf {origin} und verbessere dein Hörverständnis mit CEFR-Geschichten und neuronalem Audio.",
+      "Erweitere deinen Wortschatz, meistere kontextbezogene Grammatik auf {origin} und verbessere dein Hörverständnis mit interaktiven Stufengeschichten und neuronalem Audio.",
     heroTitle: "Lerne {target} mit interaktiven Stufengeschichten",
     learningBadge: "Lerne {targetFlag} {target} von {originFlag} {origin}",
     searchPlaceholder: "{target}-Geschichten durchsuchen...",
@@ -105,15 +105,15 @@ export const de: TranslationDictionary = {
     applyingBtn: "Wird angewendet...",
     badge: "Mehrsprachiges Lernzentrum",
     card1Desc:
-      "Geschichten sind für dein gewähltes CEFR-Niveau von A1 bis C2 kalibriert.",
-    card1Title: "KI-angepasste CEFR-Stufengeschichten",
+      "Geschichten sind für dein gewähltes Kompetenzniveau von Anfänger (A1) bis Exzellent (C2) kalibriert.",
+    card1Title: "KI-angepasste Stufengeschichten",
     card2Desc:
       "Grammatikpunkte, Artikel-Tipps und Verständnisfragen werden in deiner Muttersprache erklärt.",
     card2Title: "Zweisprachige Grammatik & Quizfragen",
     card3Desc:
       "Hochwertige neuronale Stimmen lesen jede Geschichte und jedes Wort mit authentischem Akzent vor.",
     card3Title: "Neuronale muttersprachliche Aussprache",
-    cefrBadge: "CEFR A1-C2",
+    cefrBadge: "Stufen A1–C2",
     goToStories: "Zu den Geschichten",
     iLearn: "2. Ich möchte lernen (Zielsprache)",
     iSpeak: "1. Ich spreche (Ausgangssprache)",
@@ -307,9 +307,9 @@ export const de: TranslationDictionary = {
   },
   generator: {
     categoryLabel: "Kategorie",
-    cefrLabel: "CEFR-Kompetenzniveau",
+    cefrLabel: "Kompetenzniveau",
     dialogDesc:
-      "Generiere in Sekundenschnelle eine CEFR-angepasste {target}-Geschichte mit {origin}-Übersetzungen, Vokabeln, Grammatiktipps und Verständnisquiz.",
+      "Generiere in Sekundenschnelle eine stufenangepasste {target}-Geschichte mit {origin}-Übersetzungen, Vokabeln, Grammatiktipps und Verständnisquiz.",
     dialogTitle: "KI-Geschichte generieren",
     generateBtn: "{target}-Geschichte generieren",
     generatingBtn: "Generiere {target}-Geschichte...",
@@ -320,7 +320,7 @@ export const de: TranslationDictionary = {
     selectLanguagePlaceholder: "Sprache wählen",
     stepComposing: "Interaktives Lese-Quiz wird zusammengestellt...",
     stepDrafting: "Spannende Geschichtenerzählung wird verfasst...",
-    stepExtracting: "CEFR-Wortschatz und Grammatikregeln werden extrahiert...",
+    stepExtracting: "Stufenwortschatz und Grammatikregeln werden extrahiert...",
     stepSynthesizing:
       "Parallele zweisprachige Übersetzung wird synthetisiert...",
     swapTooltip: "Tauschen",
@@ -388,9 +388,9 @@ export const de: TranslationDictionary = {
     feat1Title: "Beliebige Sprachpaare",
     feat1Desc:
       "Lesen Sie in jeder Zielsprache mit Übersetzungen und Grammatik in Ihrer Muttersprache.",
-    feat2Title: "CEFR A1–C2 Kalibriert",
+    feat2Title: "Kalibrierte Niveaustufen",
     feat2Desc:
-      "Dynamisch auf CEFR-Niveaus abgestimmte KI-Geschichten von den Grundlagen bis zu anspruchsvollen Texten.",
+      "Dynamisch auf 6 progressive Kompetenzstufen abgestimmte KI-Geschichten von den Grundlagen bis zu anspruchsvollen Texten.",
     feat3Title: "Neuronale Audiosynthese",
     feat3Desc:
       "Authentische muttersprachliche Aussprache mit Geschwindigkeitskontrolle und 5-Sekunden-Rücklauf.",

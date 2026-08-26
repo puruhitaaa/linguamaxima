@@ -85,7 +85,7 @@ export const en: TranslationDictionary = {
     emptyTitleGeneric: "No Stories Found",
     emptyTitlePair: "No {target} Stories Yet",
     heroSubtitle:
-      "Expand vocabulary, master contextual grammar in {origin}, and improve listening comprehension with CEFR stories and neural audio.",
+      "Expand vocabulary, master contextual grammar in {origin}, and improve listening comprehension with graded interactive stories and neural audio.",
     heroTitle: "Learn {target} through Graded Interactive Stories",
     learningBadge: "Learning {targetFlag} {target} from {originFlag} {origin}",
     searchPlaceholder: "Search {target} stories...",
@@ -104,15 +104,15 @@ export const en: TranslationDictionary = {
     applyingBtn: "Applying...",
     badge: "Multi-Language Learning Center",
     card1Desc:
-      "Stories are calibrated for your chosen CEFR difficulty level from beginner A1 to mastery C2.",
-    card1Title: "AI-Tailored CEFR Graded Stories",
+      "Stories are calibrated for your chosen proficiency level from beginner (A1) to mastery (C2).",
+    card1Title: "AI-Tailored Graded Stories",
     card2Desc:
       "Grammar points, gender/article tips, and comprehension questions explain nuances in your native tongue.",
     card2Title: "Dual-Language Grammar & Quizzes",
     card3Desc:
       "High-fidelity neural voices read every story and vocabulary word with authentic accent.",
     card3Title: "Neural Native Audio Pronunciation",
-    cefrBadge: "CEFR A1-C2",
+    cefrBadge: "Graded Levels A1–C2",
     goToStories: "Go to Stories",
     iLearn: "2. I Want to Learn (Target Language)",
     iSpeak: "1. I Speak (Learner's Origin)",
@@ -303,9 +303,9 @@ export const en: TranslationDictionary = {
   },
   generator: {
     categoryLabel: "Category",
-    cefrLabel: "CEFR Proficiency Level",
+    cefrLabel: "Proficiency Level",
     dialogDesc:
-      "Generate a CEFR-graded {target} story with {origin} translations, vocabulary, grammar tips, and comprehension quizzes in seconds.",
+      "Generate a level-calibrated {target} story with {origin} translations, vocabulary, grammar tips, and comprehension quizzes in seconds.",
     dialogTitle: "Generate AI Story",
     generateBtn: "Generate {target} Story",
     generatingBtn: "Generating {target} Story...",
@@ -316,7 +316,7 @@ export const en: TranslationDictionary = {
     selectLanguagePlaceholder: "Select language",
     stepComposing: "Composing interactive reading quiz...",
     stepDrafting: "Drafting engaging story narrative...",
-    stepExtracting: "Extracting CEFR vocabulary and grammar terms...",
+    stepExtracting: "Extracting leveled vocabulary and grammar terms...",
     stepSynthesizing: "Synthesizing parallel bilingual translation...",
     swapTooltip: "Swap",
     syncActivePairLabel: "Set as active learning pair for the app",
@@ -383,9 +383,9 @@ export const en: TranslationDictionary = {
     feat1Title: "Arbitrary Language Pairs",
     feat1Desc:
       "Read in any target language with translations and grammar notes in your native origin tongue.",
-    feat2Title: "CEFR A1–C2 Calibrated",
+    feat2Title: "Graded Level Calibration",
     feat2Desc:
-      "AI stories dynamically leveled to CEFR standards from beginner basics to fluent native prose.",
+      "AI stories dynamically calibrated across 6 progressive proficiency tiers from beginner basics to fluent mastery.",
     feat3Title: "Neural Audio Synthesis",
     feat3Desc:
       "Native-sounding pronunciation with customizable speed controls and quick 5s rewind.",

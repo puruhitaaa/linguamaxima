@@ -278,14 +278,14 @@ export function GenerateStoryDialog({
               </div>
             </div>
 
-            {/* CEFR Level */}
+            {/* Proficiency Level */}
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-wider text-neutral-400">
                 {t("generator.cefrLabel")}
               </Label>
               <div
                 className="grid grid-cols-6 gap-1 sm:gap-1.5"
-                aria-label="CEFR Proficiency Level"
+                aria-label="Proficiency Level"
               >
                 {CEFR_LEVELS.map((lvl) => (
                   <button

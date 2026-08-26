@@ -85,7 +85,7 @@ export const id: TranslationDictionary = {
     emptyTitleGeneric: "Tidak Ada Cerita Ditemukan",
     emptyTitlePair: "Belum Ada Cerita {target}",
     heroSubtitle:
-      "Perluas kosakata, kuasai tata bahasa kontekstual dalam {origin}, dan tingkatkan pemahaman mendengar lewat cerita CEFR dan audio neural.",
+      "Perluas kosakata, kuasai tata bahasa kontekstual dalam {origin}, dan tingkatkan pemahaman mendengar lewat cerita interaktif bertingkat dan audio neural.",
     heroTitle: "Pelajari {target} Melalui Cerita Interaktif Bertingkat",
     learningBadge: "Belajar {targetFlag} {target} dari {originFlag} {origin}",
     searchPlaceholder: "Cari cerita {target}...",
@@ -104,15 +104,15 @@ export const id: TranslationDictionary = {
     applyingBtn: "Menerapkan...",
     badge: "Pusat Pembelajaran Multi-Bahasa",
     card1Desc:
-      "Cerita dikalibrasi sesuai tingkat kesulitan CEFR yang Anda pilih, dari pemula A1 hingga mahir C2.",
-    card1Title: "Cerita Bertingkat CEFR Sesuai AI",
+      "Cerita dikalibrasi sesuai tingkat kemahiran pilihan Anda, dari pemula (A1) hingga mahir (C2).",
+    card1Title: "Cerita Bertingkat Sesuai AI",
     card2Desc:
       "Poin tata bahasa, artikel kata benda, dan kuis pemahaman dijelaskan dalam bahasa ibu Anda.",
     card2Title: "Tata Bahasa & Kuis Dua Bahasa",
     card3Desc:
       "Suara neural berkualitas tinggi membacakan setiap cerita dan kosakata dengan aksen autentik.",
     card3Title: "Pengucapan Audio Neural Penutur Asli",
-    cefrBadge: "CEFR A1-C2",
+    cefrBadge: "Tingkat A1–C2",
     goToStories: "Buka Cerita",
     iLearn: "2. Saya Ingin Belajar (Bahasa Target)",
     iSpeak: "1. Saya Berbicara (Bahasa Asal)",
@@ -305,9 +305,9 @@ export const id: TranslationDictionary = {
   },
   generator: {
     categoryLabel: "Kategori",
-    cefrLabel: "Tingkat Kemahiran CEFR",
+    cefrLabel: "Tingkat Kemahiran",
     dialogDesc:
-      "Buat cerita {target} berjenjang CEFR dalam hitungan detik lengkap dengan terjemahan {origin}, kosakata, tips tata bahasa, dan kuis pemahaman.",
+      "Buat cerita {target} berjenjang level dalam hitungan detik lengkap dengan terjemahan {origin}, kosakata, tips tata bahasa, dan kuis pemahaman.",
     dialogTitle: "Buat Cerita AI",
     generateBtn: "Buat Cerita {target}",
     generatingBtn: "Membuat Cerita {target}...",
@@ -318,7 +318,7 @@ export const id: TranslationDictionary = {
     selectLanguagePlaceholder: "Pilih bahasa",
     stepComposing: "Menyusun kuis pemahaman membaca interaktif...",
     stepDrafting: "Menyusun narasi cerita yang menarik...",
-    stepExtracting: "Mengekstrak kosakata dan tata bahasa CEFR...",
+    stepExtracting: "Mengekstrak kosakata dan tata bahasa berjenjang...",
     stepSynthesizing: "Mensintesis terjemahan bilingual paralel...",
     swapTooltip: "Tukar",
     syncActivePairLabel:
@@ -386,9 +386,9 @@ export const id: TranslationDictionary = {
     feat1Title: "Pasangan Bahasa Fleksibel",
     feat1Desc:
       "Baca dalam bahasa target apa pun dengan terjemahan dan catatan tata bahasa dalam bahasa ibu Anda.",
-    feat2Title: "Terkalibrasi CEFR A1–C2",
+    feat2Title: "Kalibrasi Tingkat Berjenjang",
     feat2Desc:
-      "Cerita AI yang disesuaikan secara dinamis dengan standar CEFR dari tingkat pemula hingga mahir.",
+      "Cerita AI yang disesuaikan secara dinamis melintasi 6 tingkat kemahiran progresif dari pemula dasar hingga penguasaan fasih.",
     feat3Title: "Sintesis Audio Neural",
     feat3Desc:
       "Pengucapan autentik seperti penutur asli dengan kontrol kecepatan dan tombol mundur 5 detik.",
