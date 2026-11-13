@@ -10,6 +10,7 @@ from app.models import (
     CEFRLevel,
     Flashcard,
     GrammarTip,
+    JourneyVocabulary,
     Language,
     LanguagePair,
     Quiz,
@@ -127,10 +128,13 @@ class StoryRepository:
         language_pair_id: int | None = None,
         is_favorite: bool | None = None,
         is_completed: bool | None = None,
+        include_journey_stories: bool = False,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[Story], int]:
         query = select(Story).where(Story.is_published.is_(True))
+        if not include_journey_stories:
+            query = query.where(Story.is_journey_story.is_(False))
 
         if cefr_level:
             query = query.where(Story.cefr_level == cefr_level)
@@ -218,6 +222,7 @@ class StoryRepository:
         audio_url: str | None,
         ai_model: str,
         ai_provider: str,
+        is_journey_story: bool = False,
     ) -> Story:
         word_count = len(bundle.content.split())
         estimated_minutes = max(1, math.ceil(word_count / 80))
@@ -238,6 +243,7 @@ class StoryRepository:
             ai_model=ai_model,
             ai_provider=ai_provider,
             is_published=True,
+            is_journey_story=is_journey_story,
         )
         session.add(story)
         await session.flush()
@@ -422,6 +428,7 @@ class FlashcardRepository:
             stmt.options(
                 joinedload(Flashcard.vocabulary).joinedload(Vocabulary.story),
                 joinedload(Flashcard.word).joinedload(Word.language),
+                joinedload(Flashcard.journey_vocabulary),
             )
             .order_by(Flashcard.next_review)
         )
@@ -439,6 +446,7 @@ class FlashcardRepository:
             select(Flashcard)
             .outerjoin(Vocabulary, Flashcard.vocabulary_id == Vocabulary.id)
             .outerjoin(Word, Flashcard.word_id == Word.id)
+            .outerjoin(JourneyVocabulary, Flashcard.journey_vocabulary_id == JourneyVocabulary.id)
         )
         if search:
             stmt = stmt.where(
@@ -446,6 +454,8 @@ class FlashcardRepository:
                 | (Vocabulary.translation.ilike(f"%{search}%"))
                 | (Word.lemma.ilike(f"%{search}%"))
                 | (Word.translation.ilike(f"%{search}%"))
+                | (JourneyVocabulary.word.ilike(f"%{search}%"))
+                | (JourneyVocabulary.translation.ilike(f"%{search}%"))
             )
         lang_cond = _flashcard_language_condition(
             origin_language_code=origin_language_code,
@@ -457,6 +467,7 @@ class FlashcardRepository:
             stmt.options(
                 joinedload(Flashcard.vocabulary).joinedload(Vocabulary.story),
                 joinedload(Flashcard.word).joinedload(Word.language),
+                joinedload(Flashcard.journey_vocabulary),
             )
             .order_by(desc(Flashcard.created_at))
         )
@@ -507,6 +518,7 @@ class FlashcardRepository:
         flashcard = Flashcard(
             vocabulary_id=vocabulary_id,
             word_id=None,
+            journey_vocabulary_id=None,
             ease_factor=2.5,
             interval_days=0,
             repetitions=0,
@@ -529,6 +541,7 @@ class FlashcardRepository:
         flashcard = Flashcard(
             vocabulary_id=None,
             word_id=word_id,
+            journey_vocabulary_id=None,
             ease_factor=2.5,
             interval_days=0,
             repetitions=0,
@@ -539,6 +552,29 @@ class FlashcardRepository:
         await session.refresh(flashcard)
         return flashcard
 
+    async def save_journey_vocabulary_to_flashcard(
+        self, session: AsyncSession, journey_vocabulary_id: int
+    ) -> tuple[Flashcard, bool]:
+        stmt = select(Flashcard).where(Flashcard.journey_vocabulary_id == journey_vocabulary_id)
+        res = await session.execute(stmt)
+        existing = res.scalar_one_or_none()
+        if existing:
+            return existing, False
+
+        flashcard = Flashcard(
+            vocabulary_id=None,
+            word_id=None,
+            journey_vocabulary_id=journey_vocabulary_id,
+            ease_factor=2.5,
+            interval_days=0,
+            repetitions=0,
+            next_review=datetime.now(UTC),
+        )
+        session.add(flashcard)
+        await session.commit()
+        await session.refresh(flashcard)
+        return flashcard, True
+
     async def get_by_id(self, session: AsyncSession, flashcard_id: int) -> Flashcard | None:
         stmt = (
             select(Flashcard)
@@ -546,6 +582,7 @@ class FlashcardRepository:
             .options(
                 joinedload(Flashcard.vocabulary).joinedload(Vocabulary.story),
                 joinedload(Flashcard.word).joinedload(Word.language),
+                joinedload(Flashcard.journey_vocabulary),
             )
         )
         res = await session.execute(stmt)

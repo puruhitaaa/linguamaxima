@@ -1,9 +1,11 @@
 import { Button } from "@linguamaxima/ui/components/button";
 import { Input } from "@linguamaxima/ui/components/input";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   AlertCircle,
+  ArrowRight,
   BookOpen,
+  Compass,
   Flame,
   Globe,
   Layers,
@@ -18,16 +20,23 @@ import { z } from "zod";
 
 import { GenerateStoryDialog } from "../components/generate-story-dialog";
 import { LanguagePairModal } from "../components/language-pair-modal";
+import { LearningJourneyModal } from "../components/learning-journey-modal";
 import { StoryCard } from "../components/story-card";
 import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
-import { useCategories, useInfiniteStories, useProgress } from "../lib/queries";
+import {
+  useCategories,
+  useInfiniteStories,
+  useJourneys,
+  useProgress,
+} from "../lib/queries";
 import type { StoryListItem } from "../types/api";
 
 const CEFR_TABS = ["all", "A1", "A2", "B1", "B2", "C1", "C2"] as const;
 
 const storiesSearchSchema = z.object({
   category: z.string().optional(),
+  include_journey_stories: z.coerce.boolean().optional(),
   language_scope: z.preprocess(
     (v) => (v === "pair" || v === "all" ? v : undefined),
     z.enum(["pair", "all"]).optional()
@@ -50,6 +59,146 @@ export const Route = createFileRoute("/")({
   },
 });
 
+function ActiveJourneyBanner({
+  journeys,
+  continueLabel,
+}: {
+  journeys: ReturnType<typeof useJourneys>["data"];
+  continueLabel: string;
+}) {
+  const topJourney = journeys?.[0];
+  if (!topJourney) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-2xl border border-emerald-500/25 bg-gradient-to-r from-emerald-500/10 via-neutral-900 to-neutral-900 px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="size-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-center shrink-0">
+          <Compass className="size-4" />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-xs font-bold text-white truncate">
+            <span>{topJourney.title}</span>
+            <span className="px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300 text-[10px]">
+              {topJourney.cefr_level} ·{" "}
+              {Math.round(topJourney.progress_percentage)}%
+            </span>
+          </div>
+          {topJourney.next_step_title && (
+            <p className="text-[11px] text-neutral-400 truncate">
+              Next up: {topJourney.next_step_title}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <Link
+          to="/journeys"
+          className="text-xs font-semibold text-neutral-300 hover:text-white px-2.5 py-1.5"
+        >
+          All Journeys ({journeys.length})
+        </Link>
+        <Link
+          to="/journeys/$journeyId"
+          params={{ journeyId: String(topJourney.id) }}
+        >
+          <Button
+            size="sm"
+            className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold gap-1.5 cursor-pointer"
+          >
+            <span>{continueLabel}</span>
+            <ArrowRight className="size-3.5" />
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function dedupeStoryPages(
+  pages: { items: StoryListItem[] }[] | undefined
+): StoryListItem[] {
+  if (!pages) {
+    return [];
+  }
+  const seen = new Set<number>();
+  const list: StoryListItem[] = [];
+  for (const page of pages) {
+    for (const item of page.items) {
+      if (!seen.has(item.id)) {
+        seen.add(item.id);
+        list.push(item);
+      }
+    }
+  }
+  return list;
+}
+
+function HomeCategoryRow({
+  categories,
+  selectedCategory,
+  onSelectCategory,
+  includeJourneyStories,
+  onToggleIncludeJourneyStories,
+}: {
+  categories: ReturnType<typeof useCategories>["data"];
+  selectedCategory: string;
+  onSelectCategory: (catSlug: string) => void;
+  includeJourneyStories: boolean;
+  onToggleIncludeJourneyStories: () => void;
+}) {
+  const { t, tCategory } = useTranslation();
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex items-center gap-2 text-xs w-max sm:w-auto pb-1 sm:pb-0">
+          <button
+            type="button"
+            onClick={() => onSelectCategory("all")}
+            className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
+              selectedCategory === "all"
+                ? "bg-neutral-100 text-neutral-900 font-semibold"
+                : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
+            }`}
+          >
+            {t("home.allCategories")}
+          </button>
+          {categories?.map((cat) => (
+            <button
+              key={cat.slug}
+              type="button"
+              onClick={() => onSelectCategory(cat.slug)}
+              className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
+                selectedCategory === cat.slug
+                  ? "bg-neutral-100 text-neutral-900 font-semibold"
+                  : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
+              }`}
+            >
+              {tCategory(cat.slug)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onToggleIncludeJourneyStories}
+        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+          includeJourneyStories
+            ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
+            : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
+        }`}
+      >
+        <Compass className="size-3.5" />
+        <span>{t("journeys.includeJourneyStories")}</span>
+      </button>
+    </div>
+  );
+}
+
 function HomeComponent() {
   const navigate = Route.useNavigate();
   const searchParams = Route.useSearch();
@@ -57,8 +206,9 @@ function HomeComponent() {
   const selectedCategory = searchParams.category ?? "all";
   const searchParam = searchParams.search ?? "";
   const languageScope = searchParams.language_scope ?? "pair";
+  const includeJourneyStories = searchParams.include_journey_stories ?? false;
 
-  const { t, tCategory } = useTranslation();
+  const { t } = useTranslation();
   const { getLanguageFlag, originLanguage, targetLanguage } = useLanguagePair();
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(searchParam);
@@ -87,6 +237,7 @@ function HomeComponent() {
     origin_language_code: originLanguage.code,
     target_language_code: targetLanguage.code,
   });
+  const { data: activeJourneys } = useJourneys({ sort_by: "recent" });
   const {
     data: infiniteStories,
     fetchNextPage,
@@ -98,6 +249,7 @@ function HomeComponent() {
   } = useInfiniteStories({
     category_slug: selectedCategory !== "all" ? selectedCategory : undefined,
     cefr_level: selectedLevel !== "all" ? selectedLevel : undefined,
+    include_journey_stories: includeJourneyStories,
     limit: 12,
     origin_language_code:
       languageScope === "pair" ? originLanguage.code : undefined,
@@ -106,22 +258,10 @@ function HomeComponent() {
       languageScope === "pair" ? targetLanguage.code : undefined,
   });
 
-  const stories = useMemo(() => {
-    if (!infiniteStories?.pages) {
-      return [];
-    }
-    const seen = new Set<number>();
-    const list: StoryListItem[] = [];
-    for (const page of infiniteStories.pages) {
-      for (const item of page.items) {
-        if (!seen.has(item.id)) {
-          seen.add(item.id);
-          list.push(item);
-        }
-      }
-    }
-    return list;
-  }, [infiniteStories]);
+  const stories = useMemo(
+    () => dedupeStoryPages(infiniteStories?.pages),
+    [infiniteStories]
+  );
 
   const totalStories = infiniteStories?.pages[0]?.total ?? stories.length;
 
@@ -148,6 +288,15 @@ function HomeComponent() {
       search: (prev) => ({
         ...prev,
         language_scope: scope,
+      }),
+    });
+  };
+
+  const handleToggleIncludeJourneyStories = () => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        include_journey_stories: !includeJourneyStories,
       }),
     });
   };
@@ -315,10 +464,21 @@ function HomeComponent() {
               {t("home.heroSubtitle", { origin: originLanguage.name })}
             </p>
 
-            <div className="pt-1">
+            <div className="pt-1 flex flex-wrap items-center gap-2.5">
+              <LearningJourneyModal
+                trigger={
+                  <Button className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2 font-semibold text-xs shadow-md shadow-emerald-500/20 cursor-pointer">
+                    <Compass className="size-4" />
+                    <span>{t("header.newJourney")}</span>
+                  </Button>
+                }
+              />
               <GenerateStoryDialog
                 trigger={
-                  <Button className="bg-sky-500 hover:bg-sky-600 text-white gap-2 font-semibold text-xs shadow-md shadow-sky-500/20">
+                  <Button
+                    variant="outline"
+                    className="border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 gap-2 font-semibold text-xs cursor-pointer"
+                  >
                     <Sparkles className="size-4" />
                     <span>{t("generator.triggerBtn")}</span>
                   </Button>
@@ -371,6 +531,11 @@ function HomeComponent() {
       </div>
 
       {/* Filter Controls & Search */}
+      <ActiveJourneyBanner
+        journeys={activeJourneys}
+        continueLabel={t("journeys.continueBtn")}
+      />
+
       <div className="space-y-4">
         {/* Language Scope & CEFR Level Tabs */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -453,36 +618,14 @@ function HomeComponent() {
           </div>
         </div>
 
-        {/* Category Pills */}
-        <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex items-center gap-2 text-xs w-max sm:w-auto pb-1 sm:pb-0">
-            <button
-              type="button"
-              onClick={() => handleSelectCategory("all")}
-              className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
-                selectedCategory === "all"
-                  ? "bg-neutral-100 text-neutral-900 font-semibold"
-                  : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
-              }`}
-            >
-              {t("home.allCategories")}
-            </button>
-            {categories?.map((cat) => (
-              <button
-                key={cat.slug}
-                type="button"
-                onClick={() => handleSelectCategory(cat.slug)}
-                className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
-                  selectedCategory === cat.slug
-                    ? "bg-neutral-100 text-neutral-900 font-semibold"
-                    : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
-                }`}
-              >
-                {tCategory(cat.slug)}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Category Pills & Journey Stories Filter */}
+        <HomeCategoryRow
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onSelectCategory={handleSelectCategory}
+          includeJourneyStories={includeJourneyStories}
+          onToggleIncludeJourneyStories={handleToggleIncludeJourneyStories}
+        />
       </div>
 
       {/* Stories Grid */}

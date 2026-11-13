@@ -73,6 +73,23 @@ function getFlashcardVocab(card: Flashcard) {
       word: card.word.lemma,
     };
   }
+  if (card.journey_vocabulary) {
+    return {
+      difficulty_rank: 1,
+      example_sentence: card.journey_vocabulary.example_sentence || undefined,
+      example_translation:
+        card.journey_vocabulary.example_translation || undefined,
+      gender:
+        (card.journey_vocabulary.gender as "der" | "die" | "das" | null) ||
+        null,
+      id: card.journey_vocabulary.id,
+      part_of_speech: card.journey_vocabulary.part_of_speech || undefined,
+      pronunciation_url: card.journey_vocabulary.pronunciation_url || undefined,
+      story_id: 0,
+      translation: card.journey_vocabulary.translation,
+      word: card.journey_vocabulary.word,
+    };
+  }
   return {
     difficulty_rank: 1,
     example_sentence: undefined,

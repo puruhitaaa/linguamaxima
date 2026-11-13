@@ -26,6 +26,9 @@ async def list_stories(
     target_language_code: str | None = Query(None, description="Filter by target language code"),
     is_favorite: bool | None = Query(None, description="Filter by favorite status"),
     is_completed: bool | None = Query(None, description="Filter by completed status"),
+    include_journey_stories: bool = Query(
+        False, description="Include stories generated inside Learning Journeys"
+    ),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -39,6 +42,7 @@ async def list_stories(
         target_language_code=target_language_code,
         is_favorite=is_favorite,
         is_completed=is_completed,
+        include_journey_stories=include_journey_stories,
         page=page,
         limit=limit,
     )

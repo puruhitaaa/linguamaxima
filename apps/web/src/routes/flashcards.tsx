@@ -120,6 +120,20 @@ function getFlashcardVocab(fc: Flashcard) {
       word: fc.word.lemma,
     };
   }
+  if (fc.journey_vocabulary) {
+    return {
+      example_sentence: fc.journey_vocabulary.example_sentence || undefined,
+      example_translation:
+        fc.journey_vocabulary.example_translation || undefined,
+      gender:
+        (fc.journey_vocabulary.gender as "der" | "die" | "das" | null) ?? null,
+      part_of_speech: fc.journey_vocabulary.part_of_speech || undefined,
+      pronunciation_url: fc.journey_vocabulary.pronunciation_url || undefined,
+      story_id: undefined,
+      translation: fc.journey_vocabulary.translation,
+      word: fc.journey_vocabulary.word,
+    };
+  }
   return {
     example_sentence: undefined,
     example_translation: undefined,

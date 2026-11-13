@@ -44,7 +44,9 @@ export interface TranslationDictionary {
     dueTooltip: string;
     flashcards: string;
     githubTooltip: string;
+    journeys: string;
     languages: string;
+    newJourney: string;
     progress: string;
     quickSwitcherTitle: string;
     stories: string;
@@ -412,6 +414,39 @@ export interface TranslationDictionary {
     starOnGithubBtn: string;
   };
   categories: Record<string, string>;
+  journeys: {
+    allLevels: string;
+    allStatuses: string;
+    backToHub: string;
+    backToTree: string;
+    buildTreeBtn: string;
+    buildingTreeBtn: string;
+    completeStepBtn: string;
+    completedBadge: string;
+    continueBtn: string;
+    emptyDesc: string;
+    emptyTitle: string;
+    hubSubtitle: string;
+    hubTitle: string;
+    inProgressBadge: string;
+    includeJourneyStories: string;
+    modalTitle: string;
+    newJourneyBtn: string;
+    nextRecommendedBadge: string;
+    notStartedBadge: string;
+    pinnedBadge: string;
+    purposeLabel: string;
+    purposePlaceholder: string;
+    saveAllFlashcards: string;
+    searchPlaceholder: string;
+    skipAndContinue: string;
+    sortNewest: string;
+    sortProgressHigh: string;
+    sortProgressLow: string;
+    sortRecent: string;
+    sortTitle: string;
+    switchJourneyLabel: string;
+  };
 }
 
 export type NestedKeyOf<T> = {

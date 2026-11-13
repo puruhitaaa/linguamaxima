@@ -8,8 +8,14 @@ import {
 import { toast } from "sonner";
 
 import type {
+  CheckpointAnswerSubmission,
   Flashcard,
   FlashcardReviewResult,
+  JourneyClarifyPayload,
+  JourneyGeneratePayload,
+  JourneyPromptPreviewPayload,
+  JourneySortBy,
+  JourneyStatus,
   PaginatedStoriesResult,
   ProgressSummary,
   QuestionResult,
@@ -30,6 +36,7 @@ type StoryCacheEntry =
 interface StoryFilters {
   category_slug?: string;
   cefr_level?: string;
+  include_journey_stories?: boolean;
   is_completed?: boolean;
   is_favorite?: boolean;
   limit?: number;
@@ -55,6 +62,16 @@ export const queryKeys = {
   ) => ["flashcards", "all", filters] as const,
   infiniteStories: (filters?: Omit<StoryFilters, "page">) =>
     ["stories", "infinite", filters] as const,
+  journey: (id: number | string) => ["journey", String(id)] as const,
+  journeys: (filters?: {
+    cefr_level?: string;
+    is_pinned?: boolean;
+    origin_language_code?: string;
+    search?: string;
+    sort_by?: JourneySortBy;
+    status?: JourneyStatus | "all";
+    target_language_code?: string;
+  }) => ["journeys", filters] as const,
   languagePairs: ["languagePairs"] as const,
   languages: ["languages"] as const,
   progress: (filters?: FlashcardScopeFilters) => ["progress", filters] as const,
@@ -786,6 +803,209 @@ export function useSaveWordFlashcard() {
     },
     onSuccess: () => {
       toast.success("Word saved to flashcards!");
+    },
+  });
+}
+
+// ----------------- Learning Journeys Hooks -----------------
+
+export function useJourneys(filters?: {
+  cefr_level?: string;
+  is_pinned?: boolean;
+  origin_language_code?: string;
+  search?: string;
+  sort_by?: JourneySortBy;
+  status?: JourneyStatus | "all";
+  target_language_code?: string;
+}) {
+  return useQuery({
+    queryFn: () => api.getJourneys(filters),
+    queryKey: queryKeys.journeys(filters),
+  });
+}
+
+export function useJourney(journeyId: number | string) {
+  return useQuery({
+    enabled: Boolean(journeyId),
+    queryFn: () => api.getJourney(journeyId),
+    queryKey: queryKeys.journey(journeyId),
+  });
+}
+
+export function useClarifyJourney() {
+  return useMutation({
+    mutationFn: (payload: JourneyClarifyPayload) => api.clarifyJourney(payload),
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to evaluate learning goal");
+    },
+  });
+}
+
+export function usePreviewJourneyPrompt() {
+  return useMutation({
+    mutationFn: (payload: JourneyPromptPreviewPayload) =>
+      api.previewJourneyPrompt(payload),
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to synthesize prompt");
+    },
+  });
+}
+
+export function useGenerateJourney() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: JourneyGeneratePayload) =>
+      api.generateJourney(payload),
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to generate learning journey");
+    },
+    onSuccess: (journey) => {
+      queryClient.invalidateQueries({ queryKey: ["journeys"] });
+      queryClient.setQueryData(queryKeys.journey(journey.id), journey);
+      toast.success(`Learning journey "${journey.title}" is ready!`);
+    },
+  });
+}
+
+export function useActivateJourney() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (journeyId: number | string) => api.activateJourney(journeyId),
+    onSuccess: (_, journeyId) => {
+      queryClient.invalidateQueries({ queryKey: ["journeys"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.journey(journeyId) });
+    },
+  });
+}
+
+export function useToggleJourneyPin() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (journeyId: number | string) => api.toggleJourneyPin(journeyId),
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update pin status");
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["journeys"] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journey(data.journey_id),
+      });
+      toast.success(data.is_pinned ? "Journey pinned" : "Journey unpinned");
+    },
+  });
+}
+
+export function useDeleteJourney() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (journeyId: number | string) => api.deleteJourney(journeyId),
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete journey");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["journeys"] });
+      toast.success("Learning journey deleted");
+    },
+  });
+}
+
+export function usePrepareJourneyStep() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      journeyId,
+      stepId,
+    }: {
+      journeyId: number | string;
+      stepId: number | string;
+    }) => api.prepareJourneyStep(journeyId, stepId),
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to prepare learning step");
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journey(variables.journeyId),
+      });
+      queryClient.invalidateQueries({ queryKey: ["journeys"] });
+      queryClient.invalidateQueries({ queryKey: ["stories"] });
+    },
+  });
+}
+
+export function useCompleteJourneyStep() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      journeyId,
+      quizAnswers = [],
+      stepId,
+    }: {
+      journeyId: number | string;
+      quizAnswers?: CheckpointAnswerSubmission[];
+      stepId: number | string;
+    }) => api.completeJourneyStep(journeyId, stepId, quizAnswers),
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to complete step");
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journey(variables.journeyId),
+      });
+      queryClient.invalidateQueries({ queryKey: ["journeys"] });
+      if (data.is_completed) {
+        toast.success("Step completed! Progress updated.");
+      }
+    },
+  });
+}
+
+export function useSaveJourneyVocabFlashcard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      vocabId,
+    }: {
+      journeyId: number | string;
+      vocabId: number;
+    }) => api.saveJourneyVocabFlashcard(vocabId),
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to save vocabulary to flashcards");
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journey(variables.journeyId),
+      });
+      queryClient.invalidateQueries({ queryKey: ["flashcards"] });
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
+      toast.success("Saved to your SM-2 Flashcards!");
+    },
+  });
+}
+
+export function useSaveStepVocabsBulk() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      journeyId,
+      stepId,
+    }: {
+      journeyId: number | string;
+      stepId: number | string;
+    }) => api.saveStepVocabsBulk(journeyId, stepId),
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to save step vocabularies");
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journey(variables.journeyId),
+      });
+      queryClient.invalidateQueries({ queryKey: ["flashcards"] });
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
+      if (data.saved_count > 0) {
+        toast.success(`Saved ${data.saved_count} word(s) to Flashcards!`);
+      } else {
+        toast.info("All words in this step are already in your Flashcards.");
+      }
     },
   });
 }

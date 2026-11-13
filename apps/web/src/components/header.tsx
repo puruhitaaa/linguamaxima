@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BookA,
   BookOpen,
+  Compass,
   Flame,
   Globe,
   GraduationCap,
@@ -21,6 +22,7 @@ import { useProgress } from "../lib/queries";
 import { GitHubIcon } from "../routes/about";
 import { GenerateStoryDialog } from "./generate-story-dialog";
 import { LanguagePairModal } from "./language-pair-modal";
+import { LearningJourneyModal } from "./learning-journey-modal";
 
 export default function Header() {
   const routerState = useRouterState();
@@ -42,6 +44,7 @@ export default function Header() {
 
   const navLinks = [
     { icon: BookOpen, label: t("header.stories"), to: "/" },
+    { icon: Compass, label: t("header.journeys"), to: "/journeys" },
     { icon: BookA, label: t("header.words"), to: "/words" },
     { icon: Globe, label: t("header.languages"), to: "/languages" },
     { icon: Layers, label: t("header.flashcards"), to: "/flashcards" },
@@ -169,7 +172,8 @@ export default function Header() {
             </div>
           )}
 
-          {/* Generate Story CTA */}
+          {/* Learning Journey & Generate Story CTAs */}
+          <LearningJourneyModal />
           <GenerateStoryDialog />
 
           {/* Theme Toggle Button */}

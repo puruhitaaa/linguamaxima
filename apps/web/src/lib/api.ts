@@ -1,7 +1,20 @@
 import type {
   Category,
+  CheckpointAnswerSubmission,
   Flashcard,
   FlashcardReviewResult,
+  JourneyBulkFlashcardResult,
+  JourneyClarifyPayload,
+  JourneyClarifyResult,
+  JourneyDetail,
+  JourneyGeneratePayload,
+  JourneyListItem,
+  JourneyPromptPreviewPayload,
+  JourneyPromptPreviewResult,
+  JourneySortBy,
+  JourneyStatus,
+  JourneyStepCompleteResult,
+  JourneyStepPrepareResult,
   Language,
   LanguagePair,
   PaginatedStoriesResult,
@@ -85,6 +98,7 @@ export const api = {
   getStories: (params?: {
     category_slug?: string;
     cefr_level?: string;
+    include_journey_stories?: boolean;
     is_completed?: boolean;
     is_favorite?: boolean;
     limit?: number;
@@ -97,6 +111,7 @@ export const api = {
   getStoriesPaginated: async (params?: {
     category_slug?: string;
     cefr_level?: string;
+    include_journey_stories?: boolean;
     is_completed?: boolean;
     is_favorite?: boolean;
     limit?: number;
@@ -255,6 +270,98 @@ export const api = {
       body: JSON.stringify({ language, text, voice }),
       method: "POST",
     }),
+
+  // Learning Journeys
+  clarifyJourney: (payload: JourneyClarifyPayload) =>
+    request<JourneyClarifyResult>("/api/v1/journeys/clarify", {
+      body: JSON.stringify(payload),
+      method: "POST",
+    }),
+
+  previewJourneyPrompt: (payload: JourneyPromptPreviewPayload) =>
+    request<JourneyPromptPreviewResult>("/api/v1/journeys/preview-prompt", {
+      body: JSON.stringify(payload),
+      method: "POST",
+    }),
+
+  generateJourney: (payload: JourneyGeneratePayload) =>
+    request<JourneyDetail>("/api/v1/journeys/generate", {
+      body: JSON.stringify(payload),
+      method: "POST",
+    }),
+
+  getJourneys: (params?: {
+    cefr_level?: string;
+    is_pinned?: boolean;
+    origin_language_code?: string;
+    search?: string;
+    sort_by?: JourneySortBy;
+    status?: JourneyStatus | "all";
+    target_language_code?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== "all" && value !== "") {
+          query.set(key, String(value));
+        }
+      }
+    }
+    const qs = query.toString();
+    return request<JourneyListItem[]>(`/api/v1/journeys${qs ? `?${qs}` : ""}`);
+  },
+
+  getJourney: (journeyId: number | string) =>
+    request<JourneyDetail>(`/api/v1/journeys/${journeyId}`),
+
+  activateJourney: (journeyId: number | string) =>
+    request<JourneyListItem>(`/api/v1/journeys/${journeyId}/activate`, {
+      method: "PATCH",
+    }),
+
+  toggleJourneyPin: (journeyId: number | string) =>
+    request<{ is_pinned: boolean; journey_id: number }>(
+      `/api/v1/journeys/${journeyId}/pin`,
+      { method: "PATCH" }
+    ),
+
+  deleteJourney: async (journeyId: number | string) => {
+    const url = `${API_BASE_URL}/api/v1/journeys/${journeyId}`;
+    const response = await fetch(url, { method: "DELETE" });
+    if (!response.ok) {
+      throw new Error(`${response.status} ${response.statusText}`);
+    }
+  },
+
+  prepareJourneyStep: (journeyId: number | string, stepId: number | string) =>
+    request<JourneyStepPrepareResult>(
+      `/api/v1/journeys/${journeyId}/steps/${stepId}/prepare`,
+      { method: "POST" }
+    ),
+
+  completeJourneyStep: (
+    journeyId: number | string,
+    stepId: number | string,
+    quizAnswers: CheckpointAnswerSubmission[] = []
+  ) =>
+    request<JourneyStepCompleteResult>(
+      `/api/v1/journeys/${journeyId}/steps/${stepId}/complete`,
+      {
+        body: JSON.stringify({ quiz_answers: quizAnswers }),
+        method: "POST",
+      }
+    ),
+
+  saveJourneyVocabFlashcard: (vocabId: number) =>
+    request<Flashcard>(`/api/v1/journeys/vocab/${vocabId}/flashcard`, {
+      method: "POST",
+    }),
+
+  saveStepVocabsBulk: (journeyId: number | string, stepId: number | string) =>
+    request<JourneyBulkFlashcardResult>(
+      `/api/v1/journeys/${journeyId}/steps/${stepId}/flashcards/bulk`,
+      { method: "POST" }
+    ),
 
   // Helper for full audio URL
   getMediaUrl: (relativePath?: string) => {
