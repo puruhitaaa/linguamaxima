@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, Literal
 from pydantic import BaseModel, ConfigDict, Field
-from app.models import CEFRLevel, ProficiencyFramework
+from app.models import CEFRLevel, JourneyStatus, JourneyStepType, ProficiencyFramework
 
 # ----------------- Base / Common -----------------
 class ORMModel(BaseModel):
@@ -173,12 +173,29 @@ class FavoriteToggleResponse(BaseModel):
     is_favorite: bool
 
 # ----------------- Flashcards -----------------
+class JourneyVocabularyResponse(ORMModel):
+    id: int
+    journey_id: int
+    step_id: int
+    word: str
+    translation: str
+    part_of_speech: Optional[str] = None
+    gender: Optional[str] = None
+    phonetic: Optional[str] = None
+    example_sentence: Optional[str] = None
+    example_translation: Optional[str] = None
+    pronunciation_url: Optional[str] = None
+    is_mastered: bool = False
+    is_saved_as_flashcard: bool = False
+
 class FlashcardResponse(ORMModel):
     id: int
     vocabulary_id: Optional[int] = None
     vocabulary: Optional[VocabularyResponse] = None
     word_id: Optional[int] = None
     word: Optional[WordResponse] = None
+    journey_vocabulary_id: Optional[int] = None
+    journey_vocabulary: Optional[JourneyVocabularyResponse] = None
     ease_factor: float
     interval_days: int
     repetitions: int
@@ -189,6 +206,7 @@ class FlashcardResponse(ORMModel):
 class FlashcardCreateRequest(BaseModel):
     vocabulary_id: Optional[int] = None
     word_id: Optional[int] = None
+    journey_vocabulary_id: Optional[int] = None
 
 class FlashcardReviewRequest(BaseModel):
     # Quality rating: 0 (Again/Blackout), 3 (Hard), 4 (Good), 5 (Easy)
@@ -289,3 +307,213 @@ class GeneratedStoryBundle(BaseModel):
     vocabulary: List[GeneratedVocabularyItem] = Field(default_factory=list)
     grammar_tips: List[GeneratedGrammarTip] = Field(default_factory=list)
     quiz_questions: List[GeneratedQuizQuestion] = Field(default_factory=list)
+
+# ----------------- Learning Journeys -----------------
+class ClarificationAnswerItem(BaseModel):
+    question_id: str
+    question: str
+    answer: str
+
+class ClarificationQuestionItem(BaseModel):
+    id: str
+    question: str
+    hint: Optional[str] = None
+    input_type: Literal["chips", "multi_chips", "text"] = "chips"
+    suggested_options: List[str] = Field(default_factory=list)
+
+class JourneyClarifyRequest(BaseModel):
+    purpose: str = Field(min_length=2, max_length=500)
+    origin_language_code: str = "id"
+    target_language_code: str = "de"
+    answers: List[ClarificationAnswerItem] = Field(default_factory=list)
+    round: int = Field(default=1, ge=1, le=3)
+
+class JourneyClarifyResponse(BaseModel):
+    is_sufficient: bool
+    confidence_reason: str
+    questions: List[ClarificationQuestionItem] = Field(default_factory=list)
+    draft_summary: str
+    recommended_sector_tag: Optional[str] = None
+    synthesized_prompt: Optional[str] = None
+
+class JourneyPromptPreviewRequest(BaseModel):
+    purpose: str = Field(min_length=2, max_length=500)
+    clarifications: List[ClarificationAnswerItem] = Field(default_factory=list)
+    cefr_level: CEFRLevel = CEFRLevel.B1
+    origin_language_code: str = "id"
+    target_language_code: str = "de"
+
+class JourneyPromptPreviewResponse(BaseModel):
+    synthesized_prompt: str
+    summary: str
+    recommended_sector_tag: Optional[str] = None
+    estimated_phases: int = 3
+    estimated_vocab_count: int = 24
+
+class JourneyGenerateRequest(BaseModel):
+    purpose: str = Field(min_length=2, max_length=500)
+    clarifications: List[ClarificationAnswerItem] = Field(default_factory=list)
+    cefr_level: CEFRLevel = CEFRLevel.B1
+    origin_language_code: str = "id"
+    target_language_code: str = "de"
+    custom_prompt_override: Optional[str] = None
+
+class CheckpointQuestionItem(BaseModel):
+    id: str
+    question_type: str = "multiple_choice"
+    question: str
+    question_translated: Optional[str] = None
+    options: List[str] = Field(default_factory=list)
+    explanation: Optional[str] = None
+
+class JourneyStepResponse(ORMModel):
+    id: int
+    phase_id: int
+    journey_id: int
+    step_order: int
+    step_type: JourneyStepType
+    title: str
+    title_translated: Optional[str] = None
+    description: Optional[str] = None
+    grammar_focus: Optional[str] = None
+    story_type: Optional[str] = None
+    story_id: Optional[int] = None
+    is_story_prepared: bool = False
+    is_completed: bool = False
+    completed_at: Optional[datetime] = None
+    best_score: Optional[int] = None
+    vocabularies: List[JourneyVocabularyResponse] = Field(default_factory=list)
+    checkpoint_questions: List[CheckpointQuestionItem] = Field(default_factory=list)
+
+class JourneyPhaseResponse(ORMModel):
+    id: int
+    journey_id: int
+    phase_number: int
+    title: str
+    title_translated: Optional[str] = None
+    description: Optional[str] = None
+    milestone_goal: Optional[str] = None
+    steps: List[JourneyStepResponse] = Field(default_factory=list)
+
+class JourneyListItemResponse(ORMModel):
+    id: int
+    title: str
+    purpose_input: str
+    sector_tag: Optional[str] = None
+    summary: Optional[str] = None
+    cefr_level: CEFRLevel
+    language_pair: Optional[LanguagePairResponse] = None
+    status: JourneyStatus
+    is_pinned: bool = False
+    total_steps: int = 0
+    completed_steps: int = 0
+    progress_percentage: int = 0
+    total_vocab_count: int = 0
+    mastered_vocab_count: int = 0
+    next_step_id: Optional[int] = None
+    next_step_title: Optional[str] = None
+    last_accessed_at: Optional[datetime] = None
+    created_at: datetime
+
+class JourneyDetailResponse(JourneyListItemResponse):
+    clarifications: List[ClarificationAnswerItem] = Field(default_factory=list)
+    synthesized_prompt: str
+    ai_model: Optional[str] = None
+    ai_provider: Optional[str] = None
+    phases: List[JourneyPhaseResponse] = Field(default_factory=list)
+
+class JourneyStepPrepareResponse(BaseModel):
+    step: JourneyStepResponse
+    story_id: Optional[int] = None
+    newly_generated: bool = False
+
+class CheckpointAnswerSubmission(BaseModel):
+    question_id: str
+    selected_answer: str
+
+class JourneyStepCompleteRequest(BaseModel):
+    quiz_answers: List[CheckpointAnswerSubmission] = Field(default_factory=list)
+
+class CheckpointQuestionResult(BaseModel):
+    question_id: str
+    question: str
+    selected_answer: str
+    correct_answer: str
+    is_correct: bool
+    explanation: Optional[str] = None
+
+class JourneyStepCompleteResponse(BaseModel):
+    step_id: int
+    is_completed: bool
+    score_percentage: Optional[int] = None
+    passed: bool = True
+    results: List[CheckpointQuestionResult] = Field(default_factory=list)
+    journey_completed_steps: int
+    journey_total_steps: int
+    journey_status: JourneyStatus
+
+class JourneyPinToggleResponse(BaseModel):
+    journey_id: int
+    is_pinned: bool
+
+class JourneyBulkFlashcardResponse(BaseModel):
+    saved_count: int
+    already_saved_count: int
+    flashcard_ids: List[int] = Field(default_factory=list)
+
+# ----------------- AI Journey Structured Output Schemas -----------------
+class GeneratedClarificationResult(BaseModel):
+    is_sufficient: bool = False
+    confidence_reason: str
+    questions: List[ClarificationQuestionItem] = Field(default_factory=list)
+    draft_summary: str
+    recommended_sector_tag: Optional[str] = None
+    synthesized_prompt: Optional[str] = None
+
+class GeneratedPromptSynthesis(BaseModel):
+    synthesized_prompt: str
+    summary: str
+    recommended_sector_tag: Optional[str] = None
+
+class GeneratedJourneyVocabItem(BaseModel):
+    word: str
+    translation: str
+    part_of_speech: Optional[str] = "noun"
+    gender: Optional[str] = None
+    phonetic: Optional[str] = None
+    example_sentence: Optional[str] = None
+    example_translation: Optional[str] = None
+
+class GeneratedCheckpointQuestion(BaseModel):
+    id: str
+    question_type: str = "multiple_choice"
+    question: str
+    question_translated: Optional[str] = None
+    correct_answer: str
+    wrong_answers: List[str] = Field(default_factory=list)
+    explanation: Optional[str] = None
+
+class GeneratedJourneyStep(BaseModel):
+    step_type: JourneyStepType
+    title: str
+    title_translated: Optional[str] = None
+    description: Optional[str] = None
+    grammar_focus: Optional[str] = None
+    story_topic_prompt: Optional[str] = None
+    story_type: Optional[str] = "dialogue"
+    vocabularies: List[GeneratedJourneyVocabItem] = Field(default_factory=list)
+    checkpoint_questions: List[GeneratedCheckpointQuestion] = Field(default_factory=list)
+
+class GeneratedJourneyPhase(BaseModel):
+    phase_number: int
+    title: str
+    title_translated: Optional[str] = None
+    description: Optional[str] = None
+    milestone_goal: Optional[str] = None
+    steps: List[GeneratedJourneyStep] = Field(default_factory=list)
+
+class GeneratedJourneyCurriculum(BaseModel):
+    title: str
+    sector_tag: Optional[str] = None
+    summary: str
+    phases: List[GeneratedJourneyPhase] = Field(default_factory=list)

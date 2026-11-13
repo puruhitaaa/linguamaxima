@@ -31,7 +31,12 @@ import { QuizSection } from "../components/quiz-section";
 import { useStoryAudioSync } from "../hooks/use-story-audio-sync";
 import { playPronunciationAudio } from "../lib/audio";
 import { useTranslation } from "../lib/i18n";
-import { useSaveFlashcard, useStory, useToggleFavorite } from "../lib/queries";
+import {
+  useCompleteJourneyStep,
+  useSaveFlashcard,
+  useStory,
+  useToggleFavorite,
+} from "../lib/queries";
 import type {
   CEFRLevel,
   GrammarTip,
@@ -40,6 +45,8 @@ import type {
 } from "../types/api";
 
 const storyDetailSearchSchema = z.object({
+  journeyId: z.coerce.number().int().positive().optional(),
+  stepId: z.coerce.number().int().positive().optional(),
   tab: z
     .enum(["story", "vocabulary", "grammar", "quiz"])
     .optional()
@@ -145,11 +152,13 @@ function StoryReadingComponent() {
   const navigate = Route.useNavigate();
   const searchParams = Route.useSearch();
   const activeTab = searchParams.tab ?? "story";
+  const { journeyId, stepId } = searchParams;
   const { t } = useTranslation();
 
   const { data: story, isLoading, error } = useStory(storyId);
   const toggleFavorite = useToggleFavorite();
   const saveFlashcard = useSaveFlashcard();
+  const completeJourneyStep = useCompleteJourneyStep();
 
   const [showParallelTranslation, setShowParallelTranslation] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -191,10 +200,27 @@ function StoryReadingComponent() {
 
   const handleTabChange = (tab: string) => {
     navigate({
-      search: () => ({
+      search: (prev) => ({
+        ...prev,
         tab: tab as "story" | "vocabulary" | "grammar" | "quiz",
       }),
     });
+  };
+
+  const handleCompleteJourneyLesson = async () => {
+    if (!journeyId || !stepId) {
+      return;
+    }
+    try {
+      await completeJourneyStep.mutateAsync({ journeyId, stepId });
+      navigate({
+        params: { journeyId: String(journeyId) },
+        search: { stepId },
+        to: "/journeys/$journeyId",
+      });
+    } catch {
+      // Keep user on story if completion fails
+    }
   };
 
   if (isLoading) {
@@ -217,6 +243,39 @@ function StoryReadingComponent() {
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-6 sm:py-8 space-y-6">
+      {journeyId && (
+        <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <Link
+            to="/journeys/$journeyId"
+            params={{ journeyId: String(journeyId) }}
+            search={stepId ? { stepId } : {}}
+            className="inline-flex items-center gap-2 text-xs font-semibold text-sky-300 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="size-4" />
+            <span>{t("journeys.backToTree")}</span>
+          </Link>
+
+          {stepId && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                handleCompleteJourneyLesson();
+              }}
+              disabled={completeJourneyStep.isPending}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold gap-1.5 cursor-pointer"
+            >
+              <Check className="size-3.5" />
+              <span>
+                {completeJourneyStep.isPending
+                  ? "Saving..."
+                  : t("journeys.completeStepBtn")}
+              </span>
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Top Bar with Back Link and Actions */}
       <StoryTopBar
         storyId={story.id}

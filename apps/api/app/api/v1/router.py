@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     categories,
     flashcards,
+    journeys,
     languages,
     progress,
     quizzes,
@@ -13,6 +14,7 @@ from app.api.v1.endpoints import (
 api_router = APIRouter(prefix="/api/v1")
 
 api_router.include_router(stories.router)
+api_router.include_router(journeys.router)
 api_router.include_router(categories.router)
 api_router.include_router(languages.router)
 api_router.include_router(words.router)

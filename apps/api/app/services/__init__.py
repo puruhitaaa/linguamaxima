@@ -14,6 +14,7 @@ from app.repositories import (
 from app.schemas import (
     FlashcardResponse,
     FlashcardReviewResponse,
+    JourneyVocabularyResponse,
     ProgressSummaryResponse,
     QuestionResult,
     QuizResponse,
@@ -45,6 +46,7 @@ class StoryService:
         language_pair_id: Optional[int] = None,
         is_favorite: Optional[bool] = None,
         is_completed: Optional[bool] = None,
+        include_journey_stories: bool = False,
         page: int = 1,
         limit: int = 20,
     ) -> Tuple[List[StoryListItemResponse], int]:
@@ -59,6 +61,7 @@ class StoryService:
             language_pair_id=language_pair_id,
             is_favorite=is_favorite,
             is_completed=is_completed,
+            include_journey_stories=include_journey_stories,
             limit=limit,
             offset=offset,
         )
@@ -168,7 +171,11 @@ class StoryService:
         )
 
     async def generate_and_save_story(
-        self, session: AsyncSession, req: StoryGenerateRequest
+        self,
+        session: AsyncSession,
+        req: StoryGenerateRequest,
+        is_journey_story: bool = False,
+        required_vocabulary: Optional[List[str]] = None,
     ) -> StoryDetailResponse:
         category = await category_repo.get_by_slug(session, req.category_slug)
         category_name = category.name if category else req.category_slug.capitalize()
@@ -189,6 +196,7 @@ class StoryService:
             target_lang=target_name,
             origin_lang=origin_name,
             story_type=req.story_type or "auto",
+            required_vocabulary=required_vocabulary,
         )
 
         # 2. Cover image fetch (in background/async)
@@ -227,6 +235,7 @@ class StoryService:
             audio_url=audio_url,
             ai_model=ai_model,
             ai_provider=ai_provider,
+            is_journey_story=is_journey_story,
         )
 
         return await self.get_story_detail(session, saved_story.id)
@@ -322,12 +331,33 @@ class FlashcardService:
                 created_at=fc.word.created_at,
             )
 
+        journey_vocab_resp = None
+        if fc.journey_vocabulary:
+            jv = fc.journey_vocabulary
+            journey_vocab_resp = JourneyVocabularyResponse(
+                id=jv.id,
+                journey_id=jv.journey_id,
+                step_id=jv.step_id,
+                word=jv.word,
+                translation=jv.translation,
+                part_of_speech=jv.part_of_speech,
+                gender=jv.gender,
+                phonetic=jv.phonetic,
+                example_sentence=jv.example_sentence,
+                example_translation=jv.example_translation,
+                pronunciation_url=jv.pronunciation_url,
+                is_mastered=jv.is_mastered,
+                is_saved_as_flashcard=True,
+            )
+
         return FlashcardResponse(
             id=fc.id,
             vocabulary_id=fc.vocabulary_id,
             vocabulary=vocab_resp,
             word_id=fc.word_id,
             word=word_resp,
+            journey_vocabulary_id=fc.journey_vocabulary_id,
+            journey_vocabulary=journey_vocab_resp,
             ease_factor=fc.ease_factor,
             interval_days=fc.interval_days,
             repetitions=fc.repetitions,
@@ -347,14 +377,23 @@ class FlashcardService:
         return [self._format_flashcard(fc) for fc in flashcards]
 
     async def save_flashcard(
-        self, session: AsyncSession, vocabulary_id: Optional[int] = None, word_id: Optional[int] = None
+        self,
+        session: AsyncSession,
+        vocabulary_id: Optional[int] = None,
+        word_id: Optional[int] = None,
+        journey_vocabulary_id: Optional[int] = None,
     ) -> FlashcardResponse:
         if word_id:
             fc = await flashcard_repo.save_word_to_flashcard(session, word_id)
         elif vocabulary_id:
             fc = await flashcard_repo.save_vocabulary_to_flashcard(session, vocabulary_id)
+        elif journey_vocabulary_id:
+            fc, _ = await flashcard_repo.save_journey_vocabulary_to_flashcard(session, journey_vocabulary_id)
         else:
-            raise HTTPException(status_code=400, detail="Either vocabulary_id or word_id must be provided")
+            raise HTTPException(
+                status_code=400,
+                detail="Either vocabulary_id, word_id, or journey_vocabulary_id must be provided",
+            )
 
         loaded = await flashcard_repo.get_by_id(session, fc.id)
         return self._format_flashcard(loaded)

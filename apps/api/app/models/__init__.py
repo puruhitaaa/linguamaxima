@@ -35,6 +35,17 @@ class ProficiencyFramework(str, enum.Enum):
     TORFL = "torfl"
     FREQUENCY = "frequency"
 
+class JourneyStatus(str, enum.Enum):
+    NOT_STARTED = "not_started"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    PAUSED = "paused"
+
+class JourneyStepType(str, enum.Enum):
+    VOCAB_PACK = "vocab_pack"
+    STORY_LESSON = "story_lesson"
+    CHECKPOINT = "checkpoint"
+
 class Language(Base):
     __tablename__ = "languages"
 
@@ -91,6 +102,7 @@ class Story(Base):
     ai_model = Column(String(100), nullable=True)
     ai_provider = Column(String(50), nullable=True)
     is_published = Column(Boolean, default=True, index=True)
+    is_journey_story = Column(Boolean, default=False, nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), default=utcnow)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
@@ -189,6 +201,7 @@ class Flashcard(Base):
     id = Column(Integer, primary_key=True, index=True)
     vocabulary_id = Column(Integer, ForeignKey("vocabulary.id", ondelete="CASCADE"), nullable=True, unique=True, index=True)
     word_id = Column(Integer, ForeignKey("words.id", ondelete="CASCADE"), nullable=True, unique=True, index=True)
+    journey_vocabulary_id = Column(Integer, ForeignKey("journey_vocabularies.id", ondelete="CASCADE"), nullable=True, unique=True, index=True)
     ease_factor = Column(Float, default=2.5)
     interval_days = Column(Integer, default=0)
     repetitions = Column(Integer, default=0)
@@ -198,3 +211,112 @@ class Flashcard(Base):
 
     vocabulary = relationship("Vocabulary", back_populates="flashcards", lazy="joined")
     word = relationship("Word", back_populates="flashcards", lazy="joined")
+    journey_vocabulary = relationship("JourneyVocabulary", back_populates="flashcards", lazy="joined")
+
+class LearningJourney(Base):
+    __tablename__ = "learning_journeys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    language_pair_id = Column(Integer, ForeignKey("language_pairs.id", ondelete="SET NULL"), nullable=True, index=True)
+    cefr_level = Column(Enum(CEFRLevel, native_enum=False), nullable=False, index=True)
+    title = Column(String(300), nullable=False)
+    purpose_input = Column(Text, nullable=False)
+    clarifications_json = Column(JSON, nullable=True)
+    synthesized_prompt = Column(Text, nullable=False)
+    sector_tag = Column(String(120), nullable=True, index=True)
+    summary = Column(Text, nullable=True)
+    status = Column(
+        Enum(JourneyStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
+        default=JourneyStatus.NOT_STARTED,
+        nullable=False,
+        index=True,
+    )
+    is_pinned = Column(Boolean, default=False, nullable=False, index=True)
+    total_steps = Column(Integer, default=0, nullable=False)
+    completed_steps = Column(Integer, default=0, nullable=False)
+    ai_model = Column(String(100), nullable=True)
+    ai_provider = Column(String(50), nullable=True)
+    last_accessed_at = Column(DateTime(timezone=True), default=utcnow, index=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    language_pair = relationship("LanguagePair", lazy="joined")
+    phases = relationship(
+        "JourneyPhase",
+        back_populates="journey",
+        cascade="all, delete-orphan",
+        order_by="JourneyPhase.phase_number",
+        lazy="selectin",
+    )
+
+class JourneyPhase(Base):
+    __tablename__ = "journey_phases"
+
+    id = Column(Integer, primary_key=True, index=True)
+    journey_id = Column(Integer, ForeignKey("learning_journeys.id", ondelete="CASCADE"), nullable=False, index=True)
+    phase_number = Column(Integer, nullable=False)
+    title = Column(String(250), nullable=False)
+    title_translated = Column(String(250), nullable=True)
+    description = Column(Text, nullable=True)
+    milestone_goal = Column(Text, nullable=True)
+
+    journey = relationship("LearningJourney", back_populates="phases")
+    steps = relationship(
+        "JourneyStep",
+        back_populates="phase",
+        cascade="all, delete-orphan",
+        order_by="JourneyStep.step_order",
+        lazy="selectin",
+    )
+
+class JourneyStep(Base):
+    __tablename__ = "journey_steps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    phase_id = Column(Integer, ForeignKey("journey_phases.id", ondelete="CASCADE"), nullable=False, index=True)
+    journey_id = Column(Integer, ForeignKey("learning_journeys.id", ondelete="CASCADE"), nullable=False, index=True)
+    step_order = Column(Integer, nullable=False)
+    step_type = Column(
+        Enum(JourneyStepType, values_callable=lambda x: [e.value for e in x], native_enum=False),
+        nullable=False,
+    )
+    title = Column(String(250), nullable=False)
+    title_translated = Column(String(250), nullable=True)
+    description = Column(Text, nullable=True)
+    grammar_focus = Column(String(250), nullable=True)
+    story_topic_prompt = Column(Text, nullable=True)
+    story_type = Column(String(30), default="dialogue")
+    story_id = Column(Integer, ForeignKey("stories.id", ondelete="SET NULL"), nullable=True, index=True)
+    checkpoint_questions_json = Column(JSON, nullable=True)
+    is_completed = Column(Boolean, default=False, nullable=False, index=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    best_score = Column(Integer, nullable=True)
+
+    phase = relationship("JourneyPhase", back_populates="steps")
+    story = relationship("Story", lazy="joined")
+    vocabularies = relationship(
+        "JourneyVocabulary",
+        back_populates="step",
+        cascade="all, delete-orphan",
+        order_by="JourneyVocabulary.id",
+        lazy="selectin",
+    )
+
+class JourneyVocabulary(Base):
+    __tablename__ = "journey_vocabularies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    journey_id = Column(Integer, ForeignKey("learning_journeys.id", ondelete="CASCADE"), nullable=False, index=True)
+    step_id = Column(Integer, ForeignKey("journey_steps.id", ondelete="CASCADE"), nullable=False, index=True)
+    word = Column(String(200), nullable=False, index=True)
+    translation = Column(String(250), nullable=False)
+    part_of_speech = Column(String(50), nullable=True)
+    gender = Column(String(20), nullable=True)
+    phonetic = Column(String(120), nullable=True)
+    example_sentence = Column(Text, nullable=True)
+    example_translation = Column(Text, nullable=True)
+    pronunciation_url = Column(String(500), nullable=True)
+    is_mastered = Column(Boolean, default=False, nullable=False)
+
+    step = relationship("JourneyStep", back_populates="vocabularies")
+    flashcards = relationship("Flashcard", back_populates="journey_vocabulary", cascade="all, delete-orphan")
