@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 import type { Language } from "../types/api";
 import { useLanguages } from "./queries";
@@ -89,31 +89,25 @@ export function LanguagePairProvider({
     [languagesList]
   );
 
-  const [originLanguage, setOriginLanguage] = useState<Language>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(STORAGE_KEY_ORIGIN);
-      if (stored) {
-        return (
-          FALLBACK_LANGUAGES.find((l) => l.code === stored) ||
-          FALLBACK_LANGUAGES[1]
-        );
-      }
-    }
-    return FALLBACK_LANGUAGES[1];
-  });
+  // Initialize with SSR-safe defaults so server and client first-paint match
+  const [originLanguage, setOriginLanguage] = useState<Language>(
+    FALLBACK_LANGUAGES[1]
+  );
 
-  const [targetLanguage, setTargetLanguage] = useState<Language>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(STORAGE_KEY_TARGET);
-      if (stored) {
-        return (
-          FALLBACK_LANGUAGES.find((l) => l.code === stored) ||
-          FALLBACK_LANGUAGES[0]
-        );
-      }
+  const [targetLanguage, setTargetLanguage] = useState<Language>(
+    FALLBACK_LANGUAGES[0]
+  );
+
+  useEffect(() => {
+    const storedOrigin = localStorage.getItem(STORAGE_KEY_ORIGIN);
+    if (storedOrigin) {
+      setOriginLanguage(findLanguage(storedOrigin, FALLBACK_LANGUAGES[1]));
     }
-    return FALLBACK_LANGUAGES[0];
-  });
+    const storedTarget = localStorage.getItem(STORAGE_KEY_TARGET);
+    if (storedTarget) {
+      setTargetLanguage(findLanguage(storedTarget, FALLBACK_LANGUAGES[0]));
+    }
+  }, [findLanguage]);
 
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
@@ -154,17 +148,15 @@ export function LanguagePairProvider({
   );
 
   const handleSwapLanguages = React.useCallback(() => {
-    setOriginLanguage((prevOrigin) => {
-      setTargetLanguage((prevTarget) => {
-        if (typeof window !== "undefined") {
-          localStorage.setItem(STORAGE_KEY_ORIGIN, prevTarget.code);
-          localStorage.setItem(STORAGE_KEY_TARGET, prevOrigin.code);
-        }
-        return prevOrigin;
-      });
-      return targetLanguage;
-    });
-  }, [targetLanguage]);
+    const nextOrigin = targetLanguage;
+    const nextTarget = originLanguage;
+    setOriginLanguage(nextOrigin);
+    setTargetLanguage(nextTarget);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY_ORIGIN, nextOrigin.code);
+      localStorage.setItem(STORAGE_KEY_TARGET, nextTarget.code);
+    }
+  }, [originLanguage, targetLanguage]);
 
   const getLanguageByCode = React.useCallback(
     (code: string): Language =>

@@ -9,9 +9,12 @@ import {
   Info,
   Layers,
   Menu,
+  Moon,
+  Sun,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
@@ -25,10 +28,19 @@ export default function Header() {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const { t } = useTranslation();
-  const { data: progress } = useProgress();
   const { getLanguageFlag, originLanguage, targetLanguage } = useLanguagePair();
+  const { data: progress } = useProgress({
+    origin_language_code: originLanguage.code,
+    target_language_code: targetLanguage.code,
+  });
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const navLinks = [
     { icon: BookOpen, label: t("header.stories"), to: "/" },
@@ -164,11 +176,32 @@ export default function Header() {
           <LearningJourneyModal />
           <GenerateStoryDialog />
 
+          {/* Theme Toggle Button */}
+          <button
+            type="button"
+            onClick={() =>
+              setTheme(resolvedTheme === "light" ? "dark" : "light")
+            }
+            className="flex items-center justify-center size-9 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700 hover:bg-neutral-850 transition-all shrink-0"
+            title={
+              mounted && resolvedTheme === "light"
+                ? "Switch to dark mode"
+                : "Switch to light mode"
+            }
+            aria-label="Toggle color theme"
+          >
+            {mounted && resolvedTheme === "light" ? (
+              <Moon className="size-4" />
+            ) : (
+              <Sun className="size-4" />
+            )}
+          </button>
+
           {/* GitHub Profile Button */}
           <a
             href="https://github.com/puruhitaaa"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="flex items-center justify-center size-9 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700 hover:bg-neutral-850 transition-all shrink-0"
             title={t("header.githubTooltip")}
             aria-label={t("header.githubTooltip")}

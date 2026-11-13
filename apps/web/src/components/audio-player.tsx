@@ -198,6 +198,8 @@ export function AudioPlayer({
   const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const speedRef = useRef(1);
+  const pendingSeekRef = useRef<number | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -209,6 +211,7 @@ export function AudioPlayer({
   const [showVpnHint, setShowVpnHint] = useState(false);
 
   const speed = SPEED_STEPS[speedIndex] ?? 1;
+  speedRef.current = speed;
   const initialAudioUrl = api.getMediaUrl(audioUrl);
   const activeAudioUrl = dynamicAudioUrl || initialAudioUrl;
 
@@ -249,11 +252,18 @@ export function AudioPlayer({
       onTimeUpdate?.(audio.currentTime);
     };
     const handleLoadedMetadata = () => {
+      audio.playbackRate = speedRef.current;
+      if (pendingSeekRef.current !== null) {
+        audio.currentTime = pendingSeekRef.current;
+        setCurrentTime(pendingSeekRef.current);
+        pendingSeekRef.current = null;
+      }
       setDuration(audio.duration);
       setIsLoading(false);
       onDurationChange?.(audio.duration);
     };
     const handlePlaying = () => {
+      audio.playbackRate = speedRef.current;
       setIsPlaying(true);
       setIsLoading(false);
       clearTimeoutTimer();
@@ -367,6 +377,12 @@ export function AudioPlayer({
 
     try {
       await audio.play();
+      audio.playbackRate = speedRef.current;
+      if (pendingSeekRef.current !== null && audio.readyState > 0) {
+        audio.currentTime = pendingSeekRef.current;
+        setCurrentTime(pendingSeekRef.current);
+        pendingSeekRef.current = null;
+      }
       setIsPlaying(true);
       setIsLoading(false);
       clearTimeoutTimer();
@@ -406,15 +422,25 @@ export function AudioPlayer({
 
   const seekTo = useCallback(
     async (timeInSeconds: number, autoPlay = true) => {
-      if (audioRef.current) {
-        audioRef.current.currentTime = timeInSeconds;
-        setCurrentTime(timeInSeconds);
-        if (autoPlay && !isPlaying) {
-          await togglePlay();
-        }
+      const audio = audioRef.current;
+      if (!audio) {
+        return;
+      }
+      if (
+        !activeAudioUrl ||
+        audio.readyState === 0 ||
+        audio.src !== activeAudioUrl
+      ) {
+        pendingSeekRef.current = timeInSeconds;
+      } else {
+        audio.currentTime = timeInSeconds;
+      }
+      setCurrentTime(timeInSeconds);
+      if (autoPlay && !isPlaying) {
+        await togglePlay();
       }
     },
-    [isPlaying, togglePlay]
+    [activeAudioUrl, isPlaying, togglePlay]
   );
 
   useImperativeHandle(
@@ -435,6 +461,7 @@ export function AudioPlayer({
     const nextIdx = (speedIndex + 1) % SPEED_STEPS.length;
     setSpeedIndex(nextIdx);
     const nextSpeed = SPEED_STEPS[nextIdx] ?? 1;
+    speedRef.current = nextSpeed;
     if (audioRef.current) {
       audioRef.current.playbackRate = nextSpeed;
     }
@@ -448,8 +475,8 @@ export function AudioPlayer({
     setIsMuted(!isMuted);
   }, [isMuted]);
 
-  const handleSeek = (val: number | number[]) => {
-    const targetTime = Array.isArray(val) ? (val[0] ?? 0) : val;
+  const handleSeek = (val: number | readonly number[]) => {
+    const targetTime = Array.isArray(val) ? (val[0] ?? 0) : Number(val);
     if (audioRef.current) {
       audioRef.current.currentTime = targetTime;
       setCurrentTime(targetTime);
@@ -466,14 +493,20 @@ export function AudioPlayer({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const { target } = e;
       if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target instanceof HTMLButtonElement ||
+        target instanceof HTMLAnchorElement ||
+        (target instanceof HTMLElement &&
+          (target.isContentEditable || target.closest("[role='slider']")))
       ) {
         return;
       }
 
-      if (e.code === "Space" && e.target === document.body) {
+      if (e.code === "Space") {
         e.preventDefault();
         togglePlay();
       } else if (e.key === "m" || e.key === "M") {

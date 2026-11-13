@@ -7,10 +7,12 @@ import {
   BookOpen,
   CheckCircle2,
   Clock,
+  Globe,
   Layers,
   RotateCcw,
   Search,
   Sparkles,
+  Trash2,
   Trophy,
   Volume2,
   X,
@@ -24,20 +26,30 @@ import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
 import {
   useAllFlashcards,
+  useDeleteFlashcard,
   useDueFlashcards,
   useReviewFlashcard,
 } from "../lib/queries";
 import type { Flashcard } from "../types/api";
 
 const flashcardsSearchSchema = z.object({
-  search: z.string().optional().default(""),
-  tab: z.enum(["review", "deck"]).optional().default("review"),
+  scope: z.preprocess(
+    (v) => (v === "pair" || v === "all" ? v : undefined),
+    z.enum(["pair", "all"]).optional()
+  ),
+  search: z.string().optional(),
+  tab: z.preprocess(
+    (v) => (v === "review" || v === "deck" ? v : undefined),
+    z.enum(["review", "deck"]).optional()
+  ),
 });
 
 export const Route = createFileRoute("/flashcards")({
   component: FlashcardsComponent,
-  validateSearch: (search: Record<string, unknown>) =>
-    flashcardsSearchSchema.parse(search),
+  validateSearch: (search: Record<string, unknown>) => {
+    const parsed = flashcardsSearchSchema.safeParse(search);
+    return parsed.success ? parsed.data : {};
+  },
 });
 
 type MasteryFilter = "all" | "learning" | "reviewing" | "mastered";
@@ -90,6 +102,7 @@ function getFlashcardVocab(fc: Flashcard) {
       part_of_speech: fc.vocabulary.part_of_speech,
       pronunciation_url: fc.vocabulary.pronunciation_url,
       story_id: fc.vocabulary.story_id,
+      story_language_code: fc.vocabulary.story_language_code,
       translation: fc.vocabulary.translation,
       word: fc.vocabulary.word,
     };
@@ -102,6 +115,7 @@ function getFlashcardVocab(fc: Flashcard) {
       part_of_speech: fc.word.part_of_speech,
       pronunciation_url: fc.word.audio_url || undefined,
       story_id: undefined,
+      story_language_code: undefined,
       translation: fc.word.translation,
       word: fc.word.lemma,
     };
@@ -127,6 +141,7 @@ function getFlashcardVocab(fc: Flashcard) {
     part_of_speech: undefined,
     pronunciation_url: undefined,
     story_id: undefined,
+    story_language_code: undefined,
     translation: "",
     word: "",
   };
@@ -161,10 +176,10 @@ function FlashcardsReviewTab({
     if (!currentCard) {
       return;
     }
-    // Lock snapshot into customQueue on first rate to isolate from React Query optimistic filtering
-    if (!customQueue) {
-      setCustomQueue([...activeQueue]);
-    }
+    // Lock snapshot into customQueue and re-queue lapsed ("Again") cards in-session
+    const baseQueue = customQueue ?? [...activeQueue];
+    const nextQueue = quality < 3 ? [...baseQueue, currentCard] : baseQueue;
+    setCustomQueue(nextQueue);
     reviewMutation.mutate({
       flashcardId: currentCard.id,
       quality,
@@ -328,7 +343,9 @@ function FlashcardsReviewTab({
 
 interface DeckTabProps {
   cards?: Flashcard[];
+  deletingCardId?: number;
   isLoading: boolean;
+  onDeleteCard: (flashcardId: number) => void;
   searchParam: string;
   searchInput: string;
   onSearchChange: (val: string) => void;
@@ -338,7 +355,9 @@ interface DeckTabProps {
 
 function FlashcardsDeckTab({
   cards,
+  deletingCardId,
   isLoading,
+  onDeleteCard,
   searchParam,
   searchInput,
   onSearchChange,
@@ -352,7 +371,11 @@ function FlashcardsDeckTab({
   const cancelAudioRef = useRef<(() => void) | null>(null);
 
   const playWordAudio = useCallback(
-    async (url?: string | null, word?: string) => {
+    async (
+      url?: string | null,
+      word?: string,
+      languageCode?: string | null
+    ) => {
       if (cancelAudioRef.current) {
         cancelAudioRef.current();
       }
@@ -364,7 +387,7 @@ function FlashcardsDeckTab({
       const cleanup = await playPronunciationAudio({
         url,
         word,
-        languageCode: targetLanguage?.code || "de",
+        languageCode: languageCode || targetLanguage?.code || "de",
         onStart: () => {
           if (word) {
             setPlayingWord(word);
@@ -523,7 +546,11 @@ function FlashcardsDeckTab({
                         aria-label={t("flashcards.playPronunciation")}
                         title={t("flashcards.playPronunciation")}
                         onClick={() =>
-                          playWordAudio(vocab.pronunciation_url, vocab.word)
+                          playWordAudio(
+                            vocab.pronunciation_url,
+                            vocab.word,
+                            vocab.story_language_code
+                          )
                         }
                         className={`size-7 p-0 rounded-full text-neutral-400 hover:text-sky-400 hover:bg-neutral-800 cursor-pointer ${
                           playingWord === vocab.word
@@ -535,11 +562,25 @@ function FlashcardsDeckTab({
                       </Button>
                     </div>
 
-                    {vocab.part_of_speech && (
-                      <span className="text-xs uppercase tracking-wider font-semibold text-neutral-400 shrink-0">
-                        {vocab.part_of_speech}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {vocab.part_of_speech && (
+                        <span className="text-xs uppercase tracking-wider font-semibold text-neutral-400">
+                          {vocab.part_of_speech}
+                        </span>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={deletingCardId === fc.id}
+                        aria-label={t("flashcards.removeCard")}
+                        title={t("flashcards.removeCard")}
+                        onClick={() => onDeleteCard(fc.id)}
+                        className="size-7 p-0 rounded-full text-neutral-500 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
                   </div>
 
                   <p className="text-sm text-sky-400 font-semibold">
@@ -612,13 +653,19 @@ function FlashcardsDeckTab({
 
 function FlashcardsComponent() {
   const { t } = useTranslation();
+  const { getLanguageFlag, originLanguage, targetLanguage } = useLanguagePair();
   const navigate = Route.useNavigate();
   const searchParams = Route.useSearch();
   const activeTab = searchParams.tab ?? "review";
   const searchParam = searchParams.search ?? "";
+  const scope = searchParams.scope ?? "pair";
 
   const [searchInput, setSearchInput] = useState(searchParam);
   const [masteryFilter, setMasteryFilter] = useState<MasteryFilter>("all");
+
+  useEffect(() => {
+    setSearchInput(searchParam);
+  }, [searchParam]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -635,16 +682,39 @@ function FlashcardsComponent() {
     return () => clearTimeout(timer);
   }, [searchInput, searchParam, navigate]);
 
-  const { data: dueCards, isLoading: isLoadingDue } = useDueFlashcards();
+  const scopeFilters =
+    scope === "pair"
+      ? {
+          origin_language_code: originLanguage.code,
+          target_language_code: targetLanguage.code,
+        }
+      : undefined;
+
+  const { data: dueCards, isLoading: isLoadingDue } =
+    useDueFlashcards(scopeFilters);
+  const { data: unsearchedCards } = useAllFlashcards(scopeFilters);
   const { data: allCards, isLoading: isLoadingAll } = useAllFlashcards({
+    ...scopeFilters,
     search: searchParam.trim() || undefined,
   });
+  const deleteFlashcard = useDeleteFlashcard();
+
+  const totalDeckCount = (unsearchedCards ?? allCards)?.length || 0;
 
   const handleTabChange = (val: string) => {
     navigate({
       search: (prev) => ({
         ...prev,
         tab: val === "deck" ? "deck" : undefined,
+      }),
+    });
+  };
+
+  const handleScopeChange = (nextScope: "pair" | "all") => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        scope: nextScope,
       }),
     });
   };
@@ -662,30 +732,62 @@ function FlashcardsComponent() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="bg-neutral-900 border border-neutral-800 p-1 rounded-xl">
-            <TabsTrigger
-              value="review"
-              className="text-xs font-semibold px-3.5 py-1.5 rounded-lg"
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="inline-flex items-center p-1 rounded-xl bg-neutral-900 border border-neutral-800 text-xs">
+            <button
+              type="button"
+              onClick={() => handleScopeChange("pair")}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                scope === "pair"
+                  ? "bg-sky-500 text-white shadow-sm"
+                  : "text-neutral-400 hover:text-neutral-200"
+              }`}
             >
-              {t("flashcards.dueReviewTab", {
-                count: dueCards?.length || 0,
-              })}
-            </TabsTrigger>
-            <TabsTrigger
-              value="deck"
-              className="text-xs font-semibold px-3.5 py-1.5 rounded-lg"
+              <span>{getLanguageFlag(targetLanguage.code)}</span>
+              <span>
+                {t("flashcards.scopePair", { target: targetLanguage.name })}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleScopeChange("all")}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                scope === "all"
+                  ? "bg-sky-500 text-white shadow-sm"
+                  : "text-neutral-400 hover:text-neutral-200"
+              }`}
             >
-              {t("flashcards.allCardsTab", { count: allCards?.length || 0 })}
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+              <Globe className="size-3.5" />
+              <span>{t("flashcards.scopeAll")}</span>
+            </button>
+          </div>
+
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
+            <TabsList className="bg-neutral-900 border border-neutral-800 p-1 rounded-xl">
+              <TabsTrigger
+                value="review"
+                className="text-xs font-semibold px-3.5 py-1.5 rounded-lg"
+              >
+                {t("flashcards.dueReviewTab", {
+                  count: dueCards?.length || 0,
+                })}
+              </TabsTrigger>
+              <TabsTrigger
+                value="deck"
+                className="text-xs font-semibold px-3.5 py-1.5 rounded-lg"
+              >
+                {t("flashcards.allCardsTab", { count: totalDeckCount })}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
 
       {activeTab === "review" && (
         <FlashcardsReviewTab
+          key={`${scope}:${originLanguage.code}:${targetLanguage.code}`}
           dueCards={dueCards}
-          allCards={allCards}
+          allCards={unsearchedCards ?? allCards}
           isLoadingDue={isLoadingDue}
           onBrowseDeck={() => handleTabChange("deck")}
         />
@@ -694,7 +796,11 @@ function FlashcardsComponent() {
       {activeTab === "deck" && (
         <FlashcardsDeckTab
           cards={allCards}
+          deletingCardId={
+            deleteFlashcard.isPending ? deleteFlashcard.variables : undefined
+          }
           isLoading={isLoadingAll}
+          onDeleteCard={(flashcardId) => deleteFlashcard.mutate(flashcardId)}
           searchParam={searchParam}
           searchInput={searchInput}
           onSearchChange={setSearchInput}

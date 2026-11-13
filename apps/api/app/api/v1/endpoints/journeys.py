@@ -1,4 +1,4 @@
-from typing import List, Optional
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -48,14 +48,14 @@ async def generate_learning_journey(
     return await journey_service.generate_journey(db, req)
 
 
-@router.get("", response_model=List[JourneyListItemResponse])
+@router.get("", response_model=list[JourneyListItemResponse])
 async def list_learning_journeys(
-    search: Optional[str] = Query(None, description="Search by title, goal, sector, or vocabulary"),
-    target_language_code: Optional[str] = Query(None, description="Filter by target language code"),
-    origin_language_code: Optional[str] = Query(None, description="Filter by origin language code"),
-    cefr_level: Optional[CEFRLevel] = Query(None, description="Filter by CEFR level"),
-    journey_status: Optional[JourneyStatus] = Query(None, alias="status", description="Filter by status"),
-    is_pinned: Optional[bool] = Query(None, description="Filter by pinned state"),
+    search: str | None = Query(None, description="Search by title, goal, sector, or vocabulary"),
+    target_language_code: str | None = Query(None, description="Filter by target language code"),
+    origin_language_code: str | None = Query(None, description="Filter by origin language code"),
+    cefr_level: CEFRLevel | None = Query(None, description="Filter by CEFR level"),
+    journey_status: JourneyStatus | None = Query(None, alias="status", description="Filter by status"),
+    is_pinned: bool | None = Query(None, description="Filter by pinned state"),
     sort_by: str = Query(
         "recent",
         description="Sort order: recent, progress_desc, progress_asc, newest, oldest, level_asc, level_desc, title_asc",
@@ -120,10 +120,12 @@ async def prepare_journey_step(
 async def complete_journey_step(
     journey_id: int,
     step_id: int,
-    req: JourneyStepCompleteRequest = JourneyStepCompleteRequest(),
+    req: JourneyStepCompleteRequest | None = None,
     db: AsyncSession = Depends(get_db),
 ):
-    return await journey_service.complete_step(db, journey_id, step_id, req)
+    return await journey_service.complete_step(
+        db, journey_id, step_id, req or JourneyStepCompleteRequest()
+    )
 
 
 @router.post("/vocab/{vocab_id}/flashcard", response_model=FlashcardResponse)

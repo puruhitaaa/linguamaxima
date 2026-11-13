@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@linguamaxima/ui/components/select";
+import { useNavigate } from "@tanstack/react-router";
 import {
   AlertCircle,
   ArrowLeftRight,
@@ -62,6 +63,7 @@ export function GenerateStoryDialog({
 }: {
   trigger?: React.ReactNode;
 }) {
+  const navigate = useNavigate();
   const { t, tCategory } = useTranslation();
   const {
     availableLanguages,
@@ -129,7 +131,7 @@ export function GenerateStoryDialog({
         setLanguagePair(originCode, targetCode);
       }
 
-      await generateMutation.mutateAsync({
+      const createdStory = await generateMutation.mutateAsync({
         category_slug: category,
         cefr_level: level,
         origin_language_code: originCode,
@@ -139,6 +141,12 @@ export function GenerateStoryDialog({
       });
       setOpen(false);
       setTopicHint("");
+      if (createdStory?.id) {
+        navigate({
+          params: { storyId: createdStory.id.toString() },
+          to: "/stories/$storyId",
+        });
+      }
     } catch {
       // Error toast is handled by mutation onError
     }
@@ -325,7 +333,9 @@ export function GenerateStoryDialog({
                   }`}
                 >
                   <Sparkles className="size-3.5 shrink-0" />
-                  <span className="truncate">Auto</span>
+                  <span className="truncate">
+                    {t("generator.storyTypeAuto")}
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -338,7 +348,9 @@ export function GenerateStoryDialog({
                   }`}
                 >
                   <MessageSquare className="size-3.5 shrink-0" />
-                  <span className="truncate">Dialogue (2+)</span>
+                  <span className="truncate">
+                    {t("generator.storyTypeDialogue")}
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -351,7 +363,9 @@ export function GenerateStoryDialog({
                   }`}
                 >
                   <BookOpen className="size-3.5 shrink-0" />
-                  <span className="truncate">Monologue</span>
+                  <span className="truncate">
+                    {t("generator.storyTypeMonologue")}
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -364,7 +378,9 @@ export function GenerateStoryDialog({
                   }`}
                 >
                   <FileText className="size-3.5 shrink-0" />
-                  <span className="truncate">Informative</span>
+                  <span className="truncate">
+                    {t("generator.storyTypeInformative")}
+                  </span>
                 </button>
               </div>
             </div>

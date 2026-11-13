@@ -1,10 +1,12 @@
 import json
 import logging
 import os
-import re
-from typing import List, Optional, Tuple, Type, TypeVar
-from pydantic import BaseModel, ValidationError
+from typing import TypeVar
+
 import litellm
+from fastapi import HTTPException
+from pydantic import BaseModel, ValidationError
+
 from app.core.config import settings
 from app.models import CEFRLevel, JourneyStepType
 from app.schemas import (
@@ -66,12 +68,12 @@ class AIService:
         self,
         cefr_level: CEFRLevel,
         category: str,
-        topic_hint: Optional[str] = None,
+        topic_hint: str | None = None,
         target_lang: str = "German",
         origin_lang: str = "Indonesian",
         story_type: str = "auto",
-        required_vocabulary: Optional[List[str]] = None,
-    ) -> Tuple[str, str]:
+        required_vocabulary: list[str] | None = None,
+    ) -> tuple[str, str]:
         guidelines = CEFR_GUIDELINES.get(cefr_level, CEFR_GUIDELINES[CEFRLevel.A1])
         topic_clause = f" specifically about '{topic_hint}'" if topic_hint else ""
         vocab_clause = ""
@@ -212,11 +214,11 @@ Respond with valid JSON only matching the schema:
         self,
         system_prompt: str,
         user_prompt: str,
-        schema_cls: Type[TModel],
+        schema_cls: type[TModel],
         temperature: float = 0.5,
         task_label: str = "generation",
-    ) -> Tuple[Optional[TModel], str, str]:
-        """Calls LiteLLM with primary/fallback models and validates JSON against schema_cls."""
+    ) -> tuple[TModel | None, str, str]:
+        """Calls LiteLLM with primary/fallback models, 1-shot JSON repair, and validates against schema_cls."""
         self._configure_provider_env()
         models_to_try = [
             (settings.default_ai_model, "gemini"),
@@ -234,11 +236,38 @@ Respond with valid JSON only matching the schema:
                     ],
                     response_format={"type": "json_object"},
                     temperature=temperature,
+                    timeout=settings.ai_timeout_seconds,
                 )
                 content_raw = response.choices[0].message.content
                 cleaned_json = self._clean_json_response(content_raw)
-                data = json.loads(cleaned_json)
-                validated = schema_cls.model_validate(data)
+                try:
+                    data = json.loads(cleaned_json)
+                    validated = schema_cls.model_validate(data)
+                except (json.JSONDecodeError, ValidationError) as parse_err:
+                    logger.warning(
+                        f"Malformed JSON from {model_name} during {task_label}, retrying repair: {parse_err}"
+                    )
+                    repair_response = await litellm.acompletion(
+                        model=model_name,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                            {"role": "assistant", "content": content_raw or ""},
+                            {
+                                "role": "user",
+                                "content": (
+                                    f"Your previous JSON failed schema validation ({parse_err}). "
+                                    "Return ONLY a valid JSON object matching the exact schema."
+                                ),
+                            },
+                        ],
+                        response_format={"type": "json_object"},
+                        temperature=0.2,
+                        timeout=settings.ai_timeout_seconds,
+                    )
+                    repaired_raw = repair_response.choices[0].message.content
+                    repaired_data = json.loads(self._clean_json_response(repaired_raw))
+                    validated = schema_cls.model_validate(repaired_data)
                 return validated, model_name, provider
             except Exception as e:
                 logger.warning(f"{task_label} attempt with {model_name} failed: {e}")
@@ -249,12 +278,12 @@ Respond with valid JSON only matching the schema:
         self,
         cefr_level: CEFRLevel = CEFRLevel.A1,
         category: str = "travel",
-        topic_hint: Optional[str] = None,
+        topic_hint: str | None = None,
         target_lang: str = "German",
         origin_lang: str = "Indonesian",
         story_type: str = "auto",
-        required_vocabulary: Optional[List[str]] = None,
-    ) -> Tuple[GeneratedStoryBundle, str, str]:
+        required_vocabulary: list[str] | None = None,
+    ) -> tuple[GeneratedStoryBundle, str, str]:
         """
         Generates a structured story bundle using LiteLLM.
         Returns (bundle, model_used, provider_used).
@@ -280,8 +309,15 @@ Respond with valid JSON only matching the schema:
             logger.info(f"Story generation succeeded with {model_name} ({bundle.title})")
             return bundle, model_name, provider
 
-        # If LLM API keys are not set or unavailable, return a rich mock story bundle
-        logger.warning("All LLM providers failed or unconfigured. Falling back to default story template.")
+        if not settings.allow_ai_mock_fallback:
+            logger.error("All LLM providers failed and mock fallback is disabled.")
+            raise HTTPException(
+                status_code=503,
+                detail="Story generation is temporarily unavailable. Please verify AI provider configuration or try again shortly.",
+            )
+
+        # Explicitly enabled fallback for offline tests/local demo mode
+        logger.warning("All LLM providers failed or unconfigured. Falling back to default template.")
         fallback_bundle = self._get_curated_fallback(cefr_level, category, topic_hint, target_lang, origin_lang, story_type)
         return fallback_bundle, "template/fallback-engine", "internal"
 
@@ -289,7 +325,7 @@ Respond with valid JSON only matching the schema:
         self,
         cefr_level: CEFRLevel,
         category: str,
-        topic_hint: Optional[str] = None,
+        topic_hint: str | None = None,
         target_lang: str = "German",
         origin_lang: str = "Indonesian",
         story_type: str = "auto",
@@ -385,10 +421,10 @@ Respond with valid JSON only matching the schema:
                     "Sofía: Perfecto. Yo compro las entradas por internet y tú pides los cafés."
                 ),
                 content_translated=(
-                    f"Carlos: Hello Sofia! What a lovely day in Madrid.\n\n"
-                    f"Sofia: Hello Carlos! Yes, it is very sunny today. Shall we drink coffee in Retiro Park?\n\n"
-                    f"Carlos: Great idea! Afterwards we can visit the new art museum.\n\n"
-                    f"Sofia: Perfect. I will buy the tickets online and you order the coffees."
+                    "Carlos: Hello Sofia! What a lovely day in Madrid.\n\n"
+                    "Sofia: Hello Carlos! Yes, it is very sunny today. Shall we drink coffee in Retiro Park?\n\n"
+                    "Carlos: Great idea! Afterwards we can visit the new art museum.\n\n"
+                    "Sofia: Perfect. I will buy the tickets online and you order the coffees."
                 ),
                 summary="Carlos and Sofia meet on a sunny day in Madrid to drink coffee in Retiro Park and visit an art museum.",
                 vocabulary=[
@@ -493,10 +529,10 @@ Respond with valid JSON only matching the schema:
                     "Emily: Great idea. I will book our tickets online right now."
                 ),
                 content_translated=(
-                    f"Oliver: Good morning Emily! The sun is shining brightly today.\n\n"
-                    f"Emily: Good morning Oliver! Yes, it is wonderful. Would you like to get a coffee in the park?\n\n"
-                    f"Oliver: That sounds lovely! We can also visit the modern art gallery later.\n\n"
-                    f"Emily: Great idea. I will book our tickets online right now."
+                    "Oliver: Good morning Emily! The sun is shining brightly today.\n\n"
+                    "Emily: Good morning Oliver! Yes, it is wonderful. Would you like to get a coffee in the park?\n\n"
+                    "Oliver: That sounds lovely! We can also visit the modern art gallery later.\n\n"
+                    "Emily: Great idea. I will book our tickets online right now."
                 ),
                 summary="Oliver and Emily meet on a bright morning in London, grabbing coffee in the park and booking gallery tickets.",
                 vocabulary=[
@@ -669,7 +705,7 @@ Respond with valid JSON only matching the schema:
     async def evaluate_journey_clarification(
         self,
         purpose: str,
-        answers: List[ClarificationAnswerItem],
+        answers: list[ClarificationAnswerItem],
         round_num: int,
         target_lang: str = "German",
         origin_lang: str = "Indonesian",
@@ -738,7 +774,7 @@ Return JSON strictly matching:
     async def synthesize_learning_prompt(
         self,
         purpose: str,
-        clarifications: List[ClarificationAnswerItem],
+        clarifications: list[ClarificationAnswerItem],
         cefr_level: CEFRLevel,
         target_lang: str = "German",
         origin_lang: str = "Indonesian",
@@ -789,7 +825,7 @@ Return JSON strictly matching:
         cefr_level: CEFRLevel,
         target_lang: str = "German",
         origin_lang: str = "Indonesian",
-    ) -> Tuple[GeneratedJourneyCurriculum, str, str]:
+    ) -> tuple[GeneratedJourneyCurriculum, str, str]:
         """Generates the complete phased curriculum tree with all target domain vocabularies."""
         guidelines = CEFR_GUIDELINES.get(cefr_level, CEFR_GUIDELINES[CEFRLevel.B1])
 
@@ -896,7 +932,7 @@ Return valid JSON matching:
         )
         return fallback, "template/fallback-engine", "internal"
 
-    def _infer_sector_tag(self, purpose: str, answers: List[ClarificationAnswerItem]) -> str:
+    def _infer_sector_tag(self, purpose: str, answers: list[ClarificationAnswerItem]) -> str:
         combined = f"{purpose} {' '.join(a.answer for a in answers)}".lower()
         if any(k in combined for k in ["hospitality", "hotel", "gastron", "restaurant", "perhotelan"]):
             return "Hospitality"
@@ -913,8 +949,8 @@ Return valid JSON matching:
     def _build_fallback_prompt(
         self,
         purpose: str,
-        answers: List[ClarificationAnswerItem],
-        cefr_level: Optional[CEFRLevel],
+        answers: list[ClarificationAnswerItem],
+        cefr_level: CEFRLevel | None,
         target_lang: str,
         origin_lang: str,
     ) -> str:
@@ -931,7 +967,7 @@ Return valid JSON matching:
     def _fallback_clarification(
         self,
         purpose: str,
-        answers: List[ClarificationAnswerItem],
+        answers: list[ClarificationAnswerItem],
         round_num: int,
         target_lang: str,
         origin_lang: str,

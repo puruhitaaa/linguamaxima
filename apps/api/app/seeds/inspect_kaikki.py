@@ -1,6 +1,6 @@
-import urllib.request
 import gzip
 import json
+import urllib.request
 
 url = "https://kaikki.org/dictionary/German/kaikki.org-dictionary-German.jsonl.gz"
 req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})

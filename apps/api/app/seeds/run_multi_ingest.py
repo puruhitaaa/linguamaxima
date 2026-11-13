@@ -3,9 +3,10 @@ Batch Ingest Runner for Multiple Languages.
 Streams and loads 1,500 - 2,500 words per language across all supported languages.
 """
 
-import sys
 import asyncio
 import logging
+import sys
+
 from app.seeds.kaikki_bulk_ingest import ingest_kaikki_language
 
 # Ensure utf-8

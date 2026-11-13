@@ -1,9 +1,11 @@
 from pathlib import Path
+
 from app.models import CEFRLevel
-from app.seeds.generate_lexicon_data import GERMAN_LEXICON
 from app.seeds.expand_all_languages import EXTRA_MULTILINGUAL_LEXICON
 from app.seeds.expand_asian_and_more_lexicons import EXTRA_EXPANSION_DATA
 from app.seeds.expand_nl_pt_ru_ar import EXTRA_DATA
+from app.seeds.generate_lexicon_data import GERMAN_LEXICON
+
 
 def serialize_item(item: dict) -> dict:
     cleaned = dict(item)
@@ -21,7 +23,6 @@ def main():
     all_lex["de"] = [serialize_item(it) for it in GERMAN_LEXICON]
 
     # 2. English extra
-    from app.seeds.generate_all_lexicons import build_data_file
     # Add sources
     for source in [EXTRA_MULTILINGUAL_LEXICON, EXTRA_EXPANSION_DATA, EXTRA_DATA]:
         for lang, items in source.items():

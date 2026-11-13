@@ -6,10 +6,11 @@ Seeds 30-50+ rich words per language across all CEFR/native tiers.
 
 import asyncio
 import logging
+
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import CEFRLevel, Language, Word
+
 from app.core.database import get_session_maker
+from app.models import CEFRLevel, Language, Word
 
 logger = logging.getLogger("linguamaxima.asian_expander")
 
@@ -123,7 +124,7 @@ async def expand_asian_languages():
 
     async with session_maker() as session:
         langs = (await session.execute(select(Language))).scalars().all()
-        lang_map = {l.code: l for l in langs}
+        lang_map = {lang.code: lang for lang in langs}
 
         total_added = 0
         total_updated = 0

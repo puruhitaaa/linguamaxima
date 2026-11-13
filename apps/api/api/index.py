@@ -11,7 +11,7 @@ if str(api_dir) not in sys.path:
 os.environ["IS_SERVERLESS"] = "1"
 os.environ["VERCEL"] = "1"
 
-from app.main import app
+from app.main import app  # noqa: E402 - Configured paths and serverless env above
 
 # Export the ASGI application for Vercel
 # Vercel's @vercel/python automatically uses `app` or `handler`

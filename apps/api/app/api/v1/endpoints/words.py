@@ -1,12 +1,13 @@
-from typing import Optional
-from fastapi import APIRouter, Depends, Query, Path
+
+from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import get_db
 from app.schemas import (
-    WordResponse,
-    WordListResponse,
-    WordFilterMetaResponse,
     FlashcardResponse,
+    WordFilterMetaResponse,
+    WordListResponse,
+    WordResponse,
 )
 from app.services import dictionary_service, flashcard_service
 
@@ -15,9 +16,9 @@ router = APIRouter(prefix="/words", tags=["Words"])
 @router.get("", response_model=WordListResponse)
 async def list_words(
     language: str = Query("de", alias="lang", description="Language code, e.g. de, en, ja, zh, id"),
-    level: Optional[str] = Query(None, description="Proficiency level filter (e.g. A1, A2, B1, B2, C1, C2)"),
-    part_of_speech: Optional[str] = Query(None, alias="pos", description="Part of speech filter (e.g. noun, verb, conjunction)"),
-    search: Optional[str] = Query(None, description="Search term for word lemma or translation"),
+    level: str | None = Query(None, description="Proficiency level filter (e.g. A1, A2, B1, B2, C1, C2)"),
+    part_of_speech: str | None = Query(None, alias="pos", description="Part of speech filter (e.g. noun, verb, conjunction)"),
+    search: str | None = Query(None, description="Search term for word lemma or translation"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(24, ge=1, le=100, description="Items per page"),
     db: AsyncSession = Depends(get_db),

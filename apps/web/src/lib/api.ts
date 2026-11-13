@@ -17,9 +17,12 @@ import type {
   JourneyStepPrepareResult,
   Language,
   LanguagePair,
+  PaginatedStoriesResult,
   ProgressSummary,
+  QuestionResult,
   QuizAnswerSubmission,
   QuizSubmissionResult,
+  StoryCompleteResult,
   StoryDetail,
   StoryGeneratePayload,
   StoryListItem,
@@ -34,7 +37,10 @@ const API_BASE_URL =
   (import.meta !== undefined && import.meta.env?.VITE_API_URL) ||
   "http://localhost:8000";
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function fetchApi(
+  path: string,
+  options: RequestInit = {}
+): Promise<Response> {
   const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
   const headers = new Headers(options.headers || {});
   if (
@@ -61,7 +67,30 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new Error(errorDetail);
   }
 
+  return response;
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetchApi(path, options);
+  if (response.status === 204) {
+    return undefined as T;
+  }
   return response.json();
+}
+
+function buildQueryString(
+  params?: Record<string, boolean | number | string | undefined>
+): string {
+  const query = new URLSearchParams();
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== "all" && value !== "") {
+        query.set(key, String(value));
+      }
+    }
+  }
+  const qs = query.toString();
+  return qs ? `?${qs}` : "";
 }
 
 export const api = {
@@ -77,17 +106,33 @@ export const api = {
     page?: number;
     search?: string;
     target_language_code?: string;
-  }) => {
-    const query = new URLSearchParams();
-    if (params) {
-      for (const [key, value] of Object.entries(params)) {
-        if (value !== undefined && value !== "all" && value !== "") {
-          query.set(key, String(value));
-        }
-      }
-    }
-    const qs = query.toString();
-    return request<StoryListItem[]>(`/api/v1/stories${qs ? `?${qs}` : ""}`);
+  }) => request<StoryListItem[]>(`/api/v1/stories${buildQueryString(params)}`),
+
+  getStoriesPaginated: async (params?: {
+    category_slug?: string;
+    cefr_level?: string;
+    include_journey_stories?: boolean;
+    is_completed?: boolean;
+    is_favorite?: boolean;
+    limit?: number;
+    origin_language_code?: string;
+    page?: number;
+    search?: string;
+    target_language_code?: string;
+  }): Promise<PaginatedStoriesResult> => {
+    const response = await fetchApi(
+      `/api/v1/stories${buildQueryString(params)}`
+    );
+    const items: StoryListItem[] = await response.json();
+    const totalHeader = response.headers.get("X-Total-Count");
+    const pageHeader = response.headers.get("X-Page");
+    const limitHeader = response.headers.get("X-Limit");
+    return {
+      items,
+      limit: limitHeader ? Number(limitHeader) : (params?.limit ?? 20),
+      page: pageHeader ? Number(pageHeader) : (params?.page ?? 1),
+      total: totalHeader ? Number(totalHeader) : items.length,
+    };
   },
 
   getStory: (id: number | string) =>
@@ -104,6 +149,11 @@ export const api = {
       `/api/v1/stories/${storyId}/favorite`,
       { method: "PATCH" }
     ),
+
+  markStoryCompleted: (storyId: number) =>
+    request<StoryCompleteResult>(`/api/v1/stories/${storyId}/complete`, {
+      method: "POST",
+    }),
 
   // Categories
   getCategories: () => request<Category[]>("/api/v1/categories"),
@@ -123,16 +173,17 @@ export const api = {
     }),
 
   // Flashcards
-  getAllFlashcards: (params?: { search?: string }) => {
-    const query = new URLSearchParams();
-    if (params?.search) {
-      query.set("search", params.search);
-    }
-    const qs = query.toString();
-    return request<Flashcard[]>(`/api/v1/flashcards${qs ? `?${qs}` : ""}`);
-  },
+  getAllFlashcards: (params?: {
+    origin_language_code?: string;
+    search?: string;
+    target_language_code?: string;
+  }) => request<Flashcard[]>(`/api/v1/flashcards${buildQueryString(params)}`),
 
-  getDueFlashcards: () => request<Flashcard[]>("/api/v1/flashcards/due"),
+  getDueFlashcards: (params?: {
+    origin_language_code?: string;
+    target_language_code?: string;
+  }) =>
+    request<Flashcard[]>(`/api/v1/flashcards/due${buildQueryString(params)}`),
 
   saveFlashcard: (vocabularyId: number) =>
     request<Flashcard>("/api/v1/flashcards", {
@@ -144,6 +195,11 @@ export const api = {
     request<FlashcardReviewResult>(`/api/v1/flashcards/${flashcardId}/review`, {
       body: JSON.stringify({ quality }),
       method: "PATCH",
+    }),
+
+  deleteFlashcard: (flashcardId: number) =>
+    request<undefined>(`/api/v1/flashcards/${flashcardId}`, {
+      method: "DELETE",
     }),
 
   // Words / Dictionary
@@ -180,6 +236,12 @@ export const api = {
     }),
 
   // Quizzes
+  checkQuizAnswer: (storyId: number, submission: QuizAnswerSubmission) =>
+    request<QuestionResult>(`/api/v1/quizzes/${storyId}/check`, {
+      body: JSON.stringify(submission),
+      method: "POST",
+    }),
+
   submitQuiz: (storyId: number, answers: QuizAnswerSubmission[]) =>
     request<QuizSubmissionResult>(`/api/v1/quizzes/${storyId}/submit`, {
       body: JSON.stringify({ answers }),
@@ -187,7 +249,20 @@ export const api = {
     }),
 
   // Progress
-  getProgress: () => request<ProgressSummary>("/api/v1/progress"),
+  getProgress: (params?: {
+    origin_language_code?: string;
+    target_language_code?: string;
+    tz_offset_minutes?: number;
+  }) => {
+    const tzOffset =
+      params?.tz_offset_minutes ?? -new Date().getTimezoneOffset();
+    return request<ProgressSummary>(
+      `/api/v1/progress${buildQueryString({
+        ...params,
+        tz_offset_minutes: tzOffset,
+      })}`
+    );
+  },
 
   // TTS Generation
   generateTTS: (text: string, language = "de", voice?: string) =>

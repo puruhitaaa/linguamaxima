@@ -42,6 +42,19 @@ function getGenderBadge(gender?: string | null) {
   };
 }
 
+function previewNextIntervalDays(card: Flashcard, quality: number): number {
+  if (quality < 3) {
+    return 1;
+  }
+  if (card.repetitions === 0) {
+    return 1;
+  }
+  if (card.repetitions === 1) {
+    return 6;
+  }
+  return Math.max(1, Math.round(card.interval_days * card.ease_factor));
+}
+
 function getFlashcardVocab(card: Flashcard) {
   if (card.vocabulary) {
     return card.vocabulary;
@@ -105,6 +118,8 @@ export function FlashcardCard({
 
   const vocab = getFlashcardVocab(card);
   const genderBadge = getGenderBadge(vocab.gender);
+  const cardLanguageCode =
+    card.vocabulary?.story_language_code || targetLanguage?.code || "de";
 
   // Play pronunciation via server audio, dynamic neural TTS, or speech synthesis fallback with 5s timeout
   const playAudio = useCallback(async () => {
@@ -116,14 +131,14 @@ export function FlashcardCard({
     const cleanup = await playPronunciationAudio({
       url: vocab.pronunciation_url,
       word: vocab.word,
-      languageCode: targetLanguage?.code || "de",
+      languageCode: cardLanguageCode,
       onStart: () => setIsPlayingAudio(true),
       onEnd: () => setIsPlayingAudio(false),
       onError: () => setIsPlayingAudio(false),
       t,
     });
     cancelAudioRef.current = cleanup;
-  }, [vocab.pronunciation_url, vocab.word, targetLanguage, t]);
+  }, [vocab.pronunciation_url, vocab.word, cardLanguageCode, t]);
 
   useEffect(
     () => () => {
@@ -436,7 +451,11 @@ export function FlashcardCard({
                 </kbd>
               </div>
               <span className="text-xs text-amber-400/80">
-                {t("flashcards.hardInterval")}
+                {previewNextIntervalDays(card, 3) === 1
+                  ? t("flashcards.hardInterval")
+                  : t("flashcards.goodInterval", {
+                      days: previewNextIntervalDays(card, 3),
+                    })}
               </span>
             </Button>
 
@@ -455,11 +474,11 @@ export function FlashcardCard({
                 </kbd>
               </div>
               <span className="text-xs text-sky-400/80">
-                {card.interval_days > 0
-                  ? t("flashcards.goodInterval", {
-                      days: Math.max(1, card.interval_days * 2),
-                    })
-                  : t("flashcards.hardInterval")}
+                {previewNextIntervalDays(card, 4) === 1
+                  ? t("flashcards.hardInterval")
+                  : t("flashcards.goodInterval", {
+                      days: previewNextIntervalDays(card, 4),
+                    })}
               </span>
             </Button>
 
@@ -478,11 +497,11 @@ export function FlashcardCard({
                 </kbd>
               </div>
               <span className="text-xs text-emerald-400/80">
-                {card.interval_days > 0
-                  ? t("flashcards.easyInterval", {
-                      days: Math.round(card.interval_days * 2.5),
-                    })
-                  : t("flashcards.easyInterval", { days: 4 })}
+                {previewNextIntervalDays(card, 5) === 1
+                  ? t("flashcards.hardInterval")
+                  : t("flashcards.easyInterval", {
+                      days: previewNextIntervalDays(card, 5),
+                    })}
               </span>
             </Button>
           </div>
