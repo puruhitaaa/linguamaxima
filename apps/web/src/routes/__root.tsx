@@ -206,10 +206,10 @@ function DocumentShell() {
       <head>
         <HeadContent />
       </head>
-      <body className="min-h-screen bg-background font-sans text-foreground antialiased selection:bg-sky-500/30 selection:text-sky-200">
-        <div className="flex min-h-screen flex-col">
+      <body className="min-h-screen bg-neutral-950 font-sans text-neutral-100 antialiased selection:bg-sky-500/30 selection:text-sky-200">
+        <div className="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">
           <Header />
-          <main className="flex-1">
+          <main className="flex-1 bg-neutral-950 text-neutral-100">
             <Outlet />
           </main>
         </div>

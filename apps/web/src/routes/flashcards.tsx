@@ -32,7 +32,17 @@ import {
 } from "../lib/queries";
 import type { Flashcard } from "../types/api";
 
+const MASTERY_FILTERS = ["learning", "reviewing", "mastered"] as const;
+
 const flashcardsSearchSchema = z.object({
+  mastery: z.preprocess(
+    (v) =>
+      typeof v === "string" &&
+      (MASTERY_FILTERS as readonly string[]).includes(v)
+        ? v
+        : undefined,
+    z.enum(MASTERY_FILTERS).optional()
+  ),
   scope: z.preprocess(
     (v) => (v === "pair" || v === "all" ? v : undefined),
     z.enum(["pair", "all"]).optional()
@@ -659,9 +669,9 @@ function FlashcardsComponent() {
   const activeTab = searchParams.tab ?? "review";
   const searchParam = searchParams.search ?? "";
   const scope = searchParams.scope ?? "pair";
+  const masteryFilter: MasteryFilter = searchParams.mastery ?? "all";
 
   const [searchInput, setSearchInput] = useState(searchParam);
-  const [masteryFilter, setMasteryFilter] = useState<MasteryFilter>("all");
 
   useEffect(() => {
     setSearchInput(searchParam);
@@ -719,95 +729,107 @@ function FlashcardsComponent() {
     });
   };
 
-  return (
-    <div className="container mx-auto max-w-5xl px-4 py-8 space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-5">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
-            <Layers className="size-6 text-sky-400" />
-            {t("flashcards.title")}
-          </h1>
-          <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-            {t("flashcards.subtitle")}
-          </p>
-        </div>
+  const handleMasteryFilterChange = (nextMastery: MasteryFilter) => {
+    navigate({
+      replace: true,
+      search: (prev) => ({
+        ...prev,
+        mastery: nextMastery === "all" ? undefined : nextMastery,
+      }),
+    });
+  };
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="inline-flex items-center p-1 rounded-xl bg-neutral-900 border border-neutral-800 text-xs">
-            <button
-              type="button"
-              onClick={() => handleScopeChange("pair")}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
-                scope === "pair"
-                  ? "bg-sky-500 text-white shadow-sm"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              <span>{getLanguageFlag(targetLanguage.code)}</span>
-              <span>
-                {t("flashcards.scopePair", { target: targetLanguage.name })}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleScopeChange("all")}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
-                scope === "all"
-                  ? "bg-sky-500 text-white shadow-sm"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              <Globe className="size-3.5" />
-              <span>{t("flashcards.scopeAll")}</span>
-            </button>
+  return (
+    <div className="min-h-screen bg-neutral-950 text-neutral-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-5">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+              <Layers className="size-6 text-sky-400" />
+              {t("flashcards.title")}
+            </h1>
+            <p className="text-xs sm:text-sm text-neutral-400 mt-1">
+              {t("flashcards.subtitle")}
+            </p>
           </div>
 
-          <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList className="bg-neutral-900 border border-neutral-800 p-1 rounded-xl">
-              <TabsTrigger
-                value="review"
-                className="text-xs font-semibold px-3.5 py-1.5 rounded-lg"
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="inline-flex items-center p-1 rounded-xl bg-neutral-900 border border-neutral-800 text-xs">
+              <button
+                type="button"
+                onClick={() => handleScopeChange("pair")}
+                className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  scope === "pair"
+                    ? "bg-sky-500 text-white shadow-sm"
+                    : "text-neutral-400 hover:text-neutral-200"
+                }`}
               >
-                {t("flashcards.dueReviewTab", {
-                  count: dueCards?.length || 0,
-                })}
-              </TabsTrigger>
-              <TabsTrigger
-                value="deck"
-                className="text-xs font-semibold px-3.5 py-1.5 rounded-lg"
+                <span>{getLanguageFlag(targetLanguage.code)}</span>
+                <span>
+                  {t("flashcards.scopePair", { target: targetLanguage.name })}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScopeChange("all")}
+                className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  scope === "all"
+                    ? "bg-sky-500 text-white shadow-sm"
+                    : "text-neutral-400 hover:text-neutral-200"
+                }`}
               >
-                {t("flashcards.allCardsTab", { count: totalDeckCount })}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+                <Globe className="size-3.5" />
+                <span>{t("flashcards.scopeAll")}</span>
+              </button>
+            </div>
+
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
+              <TabsList className="bg-neutral-900 border border-neutral-800 p-1 rounded-xl">
+                <TabsTrigger
+                  value="review"
+                  className="text-xs font-semibold px-3.5 py-1.5 rounded-lg"
+                >
+                  {t("flashcards.dueReviewTab", {
+                    count: dueCards?.length || 0,
+                  })}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="deck"
+                  className="text-xs font-semibold px-3.5 py-1.5 rounded-lg"
+                >
+                  {t("flashcards.allCardsTab", { count: totalDeckCount })}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
+
+        {activeTab === "review" && (
+          <FlashcardsReviewTab
+            key={`${scope}:${originLanguage.code}:${targetLanguage.code}`}
+            dueCards={dueCards}
+            allCards={unsearchedCards ?? allCards}
+            isLoadingDue={isLoadingDue}
+            onBrowseDeck={() => handleTabChange("deck")}
+          />
+        )}
+
+        {activeTab === "deck" && (
+          <FlashcardsDeckTab
+            cards={allCards}
+            deletingCardId={
+              deleteFlashcard.isPending ? deleteFlashcard.variables : undefined
+            }
+            isLoading={isLoadingAll}
+            onDeleteCard={(flashcardId) => deleteFlashcard.mutate(flashcardId)}
+            searchParam={searchParam}
+            searchInput={searchInput}
+            onSearchChange={setSearchInput}
+            masteryFilter={masteryFilter}
+            onFilterChange={handleMasteryFilterChange}
+          />
+        )}
       </div>
-
-      {activeTab === "review" && (
-        <FlashcardsReviewTab
-          key={`${scope}:${originLanguage.code}:${targetLanguage.code}`}
-          dueCards={dueCards}
-          allCards={unsearchedCards ?? allCards}
-          isLoadingDue={isLoadingDue}
-          onBrowseDeck={() => handleTabChange("deck")}
-        />
-      )}
-
-      {activeTab === "deck" && (
-        <FlashcardsDeckTab
-          cards={allCards}
-          deletingCardId={
-            deleteFlashcard.isPending ? deleteFlashcard.variables : undefined
-          }
-          isLoading={isLoadingAll}
-          onDeleteCard={(flashcardId) => deleteFlashcard.mutate(flashcardId)}
-          searchParam={searchParam}
-          searchInput={searchInput}
-          onSearchChange={setSearchInput}
-          masteryFilter={masteryFilter}
-          onFilterChange={setMasteryFilter}
-        />
-      )}
     </div>
   );
 }

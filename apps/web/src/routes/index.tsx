@@ -433,208 +433,214 @@ function HomeComponent() {
   };
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8 space-y-8">
-      {/* Hero & Progress Summary Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-sky-950/40 via-neutral-900 to-neutral-950 border border-neutral-800/80 p-6 sm:p-8">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3.5 max-w-xl">
-            {/* Active Language Badge & Switcher */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
-              <Sparkles className="size-3.5" />
-              <span>
-                {t("home.learningBadge", {
-                  origin: originLanguage.name,
-                  originFlag: getLanguageFlag(originLanguage.code),
-                  target: targetLanguage.name,
-                  targetFlag: getLanguageFlag(targetLanguage.code),
-                })}
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsLangModalOpen(true)}
-                className="ml-1 text-xs underline text-sky-300 hover:text-white font-medium"
-              >
-                {t("home.changeLanguage")}
-              </button>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              {t("home.heroTitle", { target: targetLanguage.name })}
-            </h1>
-            <p className="text-sm text-neutral-400 leading-relaxed">
-              {t("home.heroSubtitle", { origin: originLanguage.name })}
-            </p>
-
-            <div className="pt-1 flex flex-wrap items-center gap-2.5">
-              <LearningJourneyModal
-                trigger={
-                  <Button className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2 font-semibold text-xs shadow-md shadow-emerald-500/20 cursor-pointer">
-                    <Compass className="size-4" />
-                    <span>{t("header.newJourney")}</span>
-                  </Button>
-                }
-              />
-              <GenerateStoryDialog
-                trigger={
-                  <Button
-                    variant="outline"
-                    className="border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 gap-2 font-semibold text-xs cursor-pointer"
-                  >
-                    <Sparkles className="size-4" />
-                    <span>{t("generator.triggerBtn")}</span>
-                  </Button>
-                }
-              />
-            </div>
-          </div>
-
-          {/* Stat widgets */}
-          {progress && (
-            <div className="grid grid-cols-3 gap-2.5 sm:gap-4 bg-neutral-950/70 border border-neutral-800/90 p-4 rounded-2xl shrink-0">
-              <div className="text-center px-2">
-                <div className="flex items-center justify-center gap-1 text-sky-400 mb-1">
-                  <BookOpen className="size-4" />
-                </div>
-                <span className="text-xl sm:text-2xl font-black text-white block">
-                  {progress.total_stories_read}
-                </span>
-                <span className="text-xs text-neutral-400 font-medium">
-                  {t("home.storiesRead")}
-                </span>
-              </div>
-              <div className="text-center px-2 border-x border-neutral-800">
-                <div className="flex items-center justify-center gap-1 text-amber-400 mb-1">
-                  <Layers className="size-4" />
-                </div>
-                <span className="text-xl sm:text-2xl font-black text-white block">
-                  {progress.total_words_learned}
-                </span>
-                <span className="text-xs text-neutral-400 font-medium">
-                  {t("home.wordsSaved")}
-                </span>
-              </div>
-              <div className="text-center px-2">
-                <div className="flex items-center justify-center gap-1 text-orange-400 mb-1">
-                  <Flame className="size-4 fill-orange-400" />
-                </div>
-                <span className="text-xl sm:text-2xl font-black text-white block">
-                  {t("home.streakCount", {
-                    days: progress.current_streak_days,
+    <div className="min-h-screen bg-neutral-950 text-neutral-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Hero & Progress Summary Banner */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-sky-950/40 via-neutral-900 to-neutral-950 border border-neutral-800/80 p-6 sm:p-8">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-3.5 max-w-xl">
+              {/* Active Language Badge & Switcher */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
+                <Sparkles className="size-3.5" />
+                <span>
+                  {t("home.learningBadge", {
+                    origin: originLanguage.name,
+                    originFlag: getLanguageFlag(originLanguage.code),
+                    target: targetLanguage.name,
+                    targetFlag: getLanguageFlag(targetLanguage.code),
                   })}
                 </span>
-                <span className="text-xs text-neutral-400 font-medium">
-                  {t("home.dailyStreak")}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsLangModalOpen(true)}
+                  className="ml-1 text-xs underline text-sky-300 hover:text-white font-medium"
+                >
+                  {t("home.changeLanguage")}
+                </button>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                {t("home.heroTitle", { target: targetLanguage.name })}
+              </h1>
+              <p className="text-sm text-neutral-400 leading-relaxed">
+                {t("home.heroSubtitle", { origin: originLanguage.name })}
+              </p>
+
+              <div className="pt-1 flex flex-wrap items-center gap-2.5">
+                <LearningJourneyModal
+                  trigger={
+                    <Button className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2 font-semibold text-xs shadow-md shadow-emerald-500/20 cursor-pointer">
+                      <Compass className="size-4" />
+                      <span>{t("header.newJourney")}</span>
+                    </Button>
+                  }
+                />
+                <GenerateStoryDialog
+                  trigger={
+                    <Button
+                      variant="outline"
+                      className="border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 gap-2 font-semibold text-xs cursor-pointer"
+                    >
+                      <Sparkles className="size-4" />
+                      <span>{t("generator.triggerBtn")}</span>
+                    </Button>
+                  }
+                />
               </div>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Filter Controls & Search */}
-      <ActiveJourneyBanner
-        journeys={activeJourneys}
-        continueLabel={t("journeys.continueBtn")}
-      />
-
-      <div className="space-y-4">
-        {/* Language Scope & CEFR Level Tabs */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 min-w-0">
-            {/* Language Scope Switcher */}
-            <div className="flex items-center bg-neutral-900 p-1 rounded-xl border border-neutral-800 text-xs shrink-0">
-              <button
-                type="button"
-                onClick={() => handleToggleScope("pair")}
-                className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                  languageScope === "pair"
-                    ? "bg-sky-500 text-white shadow-sm"
-                    : "text-neutral-400 hover:text-neutral-200"
-                }`}
-              >
-                <span>{getLanguageFlag(targetLanguage.code)}</span>
-                <span>
-                  {t("home.targetStoriesTab", { target: targetLanguage.name })}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleToggleScope("all")}
-                className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                  languageScope === "all"
-                    ? "bg-sky-500 text-white shadow-sm"
-                    : "text-neutral-400 hover:text-neutral-200"
-                }`}
-              >
-                <Globe className="size-3.5" />
-                <span>{t("home.allLanguages")}</span>
-              </button>
-            </div>
-
-            {/* CEFR Level Tabs */}
-            <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0">
-              <div className="flex items-center gap-1.5 w-max sm:w-auto">
-                {CEFR_TABS.map((lvl) => (
-                  <button
-                    key={lvl}
-                    type="button"
-                    onClick={() => handleSelectLevel(lvl)}
-                    className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all border shrink-0 whitespace-nowrap cursor-pointer ${
-                      selectedLevel === lvl
-                        ? "bg-neutral-800 border-neutral-700 text-white shadow-sm"
-                        : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
-                    }`}
-                  >
-                    {lvl === "all" ? t("home.allLevels") : lvl}
-                  </button>
-                ))}
+            {/* Stat widgets */}
+            {progress && (
+              <div className="grid grid-cols-3 gap-2.5 sm:gap-4 bg-neutral-950/70 border border-neutral-800/90 p-4 rounded-2xl shrink-0">
+                <div className="text-center px-2">
+                  <div className="flex items-center justify-center gap-1 text-sky-400 mb-1">
+                    <BookOpen className="size-4" />
+                  </div>
+                  <span className="text-xl sm:text-2xl font-black text-white block">
+                    {progress.total_stories_read}
+                  </span>
+                  <span className="text-xs text-neutral-400 font-medium">
+                    {t("home.storiesRead")}
+                  </span>
+                </div>
+                <div className="text-center px-2 border-x border-neutral-800">
+                  <div className="flex items-center justify-center gap-1 text-amber-400 mb-1">
+                    <Layers className="size-4" />
+                  </div>
+                  <span className="text-xl sm:text-2xl font-black text-white block">
+                    {progress.total_words_learned}
+                  </span>
+                  <span className="text-xs text-neutral-400 font-medium">
+                    {t("home.wordsSaved")}
+                  </span>
+                </div>
+                <div className="text-center px-2">
+                  <div className="flex items-center justify-center gap-1 text-orange-400 mb-1">
+                    <Flame className="size-4 fill-orange-400" />
+                  </div>
+                  <span className="text-xl sm:text-2xl font-black text-white block">
+                    {t("home.streakCount", {
+                      days: progress.current_streak_days,
+                    })}
+                  </span>
+                  <span className="text-xs text-neutral-400 font-medium">
+                    {t("home.dailyStreak")}
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
-
-          {/* Search Bar with Clear Button */}
-          <div className="relative w-full lg:w-64 shrink-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-500 pointer-events-none" />
-            <Input
-              type="text"
-              placeholder={
-                languageScope === "pair"
-                  ? t("home.searchPlaceholder", { target: targetLanguage.name })
-                  : `${t("common.search")}...`
-              }
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 pr-8 h-9 text-xs bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 rounded-xl"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                onClick={handleClearSearch}
-                aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white p-0.5 cursor-pointer"
-              >
-                <X className="size-3.5" />
-              </button>
             )}
           </div>
         </div>
 
-        {/* Category Pills & Journey Stories Filter */}
-        <HomeCategoryRow
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={handleSelectCategory}
-          includeJourneyStories={includeJourneyStories}
-          onToggleIncludeJourneyStories={handleToggleIncludeJourneyStories}
+        {/* Filter Controls & Search */}
+        <ActiveJourneyBanner
+          journeys={activeJourneys}
+          continueLabel={t("journeys.continueBtn")}
+        />
+
+        <div className="space-y-4">
+          {/* Language Scope & CEFR Level Tabs */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 min-w-0">
+              {/* Language Scope Switcher */}
+              <div className="flex items-center bg-neutral-900 p-1 rounded-xl border border-neutral-800 text-xs shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleToggleScope("pair")}
+                  className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    languageScope === "pair"
+                      ? "bg-sky-500 text-white shadow-sm"
+                      : "text-neutral-400 hover:text-neutral-200"
+                  }`}
+                >
+                  <span>{getLanguageFlag(targetLanguage.code)}</span>
+                  <span>
+                    {t("home.targetStoriesTab", {
+                      target: targetLanguage.name,
+                    })}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleScope("all")}
+                  className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    languageScope === "all"
+                      ? "bg-sky-500 text-white shadow-sm"
+                      : "text-neutral-400 hover:text-neutral-200"
+                  }`}
+                >
+                  <Globe className="size-3.5" />
+                  <span>{t("home.allLanguages")}</span>
+                </button>
+              </div>
+
+              {/* CEFR Level Tabs */}
+              <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0">
+                <div className="flex items-center gap-1.5 w-max sm:w-auto">
+                  {CEFR_TABS.map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => handleSelectLevel(lvl)}
+                      className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all border shrink-0 whitespace-nowrap cursor-pointer ${
+                        selectedLevel === lvl
+                          ? "bg-neutral-800 border-neutral-700 text-white shadow-sm"
+                          : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
+                      }`}
+                    >
+                      {lvl === "all" ? t("home.allLevels") : lvl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Search Bar with Clear Button */}
+            <div className="relative w-full lg:w-64 shrink-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-500 pointer-events-none" />
+              <Input
+                type="text"
+                placeholder={
+                  languageScope === "pair"
+                    ? t("home.searchPlaceholder", {
+                        target: targetLanguage.name,
+                      })
+                    : `${t("common.search")}...`
+                }
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9 pr-8 h-9 text-xs bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 rounded-xl"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  aria-label="Clear search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white p-0.5 cursor-pointer"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Category Pills & Journey Stories Filter */}
+          <HomeCategoryRow
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={handleSelectCategory}
+            includeJourneyStories={includeJourneyStories}
+            onToggleIncludeJourneyStories={handleToggleIncludeJourneyStories}
+          />
+        </div>
+
+        {/* Stories Grid */}
+        {renderStoriesContent()}
+
+        <LanguagePairModal
+          open={isLangModalOpen}
+          onOpenChange={setIsLangModalOpen}
         />
       </div>
-
-      {/* Stories Grid */}
-      {renderStoriesContent()}
-
-      <LanguagePairModal
-        open={isLangModalOpen}
-        onOpenChange={setIsLangModalOpen}
-      />
     </div>
   );
 }
