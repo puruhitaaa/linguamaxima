@@ -4,13 +4,21 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@linguamaxima/ui/components/popover";
-import { Bookmark, Check, MessageSquare, Volume2 } from "lucide-react";
+import {
+  Bookmark,
+  Check,
+  Loader2,
+  MessageSquare,
+  Play,
+  Volume2,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { api } from "../lib/api";
 import { playPronunciationAudio } from "../lib/audio";
 import { useTranslation } from "../lib/i18n";
 import { useSaveFlashcard } from "../lib/queries";
-import type { VocabularyItem } from "../types/api";
+import type { VocabularyItem, WordItem } from "../types/api";
 
 const SPEAKER_LINE_REGEX = /^(?<speaker>[^:\n\r]{1,40}):\s*(?<text>[\s\S]+)$/u;
 
@@ -26,6 +34,7 @@ interface InteractiveStoryTextProps {
   highlightWords?: boolean;
   highlightStoryItem?: boolean;
   isPlaying?: boolean;
+  textSizeClass?: string;
   onWordClick?: (paragraphIndex: number, wordIndex: number) => void;
   onStoryItemClick?: (paragraphIndex: number) => void;
 }
@@ -86,6 +95,47 @@ export function cleanWord(raw: string) {
   return raw.replaceAll(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
 }
 
+function commonPrefixLength(a: string, b: string): number {
+  const max = Math.min(a.length, b.length);
+  let idx = 0;
+  while (idx < max && a.codePointAt(idx) === b.codePointAt(idx)) {
+    idx += 1;
+  }
+  return idx;
+}
+
+function resolveVocabItem(
+  cleaned: string,
+  vocabMap: Map<string, VocabularyItem>
+): VocabularyItem | undefined {
+  const lower = cleaned.toLowerCase();
+  if (!lower) {
+    return undefined;
+  }
+  const exact = vocabMap.get(lower);
+  if (exact) {
+    return exact;
+  }
+  if (lower.length < 4) {
+    return undefined;
+  }
+  let bestMatch: VocabularyItem | undefined;
+  let bestDiff = Number.POSITIVE_INFINITY;
+  for (const [key, item] of vocabMap.entries()) {
+    if (key.length < 4) {
+      continue;
+    }
+    const prefixLen = commonPrefixLength(lower, key);
+    const minStem = Math.max(4, Math.min(lower.length, key.length) - 2);
+    const diff = Math.abs(lower.length - key.length);
+    if (prefixLen >= minStem && diff <= 3 && diff < bestDiff) {
+      bestDiff = diff;
+      bestMatch = item;
+    }
+  }
+  return bestMatch;
+}
+
 interface StoryWordProps {
   rawWord: string;
   wordIndex: number;
@@ -93,11 +143,178 @@ interface StoryWordProps {
   vocabItem?: VocabularyItem;
   isActive: boolean;
   originLanguageName?: string;
+  targetLanguageCode?: string;
   playingWord: string | null;
   onPlayWord: (url?: string | null, word?: string) => void;
   onSaveToDeck: (vocabId: number) => void;
   isSavingFlashcard: boolean;
   onWordClick?: (paragraphIndex: number, wordIndex: number) => void;
+}
+
+function PlainWordLookupDetails({
+  hasFetchedLookup,
+  isLookingUp,
+  lookupWord,
+  originLanguageName,
+}: {
+  hasFetchedLookup: boolean;
+  isLookingUp: boolean;
+  lookupWord: WordItem | null;
+  originLanguageName?: string;
+}) {
+  const { t } = useTranslation();
+
+  if (isLookingUp) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-neutral-400 py-1">
+        <Loader2 className="size-3.5 animate-spin text-sky-400" />
+        <span>{t("story.lookupLoading")}</span>
+      </div>
+    );
+  }
+
+  if (lookupWord) {
+    return (
+      <div className="space-y-2">
+        <div className="space-y-0.5">
+          <span className="text-xs text-neutral-400 font-medium block">
+            {t("story.translationLabel", {
+              origin: originLanguageName || "",
+            })}
+          </span>
+          <p className="text-sm font-bold text-sky-400">
+            {lookupWord.translation}
+          </p>
+        </div>
+        {lookupWord.example_sentence && (
+          <p className="text-xs text-neutral-300 italic bg-neutral-950/70 p-2.5 rounded-xl border border-neutral-800/80">
+            &ldquo;{lookupWord.example_sentence}&rdquo;
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (hasFetchedLookup) {
+    return <p className="text-xs text-neutral-400">{t("story.lookupEmpty")}</p>;
+  }
+
+  return null;
+}
+
+function PlainWordLookupPopover({
+  cleanedWord,
+  hasFetchedLookup,
+  isActive,
+  isLookingUp,
+  lookupOpen,
+  lookupWord,
+  onOpenChange,
+  onPlayFromHere,
+  onPlayWord,
+  originLanguageName,
+  playingWord,
+  rawWord,
+}: {
+  cleanedWord: string;
+  hasFetchedLookup: boolean;
+  isActive: boolean;
+  isLookingUp: boolean;
+  lookupOpen: boolean;
+  lookupWord: WordItem | null;
+  onOpenChange: (open: boolean) => void;
+  onPlayFromHere?: () => void;
+  onPlayWord: (url?: string | null, word?: string) => void;
+  originLanguageName?: string;
+  playingWord: string | null;
+  rawWord: string;
+}) {
+  const { t } = useTranslation();
+  const displayWord = lookupWord?.lemma || cleanedWord;
+  const lookupGenderStyle = lookupWord?.gender
+    ? GENDER_BADGE_STYLE[lookupWord.gender.toLowerCase()] ||
+      "bg-neutral-800 text-neutral-300 border-neutral-700"
+    : null;
+
+  return (
+    <span className="inline-block mr-1.5">
+      <Popover open={lookupOpen} onOpenChange={onOpenChange}>
+        <PopoverTrigger
+          type="button"
+          className={`inline-block rounded transition-all duration-150 text-left cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
+            isActive
+              ? "bg-sky-400 text-neutral-950 font-bold px-1.5 py-0.5 shadow-md ring-2 ring-sky-300/90 scale-105"
+              : "hover:text-sky-200 hover:underline hover:decoration-neutral-600 underline-offset-4"
+          }`}
+        >
+          {rawWord}
+        </PopoverTrigger>
+        <PopoverContent
+          side="top"
+          align="center"
+          sideOffset={6}
+          className="w-72 p-4 bg-neutral-900/95 backdrop-blur-md border border-neutral-700 text-neutral-100 shadow-2xl rounded-2xl space-y-3"
+        >
+          <div className="flex items-start justify-between gap-2 border-b border-neutral-800 pb-2.5">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <h4 className="text-base font-bold text-white">
+                  {displayWord}
+                </h4>
+                {lookupWord?.gender && lookupGenderStyle && (
+                  <span
+                    className={`px-1.5 py-0.5 text-xs font-bold rounded-md border ${lookupGenderStyle}`}
+                  >
+                    {lookupWord.gender}
+                  </span>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label={t("flashcards.playPronunciation")}
+                  title={t("flashcards.playPronunciation")}
+                  onClick={() => onPlayWord(lookupWord?.audio_url, displayWord)}
+                  className={`size-6 p-0 rounded-full text-neutral-400 hover:text-sky-400 hover:bg-neutral-800 cursor-pointer ${
+                    playingWord === displayWord
+                      ? "text-sky-400 bg-sky-500/10 animate-pulse"
+                      : ""
+                  }`}
+                >
+                  <Volume2 className="size-3.5" />
+                </Button>
+              </div>
+              {lookupWord?.part_of_speech && (
+                <span className="text-xs uppercase tracking-wider text-neutral-400 font-semibold block">
+                  {lookupWord.part_of_speech}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <PlainWordLookupDetails
+            hasFetchedLookup={hasFetchedLookup}
+            isLookingUp={isLookingUp}
+            lookupWord={lookupWord}
+            originLanguageName={originLanguageName}
+          />
+
+          {onPlayFromHere && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onPlayFromHere}
+              className="w-full text-xs font-semibold gap-1.5 h-8 rounded-xl border-neutral-700 bg-neutral-800/80 text-neutral-200 hover:bg-neutral-800 hover:text-white cursor-pointer"
+            >
+              <Play className="size-3.5" />
+              <span>{t("story.playFromHere")}</span>
+            </Button>
+          )}
+        </PopoverContent>
+      </Popover>
+    </span>
+  );
 }
 
 function StoryWordItem({
@@ -107,6 +324,7 @@ function StoryWordItem({
   vocabItem,
   isActive,
   originLanguageName,
+  targetLanguageCode = "de",
   playingWord,
   onPlayWord,
   onSaveToDeck,
@@ -114,20 +332,68 @@ function StoryWordItem({
   onWordClick,
 }: StoryWordProps) {
   const { t } = useTranslation();
+  const [lookupOpen, setLookupOpen] = useState(false);
+  const [hasFetchedLookup, setHasFetchedLookup] = useState(false);
+  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [lookupWord, setLookupWord] = useState<WordItem | null>(null);
+
+  const cleanedWord = cleanWord(rawWord);
+
+  const handleLookupOpenChange = async (open: boolean) => {
+    setLookupOpen(open);
+    if (!open || vocabItem || hasFetchedLookup || !cleanedWord) {
+      return;
+    }
+    setIsLookingUp(true);
+    try {
+      const res = await api.getWords({
+        lang: targetLanguageCode,
+        page_size: 5,
+        search: cleanedWord,
+      });
+      const lower = cleanedWord.toLowerCase();
+      const exact = res.items.find(
+        (item) => cleanWord(item.lemma).toLowerCase() === lower
+      );
+      const prefix = res.items.find((item) =>
+        cleanWord(item.lemma).toLowerCase().startsWith(lower)
+      );
+      setLookupWord(exact ?? prefix ?? null);
+    } catch {
+      setLookupWord(null);
+    } finally {
+      setHasFetchedLookup(true);
+      setIsLookingUp(false);
+    }
+  };
 
   if (!vocabItem) {
+    if (!cleanedWord) {
+      return <span className="inline-block mr-1.5">{rawWord}</span>;
+    }
+
     return (
-      <button
-        type="button"
-        onClick={() => onWordClick?.(paragraphIndex, wordIndex)}
-        className={`inline-block mr-1.5 rounded transition-all duration-150 text-left cursor-pointer ${
-          isActive
-            ? "bg-sky-400 text-neutral-950 font-bold px-1.5 py-0.5 shadow-md ring-2 ring-sky-300/90 scale-105"
-            : "hover:text-sky-200"
-        }`}
-      >
-        {rawWord}
-      </button>
+      <PlainWordLookupPopover
+        cleanedWord={cleanedWord}
+        hasFetchedLookup={hasFetchedLookup}
+        isActive={isActive}
+        isLookingUp={isLookingUp}
+        lookupOpen={lookupOpen}
+        lookupWord={lookupWord}
+        onOpenChange={handleLookupOpenChange}
+        onPlayFromHere={
+          onWordClick
+            ? () => {
+                setLookupOpen(false);
+                onWordClick(paragraphIndex, wordIndex);
+              }
+            : undefined
+        }
+        onPlayWord={onPlayWord}
+        originLanguageName={originLanguageName}
+        playingWord={playingWord}
+        rawWord={rawWord}
+      />
     );
   }
 
@@ -253,6 +519,7 @@ interface DialogueCardProps {
   shouldHighlightOutline: boolean;
   showTranslation: boolean;
   originLanguageName?: string;
+  textSizeClass: string;
   renderWords: (text: string, pIdx: number) => React.ReactNode;
   onStoryItemClick?: (pIdx: number) => void;
 }
@@ -266,6 +533,7 @@ function DialogueStoryCard({
   shouldHighlightOutline,
   showTranslation,
   originLanguageName,
+  textSizeClass,
   renderWords,
   onStoryItemClick,
 }: DialogueCardProps) {
@@ -328,12 +596,14 @@ function DialogueStoryCard({
           )}
           <div className="flex items-center gap-1 text-xs text-neutral-500">
             <MessageSquare className="size-3.5" />
-            <span>Turn {paragraphIndex + 1}</span>
+            <span>{t("story.turnLabel", { turn: paragraphIndex + 1 })}</span>
           </div>
         </div>
       </div>
 
-      <p className="text-lg sm:text-xl font-normal leading-loose tracking-wide text-white selection:bg-sky-500/40 selection:text-white pl-1">
+      <p
+        className={`${textSizeClass} font-normal leading-loose tracking-wide text-white selection:bg-sky-500/40 selection:text-white pl-1`}
+      >
         {renderWords(spokenText, paragraphIndex)}
       </p>
 
@@ -356,6 +626,7 @@ interface MonologueCardProps {
   shouldHighlightOutline: boolean;
   showTranslation: boolean;
   originLanguageName?: string;
+  textSizeClass: string;
   renderWords: (text: string, pIdx: number) => React.ReactNode;
   onStoryItemClick?: (pIdx: number) => void;
 }
@@ -367,6 +638,7 @@ function MonologueStoryCard({
   shouldHighlightOutline,
   showTranslation,
   originLanguageName,
+  textSizeClass,
   renderWords,
   onStoryItemClick,
 }: MonologueCardProps) {
@@ -404,7 +676,9 @@ function MonologueStoryCard({
         )}
       </div>
 
-      <p className="text-lg sm:text-xl font-normal leading-loose tracking-wide text-white selection:bg-sky-500/40 selection:text-white">
+      <p
+        className={`${textSizeClass} font-normal leading-loose tracking-wide text-white selection:bg-sky-500/40 selection:text-white`}
+      >
         {renderWords(paraText, paragraphIndex)}
       </p>
 
@@ -434,6 +708,7 @@ export function InteractiveStoryText({
   highlightWords = true,
   highlightStoryItem = true,
   isPlaying = false,
+  textSizeClass = "text-lg sm:text-xl",
   onWordClick,
   onStoryItemClick,
 }: InteractiveStoryTextProps) {
@@ -524,7 +799,7 @@ export function InteractiveStoryText({
 
     return words.map((rawWord, wIdx) => {
       const cleaned = cleanWord(rawWord);
-      const vocabItem = vocabMap.get(cleaned.toLowerCase());
+      const vocabItem = resolveVocabItem(cleaned, vocabMap);
       const isWordActive =
         highlightWords &&
         activeParagraphIndex === paragraphIndex &&
@@ -539,6 +814,7 @@ export function InteractiveStoryText({
           vocabItem={vocabItem}
           isActive={isWordActive}
           originLanguageName={originLanguageName}
+          targetLanguageCode={targetLanguageCode}
           playingWord={playingWord}
           onPlayWord={playWord}
           onSaveToDeck={handleSaveToDeck}
@@ -579,6 +855,7 @@ export function InteractiveStoryText({
               shouldHighlightOutline={shouldHighlightOutline}
               showTranslation={showTranslation}
               originLanguageName={originLanguageName}
+              textSizeClass={textSizeClass}
               renderWords={renderWords}
               onStoryItemClick={onStoryItemClick}
             />
@@ -594,6 +871,7 @@ export function InteractiveStoryText({
             shouldHighlightOutline={shouldHighlightOutline}
             showTranslation={showTranslation}
             originLanguageName={originLanguageName}
+            textSizeClass={textSizeClass}
             renderWords={renderWords}
             onStoryItemClick={onStoryItemClick}
           />

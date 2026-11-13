@@ -1,13 +1,14 @@
 import { toast } from "sonner";
 
 import { api } from "./api";
+import type { TranslationKey } from "./i18n/types";
 
 export interface PlayPronunciationOptions {
   languageCode?: string;
   onError?: (error: unknown) => void;
   onEnd?: () => void;
   onStart?: () => void;
-  t?: (key: string) => string;
+  t?: (key: TranslationKey, params?: Record<string, string | number>) => string;
   url?: string | null;
   word?: string;
 }
@@ -27,7 +28,8 @@ export async function playPronunciationAudio(
     t,
   } = options || {};
 
-  const safeT = typeof t === "function" ? t : (key: string) => key;
+  const safeT: (key: TranslationKey) => string =
+    typeof t === "function" ? t : String;
 
   let hasStarted = false;
   let isCancelled = false;

@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@linguamaxima/ui/components/card";
 import { Link } from "@tanstack/react-router";
 import { BookOpen, CheckCircle2, Clock, Headphones, Heart } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { useTranslation } from "../lib/i18n";
 import { getLanguageFlag } from "../lib/language-context";
@@ -19,6 +20,11 @@ const LEVEL_COLORS: Record<CEFRLevel, string> = {
 export function StoryCard({ story }: { story: StoryListItem }) {
   const { t, tCategory } = useTranslation();
   const toggleFavorite = useToggleFavorite();
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [story.image_url]);
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -33,20 +39,12 @@ export function StoryCard({ story }: { story: StoryListItem }) {
 
   return (
     <Card className="group relative overflow-hidden pt-0 border-neutral-800/80 bg-neutral-900/60 hover:bg-neutral-900/90 transition-all duration-300 hover:border-neutral-700 hover:shadow-lg hover:shadow-sky-500/5 flex flex-col h-full rounded-xl">
-      {/* Container background link for click-to-open */}
-      <Link
-        to="/stories/$storyId"
-        params={{ storyId: story.id.toString() }}
-        className="absolute inset-0 z-0 focus:outline-none focus:ring-2 focus:ring-sky-500 rounded-xl"
-        aria-label={story.title}
-        tabIndex={-1}
-      />
-
       <div className="relative aspect-video w-full overflow-hidden bg-neutral-950 pointer-events-none">
-        {story.image_url ? (
+        {story.image_url && !imgError ? (
           <img
             src={story.image_url}
             alt={story.title}
+            onError={() => setImgError(true)}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
@@ -128,7 +126,7 @@ export function StoryCard({ story }: { story: StoryListItem }) {
             <Link
               to="/stories/$storyId"
               params={{ storyId: story.id.toString() }}
-              className="hover:underline focus:outline-none"
+              className="hover:underline focus:outline-none after:content-[''] after:absolute after:inset-0 after:z-0"
             >
               {story.title}
             </Link>

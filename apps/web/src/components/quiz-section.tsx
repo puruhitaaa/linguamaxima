@@ -4,6 +4,7 @@ import {
   RadioGroupItem,
 } from "@linguamaxima/ui/components/radio-group";
 import {
+  AlertCircle,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -16,13 +17,171 @@ import {
 import { useCallback, useEffect, useState } from "react";
 
 import { useTranslation } from "../lib/i18n";
-import { useSubmitQuiz } from "../lib/queries";
-import type { QuizQuestion, QuizSubmissionResult } from "../types/api";
+import { useCheckQuizAnswer, useSubmitQuiz } from "../lib/queries";
+import type {
+  QuestionResult,
+  QuizQuestion,
+  QuizSubmissionResult,
+} from "../types/api";
 
 interface QuizSectionProps {
   storyId: number;
   quizzes: QuizQuestion[];
   onComplete?: () => void;
+}
+
+function QuizSummaryScreen({
+  onRetry,
+  result,
+}: {
+  onRetry: () => void;
+  result: QuizSubmissionResult;
+}) {
+  const { t } = useTranslation();
+  const isPassed = result.score_percentage >= 70;
+
+  return (
+    <div className="p-6 sm:p-8 bg-neutral-900/60 border border-neutral-800 rounded-3xl text-center space-y-6 max-w-xl mx-auto">
+      <div className="size-16 rounded-full mx-auto flex items-center justify-center bg-sky-500/10 border border-sky-500/30 text-sky-400">
+        <Trophy className="size-8" />
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="text-2xl font-bold text-white">
+          {isPassed ? t("quiz.passedTitle") : t("quiz.failedTitle")}
+        </h3>
+        <p className="text-sm text-neutral-400">
+          {isPassed ? t("quiz.passedDesc") : t("quiz.failedDesc")}
+        </p>
+      </div>
+
+      <div className="p-4 rounded-2xl bg-neutral-950/70 border border-neutral-800/80 flex items-center justify-around">
+        <div>
+          <span className="text-xs uppercase tracking-wider text-neutral-400 font-bold block">
+            {t("quiz.scoreStat")}
+          </span>
+          <span className="text-3xl font-extrabold text-white">
+            {result.score_percentage}%
+          </span>
+        </div>
+        <div className="h-8 w-px bg-neutral-800" />
+        <div>
+          <span className="text-xs uppercase tracking-wider text-neutral-400 font-bold block">
+            {t("quiz.correctStat")}
+          </span>
+          <span className="text-3xl font-extrabold text-sky-400">
+            {t("quiz.correctOutOf", {
+              correct: result.correct_answers,
+              total: result.total_questions,
+            })}
+          </span>
+        </div>
+      </div>
+
+      {result.results && result.results.length > 0 && (
+        <div className="space-y-3 text-left">
+          <h4 className="text-xs uppercase tracking-wider text-neutral-300 font-bold">
+            {t("quiz.answerReview")}
+          </h4>
+          {result.results.map((res, i) => (
+            <div
+              key={res.question_id ?? i}
+              className="p-4 rounded-xl border border-neutral-800 bg-neutral-950/50 space-y-2"
+            >
+              <div className="flex items-start gap-2">
+                {res.is_correct ? (
+                  <CheckCircle2 className="size-4 text-emerald-400 shrink-0 mt-0.5" />
+                ) : (
+                  <XCircle className="size-4 text-rose-400 shrink-0 mt-0.5" />
+                )}
+                <p className="text-sm font-semibold text-neutral-200">
+                  {res.question}
+                </p>
+              </div>
+              <div className="text-xs pl-6 space-y-1">
+                <p className="text-neutral-300">
+                  {t("quiz.yourAnswer")}{" "}
+                  <span
+                    className={
+                      res.is_correct
+                        ? "text-emerald-400 font-semibold"
+                        : "text-rose-400 font-semibold"
+                    }
+                  >
+                    {res.selected_answer}
+                  </span>
+                </p>
+                {!res.is_correct && (
+                  <p className="text-emerald-400 font-medium">
+                    {t("quiz.correctAnswer")}{" "}
+                    <span className="font-semibold">{res.correct_answer}</span>
+                  </p>
+                )}
+                {res.explanation && (
+                  <p className="text-neutral-400 italic pt-0.5">
+                    {res.explanation}
+                  </p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Button
+        onClick={onRetry}
+        className="gap-2 bg-sky-500 hover:bg-sky-600 text-white w-full sm:w-auto px-6 h-11 font-semibold"
+      >
+        <RotateCcw className="size-4" />
+        {t("quiz.retakeQuiz")}
+      </Button>
+    </div>
+  );
+}
+
+function QuizCheckFeedback({
+  checkedResult,
+  fallbackExplanation,
+}: {
+  checkedResult: QuestionResult;
+  fallbackExplanation?: string | null;
+}) {
+  const { t } = useTranslation();
+  const explanation = checkedResult.explanation || fallbackExplanation;
+
+  return (
+    <div
+      className={`p-4 rounded-2xl border text-xs sm:text-sm space-y-2 animate-in fade-in duration-200 ${
+        checkedResult.is_correct
+          ? "bg-emerald-950/30 border-emerald-500/40 text-emerald-200"
+          : "bg-rose-950/30 border-rose-500/40 text-rose-200"
+      }`}
+    >
+      <div className="flex items-center gap-2 font-bold">
+        {checkedResult.is_correct ? (
+          <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
+        ) : (
+          <XCircle className="size-4 text-rose-400 shrink-0" />
+        )}
+        <span>
+          {checkedResult.is_correct
+            ? t("quiz.checkCorrect")
+            : t("quiz.checkIncorrect", {
+                answer: checkedResult.correct_answer,
+              })}
+        </span>
+      </div>
+      {explanation && (
+        <div className="pt-1 border-t border-white/10 text-neutral-300 space-y-1">
+          <div className="flex items-center gap-1.5 text-sky-400 font-bold uppercase tracking-wider text-xs">
+            <Sparkles className="size-3.5" />
+            <span>{t("quiz.explanationLabel")}</span>
+          </div>
+          <p className="leading-relaxed">{explanation}</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function QuizSection({
@@ -33,20 +192,21 @@ export function QuizSection({
   const { t } = useTranslation();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
-  const [checkedQuestions, setCheckedQuestions] = useState<
-    Record<number, boolean>
+  const [checkedResults, setCheckedResults] = useState<
+    Record<number, QuestionResult>
   >({});
   const [submissionResult, setSubmissionResult] =
     useState<QuizSubmissionResult | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const checkMutation = useCheckQuizAnswer(storyId);
   const submitMutation = useSubmitQuiz(storyId);
 
   const currentQ = quizzes[currentIdx];
   const isLastQuestion = currentIdx === quizzes.length - 1;
   const currentAnswer = currentQ ? userAnswers[currentQ.id] : undefined;
-  const isCurrentChecked = currentQ
-    ? Boolean(checkedQuestions[currentQ.id])
-    : false;
+  const checkedResult = currentQ ? checkedResults[currentQ.id] : undefined;
+  const isCurrentChecked = Boolean(checkedResult);
 
   const handleSelectOption = useCallback(
     (option: string) => {
@@ -61,64 +221,60 @@ export function QuizSection({
     [currentQ, isCurrentChecked]
   );
 
-  const handleCheckAnswer = useCallback(() => {
-    if (!currentQ || !currentAnswer) {
+  const handleCheckAnswer = useCallback(async () => {
+    if (!currentQ || !currentAnswer || checkMutation.isPending) {
       return;
     }
-    setCheckedQuestions((prev) => ({
-      ...prev,
-      [currentQ.id]: true,
-    }));
-  }, [currentQ, currentAnswer]);
+    try {
+      const result = await checkMutation.mutateAsync({
+        question_id: currentQ.id,
+        selected_answer: currentAnswer,
+      });
+      setCheckedResults((prev) => ({
+        ...prev,
+        [currentQ.id]: result,
+      }));
+    } catch {
+      // Error toast is shown by the mutation hook
+    }
+  }, [checkMutation, currentAnswer, currentQ]);
 
   const handlePrev = useCallback(() => {
     if (currentIdx > 0) {
+      setSubmitError(null);
       setCurrentIdx((prev) => prev - 1);
     }
   }, [currentIdx]);
 
   const handleNext = useCallback(async () => {
+    setSubmitError(null);
     if (!isLastQuestion) {
       setCurrentIdx((prev) => prev + 1);
-    } else {
-      // Final submission
-      const payload = Object.entries(userAnswers).map(([qid, ans]) => ({
-        question_id: Math.trunc(Number(qid)),
-        selected_answer: ans,
-      }));
-      try {
-        const result = await submitMutation.mutateAsync(payload);
-        setSubmissionResult(result);
-        if (onComplete) {
-          onComplete();
-        }
-      } catch {
-        // Fallback local score calculation if offline
-        const simulatedCorrect = payload.length;
-        setSubmissionResult({
-          correct_answers: simulatedCorrect,
-          passed: true,
-          results: [],
-          score_percentage: 100,
-          story_id: storyId,
-          total_questions: quizzes.length,
-        });
-      }
+      return;
     }
-  }, [
-    isLastQuestion,
-    userAnswers,
-    submitMutation,
-    onComplete,
-    storyId,
-    quizzes.length,
-  ]);
+    const payload = Object.entries(userAnswers).map(([qid, ans]) => ({
+      question_id: Math.trunc(Number(qid)),
+      selected_answer: ans,
+    }));
+    try {
+      const result = await submitMutation.mutateAsync(payload);
+      setSubmissionResult(result);
+      if (onComplete) {
+        onComplete();
+      }
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : t("quiz.submitError")
+      );
+    }
+  }, [isLastQuestion, userAnswers, submitMutation, onComplete, t]);
 
   const handleRetry = useCallback(() => {
     setUserAnswers({});
-    setCheckedQuestions({});
+    setCheckedResults({});
     setCurrentIdx(0);
     setSubmissionResult(null);
+    setSubmitError(null);
   }, []);
 
   // Keyboard shortcut listener for options (1-4), check (Enter), navigation
@@ -189,106 +345,8 @@ export function QuizSection({
 
   // ---------------- Summary Screen ----------------
   if (submissionResult) {
-    const isPassed = submissionResult.score_percentage >= 70;
     return (
-      <div className="p-6 sm:p-8 bg-neutral-900/60 border border-neutral-800 rounded-3xl text-center space-y-6 max-w-xl mx-auto">
-        <div className="size-16 rounded-full mx-auto flex items-center justify-center bg-sky-500/10 border border-sky-500/30 text-sky-400">
-          <Trophy className="size-8" />
-        </div>
-
-        <div className="space-y-2">
-          <h3 className="text-2xl font-bold text-white">
-            {isPassed ? t("quiz.passedTitle") : t("quiz.failedTitle")}
-          </h3>
-          <p className="text-sm text-neutral-400">
-            {isPassed ? t("quiz.passedDesc") : t("quiz.failedDesc")}
-          </p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-neutral-950/70 border border-neutral-800/80 flex items-center justify-around">
-          <div>
-            <span className="text-xs uppercase tracking-wider text-neutral-400 font-bold block">
-              {t("quiz.scoreStat")}
-            </span>
-            <span className="text-3xl font-extrabold text-white">
-              {submissionResult.score_percentage}%
-            </span>
-          </div>
-          <div className="h-8 w-px bg-neutral-800" />
-          <div>
-            <span className="text-xs uppercase tracking-wider text-neutral-400 font-bold block">
-              {t("quiz.correctStat")}
-            </span>
-            <span className="text-3xl font-extrabold text-sky-400">
-              {t("quiz.correctOutOf", {
-                correct: submissionResult.correct_answers,
-                total: submissionResult.total_questions,
-              })}
-            </span>
-          </div>
-        </div>
-
-        {/* Detailed question review */}
-        {submissionResult.results && submissionResult.results.length > 0 && (
-          <div className="space-y-3 text-left">
-            <h4 className="text-xs uppercase tracking-wider text-neutral-300 font-bold">
-              {t("quiz.answerReview")}
-            </h4>
-            {submissionResult.results.map((res, i) => (
-              <div
-                key={i}
-                className="p-4 rounded-xl border border-neutral-800 bg-neutral-950/50 space-y-2"
-              >
-                <div className="flex items-start gap-2">
-                  {res.is_correct ? (
-                    <CheckCircle2 className="size-4 text-emerald-400 shrink-0 mt-0.5" />
-                  ) : (
-                    <XCircle className="size-4 text-rose-400 shrink-0 mt-0.5" />
-                  )}
-                  <p className="text-sm font-semibold text-neutral-200">
-                    {res.question}
-                  </p>
-                </div>
-                <div className="text-xs pl-6 space-y-1">
-                  <p className="text-neutral-300">
-                    {t("quiz.yourAnswer")}{" "}
-                    <span
-                      className={
-                        res.is_correct
-                          ? "text-emerald-400 font-semibold"
-                          : "text-rose-400 font-semibold"
-                      }
-                    >
-                      {res.selected_answer}
-                    </span>
-                  </p>
-                  {!res.is_correct && (
-                    <p className="text-emerald-400 font-medium">
-                      {t("quiz.correctAnswer")}{" "}
-                      <span className="font-semibold">
-                        {res.correct_answer}
-                      </span>
-                    </p>
-                  )}
-                  {res.explanation && (
-                    <p className="text-neutral-400 italic pt-0.5">
-                      {res.explanation}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <Button
-          onClick={handleRetry}
-          className="gap-2 bg-sky-500 hover:bg-sky-600 text-white w-full sm:w-auto px-6 h-11 font-semibold"
-        >
-          <RotateCcw className="size-4" />
-          {t("quiz.retakeQuiz")}
-        </Button>
-      </div>
+      <QuizSummaryScreen onRetry={handleRetry} result={submissionResult} />
     );
   }
 
@@ -310,7 +368,7 @@ export function QuizSection({
               t("quiz.questionTypeFallback")}
           </span>
           <span className="text-xs text-neutral-400 hidden sm:inline font-medium">
-            (Press 1-{currentQ.options.length} or Enter)
+            {t("quiz.shortcutsHint", { count: currentQ.options.length })}
           </span>
         </div>
         <span className="text-xs font-mono font-semibold text-neutral-400">
@@ -342,16 +400,32 @@ export function QuizSection({
       >
         {currentQ.options.map((opt, i) => {
           const isSelected = currentAnswer === opt;
+          const isCorrectOption =
+            isCurrentChecked && checkedResult?.correct_answer === opt;
+          const isWrongSelection =
+            isCurrentChecked &&
+            isSelected &&
+            checkedResult &&
+            !checkedResult.is_correct;
           const optId = `quiz-option-${currentQ.id}-${i}`;
+          let optionClass =
+            "bg-neutral-900/60 border-neutral-800 text-neutral-200 hover:bg-neutral-800/80 hover:border-neutral-700";
+          if (isCorrectOption) {
+            optionClass =
+              "bg-emerald-500/15 border-emerald-500 text-emerald-200 ring-1 ring-emerald-500/40";
+          } else if (isWrongSelection) {
+            optionClass =
+              "bg-rose-500/15 border-rose-500 text-rose-200 ring-1 ring-rose-500/40";
+          } else if (isSelected) {
+            optionClass =
+              "bg-sky-500/15 border-sky-400 text-sky-200 ring-1 ring-sky-500/40";
+          }
+
           return (
             <label
               key={i}
               htmlFor={optId}
-              className={`p-4 rounded-2xl border transition-all flex items-center justify-between cursor-pointer select-none text-sm sm:text-base font-medium ${
-                isSelected
-                  ? "bg-sky-500/15 border-sky-400 text-sky-200 ring-1 ring-sky-500/40"
-                  : "bg-neutral-900/60 border-neutral-800 text-neutral-200 hover:bg-neutral-800/80 hover:border-neutral-700"
-              } ${isCurrentChecked ? "cursor-default" : ""}`}
+              className={`p-4 rounded-2xl border transition-all flex items-center justify-between cursor-pointer select-none text-sm sm:text-base font-medium ${optionClass} ${isCurrentChecked ? "cursor-default" : ""}`}
             >
               <div className="flex items-center gap-3">
                 <span className="size-6 rounded-lg bg-neutral-800 border border-neutral-700 text-neutral-400 text-xs font-mono font-bold flex items-center justify-center shrink-0">
@@ -365,14 +439,33 @@ export function QuizSection({
         })}
       </RadioGroup>
 
-      {/* Explanation when checked */}
-      {isCurrentChecked && currentQ.explanation && (
-        <div className="p-4 rounded-2xl bg-neutral-950/80 border border-neutral-800 text-xs sm:text-sm text-neutral-300 space-y-1.5 animate-in fade-in duration-200">
-          <div className="flex items-center gap-1.5 text-sky-400 font-bold uppercase tracking-wider text-xs">
-            <Sparkles className="size-3.5" />
-            <span>{t("quiz.explanationLabel")}</span>
+      {/* Immediate check feedback and explanation */}
+      {isCurrentChecked && checkedResult && (
+        <QuizCheckFeedback
+          checkedResult={checkedResult}
+          fallbackExplanation={currentQ.explanation}
+        />
+      )}
+
+      {submitError && (
+        <div
+          role="alert"
+          className="p-3.5 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-200 text-xs sm:text-sm flex items-center justify-between gap-3"
+        >
+          <div className="flex items-center gap-2">
+            <AlertCircle className="size-4 text-rose-400 shrink-0" />
+            <span>{submitError}</span>
           </div>
-          <p className="leading-relaxed">{currentQ.explanation}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleNext}
+            disabled={submitMutation.isPending}
+            className="border-rose-500/40 text-rose-200 hover:bg-rose-900/40 shrink-0"
+          >
+            {t("common.retry")}
+          </Button>
         </div>
       )}
 
@@ -390,17 +483,17 @@ export function QuizSection({
         </Button>
 
         <div className="flex items-center gap-2">
-          {!isCurrentChecked && currentQ.explanation ? (
+          {!isCurrentChecked && (
             <Button
               type="button"
               variant="outline"
               onClick={handleCheckAnswer}
-              disabled={!currentAnswer}
+              disabled={!currentAnswer || checkMutation.isPending}
               className="border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-white font-semibold text-xs h-10 px-4"
             >
               {t("quiz.checkAnswer")}
             </Button>
-          ) : null}
+          )}
 
           <Button
             type="button"

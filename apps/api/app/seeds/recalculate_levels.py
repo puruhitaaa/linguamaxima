@@ -2,13 +2,15 @@
 Recalculates CEFR / Native levels for all existing words based on verified frequency maps.
 """
 
-import sys
-import logging
 import asyncio
-from sqlalchemy import select, update
-from app.models import CEFRLevel, Language, Word
+import logging
+import sys
+
+from sqlalchemy import select
+
 from app.core.database import get_session_maker
-from app.seeds.kaikki_bulk_ingest import fetch_frequency_map, rank_to_cefr
+from app.models import Language, Word
+from app.seeds.kaikki_bulk_ingest import rank_to_cefr
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")

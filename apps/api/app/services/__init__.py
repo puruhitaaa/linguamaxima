@@ -1,8 +1,10 @@
 import asyncio
+import hashlib
 import logging
-from typing import List, Optional, Tuple
+
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models import CEFRLevel
 from app.repositories import (
     category_repo,
@@ -17,8 +19,10 @@ from app.schemas import (
     ProgressSummaryResponse,
     QuestionResult,
     QuizResponse,
+    QuizSubmissionItem,
     QuizSubmissionRequest,
     QuizSubmissionResponse,
+    StoryCompleteResponse,
     StoryDetailResponse,
     StoryGenerateRequest,
     StoryListItemResponse,
@@ -26,7 +30,7 @@ from app.schemas import (
     WordResponse,
 )
 from app.services.ai_service import ai_service
-from app.services.dictionary_service import dictionary_service
+from app.services.dictionary_service import dictionary_service as dictionary_service
 from app.services.image_service import image_service
 from app.services.srs_service import calculate_sm2
 from app.services.tts_service import tts_service
@@ -37,17 +41,17 @@ class StoryService:
     async def list_stories(
         self,
         session: AsyncSession,
-        cefr_level: Optional[CEFRLevel] = None,
-        category_slug: Optional[str] = None,
-        search: Optional[str] = None,
-        origin_language_code: Optional[str] = None,
-        target_language_code: Optional[str] = None,
-        language_pair_id: Optional[int] = None,
-        is_favorite: Optional[bool] = None,
-        is_completed: Optional[bool] = None,
+        cefr_level: CEFRLevel | None = None,
+        category_slug: str | None = None,
+        search: str | None = None,
+        origin_language_code: str | None = None,
+        target_language_code: str | None = None,
+        language_pair_id: int | None = None,
+        is_favorite: bool | None = None,
+        is_completed: bool | None = None,
         page: int = 1,
         limit: int = 20,
-    ) -> Tuple[List[StoryListItemResponse], int]:
+    ) -> tuple[list[StoryListItemResponse], int]:
         offset = (page - 1) * limit
         stories, total = await story_repo.list_stories(
             session=session,
@@ -101,9 +105,14 @@ class StoryService:
         is_comp = prog.completed_at is not None if prog else False
         q_score = prog.quiz_score if prog else None
 
-        # Build vocabulary items with saved flashcard check
-        all_flashcards = await flashcard_repo.get_all_flashcards(session)
-        saved_vocab_ids = {fc.vocabulary_id for fc in all_flashcards}
+        # Build vocabulary items with saved flashcard check (scoped to story vocab IDs)
+        vocab_ids = [v.id for v in story.vocabulary]
+        saved_vocab_ids = await flashcard_repo.get_saved_vocabulary_ids(session, vocab_ids)
+        story_lang_code = (
+            story.language_pair.target_language.code
+            if story.language_pair and story.language_pair.target_language
+            else None
+        )
 
         vocab_responses = []
         for v in story.vocabulary:
@@ -120,15 +129,18 @@ class StoryService:
                     pronunciation_url=v.pronunciation_url,
                     difficulty_rank=v.difficulty_rank,
                     is_saved_as_flashcard=(v.id in saved_vocab_ids),
+                    story_language_code=story_lang_code,
                 )
             )
 
-        # Build quiz items formatting options
+        # Build quiz items with process-deterministic shuffling and option deduplication
         quiz_responses = []
         for q in story.quizzes:
-            options = [q.correct_answer] + (q.wrong_answers or [])
-            # Simple deterministic shuffle based on question id
-            options.sort(key=lambda opt: hash(f"{q.id}:{opt}"))
+            raw_options = [q.correct_answer, *(q.wrong_answers or [])]
+            options = list(dict.fromkeys(opt for opt in raw_options if opt))
+            options.sort(
+                key=lambda opt: hashlib.sha256(f"{q.id}:{opt}".encode()).hexdigest()
+            )
             quiz_responses.append(
                 QuizResponse(
                     id=q.id,
@@ -204,12 +216,15 @@ class StoryService:
             speaker_name=bundle.speaker_name,
         )
 
-        # 4. Generate audio for vocabulary words
+        # 4. Generate audio for vocabulary words (bounded concurrency to avoid edge-tts spikes)
+        tts_semaphore = asyncio.Semaphore(5)
+
         async def populate_vocab_audio(item):
-            audio_path = await tts_service.generate_audio(
-                text=item.word,
-                language=req.target_language_code,
-            )
+            async with tts_semaphore:
+                audio_path = await tts_service.generate_audio(
+                    text=item.word,
+                    language=req.target_language_code,
+                )
             # Attach generated audio url or keep None
             item.pronunciation_url = audio_path
             item.example_sentence = item.example_sentence or ""
@@ -234,7 +249,43 @@ class StoryService:
     async def toggle_favorite(self, session: AsyncSession, story_id: int) -> bool:
         return await story_repo.toggle_favorite(session, story_id)
 
+    async def mark_completed(
+        self, session: AsyncSession, story_id: int
+    ) -> StoryCompleteResponse:
+        progress = await story_repo.mark_story_completed(session, story_id)
+        if not progress or not progress.completed_at:
+            raise HTTPException(status_code=404, detail="Story not found")
+        return StoryCompleteResponse(
+            story_id=story_id,
+            is_completed=True,
+            completed_at=progress.completed_at,
+        )
+
 class QuizService:
+    async def check_answer(
+        self, session: AsyncSession, story_id: int, req: QuizSubmissionItem
+    ) -> QuestionResult:
+        story = await story_repo.get_story_by_id(session, story_id)
+        if not story:
+            raise HTTPException(status_code=404, detail="Story not found")
+
+        quiz = next((q for q in story.quizzes if q.id == req.question_id), None)
+        if not quiz:
+            raise HTTPException(status_code=404, detail="Quiz question not found")
+
+        is_correct = (
+            req.selected_answer.strip().lower()
+            == quiz.correct_answer.strip().lower()
+        )
+        return QuestionResult(
+            question_id=quiz.id,
+            question=quiz.question,
+            selected_answer=req.selected_answer,
+            correct_answer=quiz.correct_answer,
+            is_correct=is_correct,
+            explanation=quiz.explanation,
+        )
+
     async def submit_quiz(
         self, session: AsyncSession, story_id: int, req: QuizSubmissionRequest
     ) -> QuizSubmissionResponse:
@@ -287,6 +338,13 @@ class FlashcardService:
     def _format_flashcard(self, fc) -> FlashcardResponse:
         vocab_resp = None
         if fc.vocabulary:
+            story_lang_code = (
+                fc.vocabulary.story.language_pair.target_language.code
+                if fc.vocabulary.story
+                and fc.vocabulary.story.language_pair
+                and fc.vocabulary.story.language_pair.target_language
+                else None
+            )
             vocab_resp = VocabularyResponse(
                 id=fc.vocabulary.id,
                 story_id=fc.vocabulary.story_id,
@@ -299,6 +357,7 @@ class FlashcardService:
                 pronunciation_url=fc.vocabulary.pronunciation_url,
                 difficulty_rank=fc.vocabulary.difficulty_rank,
                 is_saved_as_flashcard=True,
+                story_language_code=story_lang_code,
             )
 
         word_resp = None
@@ -336,18 +395,41 @@ class FlashcardService:
             created_at=fc.created_at,
         )
 
-    async def get_due_flashcards(self, session: AsyncSession) -> List[FlashcardResponse]:
-        flashcards = await flashcard_repo.get_due_flashcards(session)
+    async def get_due_flashcards(
+        self,
+        session: AsyncSession,
+        origin_language_code: str | None = None,
+        target_language_code: str | None = None,
+    ) -> list[FlashcardResponse]:
+        flashcards = await flashcard_repo.get_due_flashcards(
+            session,
+            origin_language_code=origin_language_code,
+            target_language_code=target_language_code,
+        )
         return [self._format_flashcard(fc) for fc in flashcards]
 
     async def get_all_flashcards(
-        self, session: AsyncSession, search: Optional[str] = None
-    ) -> List[FlashcardResponse]:
-        flashcards = await flashcard_repo.get_all_flashcards(session, search=search)
+        self,
+        session: AsyncSession,
+        search: str | None = None,
+        origin_language_code: str | None = None,
+        target_language_code: str | None = None,
+    ) -> list[FlashcardResponse]:
+        flashcards = await flashcard_repo.get_all_flashcards(
+            session,
+            search=search,
+            origin_language_code=origin_language_code,
+            target_language_code=target_language_code,
+        )
         return [self._format_flashcard(fc) for fc in flashcards]
 
+    async def delete_flashcard(self, session: AsyncSession, flashcard_id: int) -> None:
+        deleted = await flashcard_repo.delete_by_id(session, flashcard_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Flashcard not found")
+
     async def save_flashcard(
-        self, session: AsyncSession, vocabulary_id: Optional[int] = None, word_id: Optional[int] = None
+        self, session: AsyncSession, vocabulary_id: int | None = None, word_id: int | None = None
     ) -> FlashcardResponse:
         if word_id:
             fc = await flashcard_repo.save_word_to_flashcard(session, word_id)
@@ -398,8 +480,19 @@ class FlashcardService:
         )
 
 class ProgressService:
-    async def get_summary(self, session: AsyncSession) -> ProgressSummaryResponse:
-        summary_dict = await progress_repo.get_summary(session)
+    async def get_summary(
+        self,
+        session: AsyncSession,
+        origin_language_code: str | None = None,
+        target_language_code: str | None = None,
+        tz_offset_minutes: int = 0,
+    ) -> ProgressSummaryResponse:
+        summary_dict = await progress_repo.get_summary(
+            session,
+            origin_language_code=origin_language_code,
+            target_language_code=target_language_code,
+            tz_offset_minutes=tz_offset_minutes,
+        )
         return ProgressSummaryResponse(**summary_dict)
 
 story_service = StoryService()

@@ -7,6 +7,7 @@ import {
   createRootRouteWithContext,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { ThemeProvider } from "next-themes";
 
 import Header from "../components/header";
 import { LanguagePairProvider, useLanguagePair } from "../lib/language-context";
@@ -15,14 +16,26 @@ import appCss from "../index.css?url";
 
 export type RouterAppContext = Record<string, never>;
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      staleTime: 1000 * 60 * 5, // 5 minutes
+let browserQueryClient: QueryClient | undefined;
+
+function createQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+      },
     },
-  },
-});
+  });
+}
+
+function getQueryClient() {
+  if (typeof window === "undefined") {
+    return createQueryClient();
+  }
+  browserQueryClient ??= createQueryClient();
+  return browserQueryClient;
+}
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   head: () => ({
@@ -163,11 +176,20 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 });
 
 function RootDocument() {
+  const queryClient = getQueryClient();
+
   return (
     <QueryClientProvider client={queryClient}>
-      <LanguagePairProvider>
-        <DocumentShell />
-      </LanguagePairProvider>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="dark"
+        disableTransitionOnChange
+        enableSystem
+      >
+        <LanguagePairProvider>
+          <DocumentShell />
+        </LanguagePairProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
@@ -176,7 +198,11 @@ function DocumentShell() {
   const { originLanguage } = useLanguagePair();
 
   return (
-    <html className="dark" lang={originLanguage?.code || "en"}>
+    <html
+      suppressHydrationWarning
+      dir={originLanguage?.code === "ar" ? "rtl" : "ltr"}
+      lang={originLanguage?.code || "en"}
+    >
       <head>
         <HeadContent />
       </head>

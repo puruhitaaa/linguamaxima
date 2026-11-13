@@ -4,14 +4,10 @@ Generates 20-30+ authentic words per proficiency level (A1, A2, B1, B2, C1, C2)
 across all 13 supported languages covering Conjunctions, Verbs, Nouns, Adjectives, Adverbs, Prepositions, and Phrases.
 """
 
+import asyncio
 import json
 import logging
-import asyncio
 from pathlib import Path
-from sqlalchemy import select, delete
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import CEFRLevel, Language, Word
-from app.core.database import get_session_maker
 
 logger = logging.getLogger("linguamaxima.bulk_seed")
 

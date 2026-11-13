@@ -1,5 +1,7 @@
 import logging
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -9,6 +11,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import NullPool
+
 from app.core.config import settings
 
 logger = logging.getLogger("linguamaxima.database")
@@ -20,7 +23,6 @@ _engine: AsyncEngine | None = None
 _session_maker: async_sessionmaker[AsyncSession] | None = None
 _using_sqlite_fallback: bool = False
 
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 def normalize_db_url(url: str) -> str:
     if not url:
@@ -86,7 +88,7 @@ def create_engine_instance(url: str) -> AsyncEngine:
     )
 
 def get_engine() -> AsyncEngine:
-    global _engine, _using_sqlite_fallback
+    global _engine
     if _engine is None:
         db_url = settings.sqlite_fallback_url if _using_sqlite_fallback else settings.database_url
         _engine = create_engine_instance(db_url)

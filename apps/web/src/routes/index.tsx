@@ -7,12 +7,13 @@ import {
   Flame,
   Globe,
   Layers,
+  Loader2,
   RotateCcw,
   Search,
   Sparkles,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 
 import { GenerateStoryDialog } from "../components/generate-story-dialog";
@@ -20,21 +21,33 @@ import { LanguagePairModal } from "../components/language-pair-modal";
 import { StoryCard } from "../components/story-card";
 import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
-import { useCategories, useProgress, useStories } from "../lib/queries";
+import { useCategories, useInfiniteStories, useProgress } from "../lib/queries";
+import type { StoryListItem } from "../types/api";
 
 const CEFR_TABS = ["all", "A1", "A2", "B1", "B2", "C1", "C2"] as const;
 
 const storiesSearchSchema = z.object({
-  category: z.string().optional().default("all"),
-  language_scope: z.enum(["pair", "all"]).optional().default("pair"),
-  level: z.enum(CEFR_TABS).optional().default("all"),
-  search: z.string().optional().default(""),
+  category: z.string().optional(),
+  language_scope: z.preprocess(
+    (v) => (v === "pair" || v === "all" ? v : undefined),
+    z.enum(["pair", "all"]).optional()
+  ),
+  level: z.preprocess(
+    (v) =>
+      typeof v === "string" && (CEFR_TABS as readonly string[]).includes(v)
+        ? v
+        : undefined,
+    z.enum(CEFR_TABS).optional()
+  ),
+  search: z.string().optional(),
 });
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
-  validateSearch: (search: Record<string, unknown>) =>
-    storiesSearchSchema.parse(search),
+  validateSearch: (search: Record<string, unknown>) => {
+    const parsed = storiesSearchSchema.safeParse(search);
+    return parsed.success ? parsed.data : {};
+  },
 });
 
 function HomeComponent() {
@@ -49,6 +62,10 @@ function HomeComponent() {
   const { getLanguageFlag, originLanguage, targetLanguage } = useLanguagePair();
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(searchParam);
+
+  useEffect(() => {
+    setSearchInput(searchParam);
+  }, [searchParam]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -66,21 +83,47 @@ function HomeComponent() {
   }, [searchInput, searchParam, navigate]);
 
   const { data: categories } = useCategories();
-  const { data: progress } = useProgress();
+  const { data: progress } = useProgress({
+    origin_language_code: originLanguage.code,
+    target_language_code: targetLanguage.code,
+  });
   const {
-    data: stories,
+    data: infiniteStories,
+    fetchNextPage,
+    hasNextPage,
     isError,
+    isFetchingNextPage,
     isLoading,
     refetch,
-  } = useStories({
+  } = useInfiniteStories({
     category_slug: selectedCategory !== "all" ? selectedCategory : undefined,
     cefr_level: selectedLevel !== "all" ? selectedLevel : undefined,
+    limit: 12,
     origin_language_code:
       languageScope === "pair" ? originLanguage.code : undefined,
     search: searchParam.trim() || undefined,
     target_language_code:
       languageScope === "pair" ? targetLanguage.code : undefined,
   });
+
+  const stories = useMemo(() => {
+    if (!infiniteStories?.pages) {
+      return [];
+    }
+    const seen = new Set<number>();
+    const list: StoryListItem[] = [];
+    for (const page of infiniteStories.pages) {
+      for (const item of page.items) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          list.push(item);
+        }
+      }
+    }
+    return list;
+  }, [infiniteStories]);
+
+  const totalStories = infiniteStories?.pages[0]?.total ?? stories.length;
 
   const handleSelectLevel = (lvl: (typeof CEFR_TABS)[number]) => {
     navigate({
@@ -160,12 +203,40 @@ function HomeComponent() {
       );
     }
 
-    if (stories && stories.length > 0) {
+    if (stories.length > 0) {
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {stories.map((story) => (
-            <StoryCard key={story.id} story={story} />
-          ))}
+        <div className="space-y-8">
+          <div className="flex items-center justify-between text-xs text-neutral-400 px-1">
+            <span>
+              {t("home.showingStoriesCount", {
+                count: stories.length,
+                total: totalStories,
+              })}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {stories.map((story) => (
+              <StoryCard key={story.id} story={story} />
+            ))}
+          </div>
+
+          {hasNextPage && (
+            <div className="flex justify-center pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="gap-2 border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800 hover:text-white rounded-xl h-10 px-6 text-xs font-semibold cursor-pointer"
+              >
+                {isFetchingNextPage && (
+                  <Loader2 className="size-4 animate-spin text-sky-400" />
+                )}
+                <span>{t("home.loadMoreStories")}</span>
+              </Button>
+            </div>
+          )}
         </div>
       );
     }

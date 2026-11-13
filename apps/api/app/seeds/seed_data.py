@@ -1,15 +1,16 @@
 import logging
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models import (
-    CEFRLevel,
     Category,
+    CEFRLevel,
     GrammarTip,
     Language,
     LanguagePair,
     Quiz,
     Story,
-    UserProgress,
     Vocabulary,
 )
 
@@ -486,15 +487,8 @@ async def seed_database(session: AsyncSession) -> None:
                     sort_order=q_data["sort_order"],
                 )
                 session.add(quiz)
-
-            # User progress
-            progress = UserProgress(
-                story_id=story.id,
-                is_favorite=False,
-                quiz_attempts=0,
-            )
     await session.commit()
-    
+
     # 5. Seed dictionary words
     from app.seeds.dictionary_seed import seed_dictionary
     await seed_dictionary(session)
@@ -503,6 +497,7 @@ async def seed_database(session: AsyncSession) -> None:
 
 if __name__ == "__main__":
     import asyncio
+
     from app.core.database import get_session_maker
 
     async def main():

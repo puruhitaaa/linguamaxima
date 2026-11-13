@@ -1,11 +1,10 @@
 import asyncio
-import io
 import logging
-from pathlib import Path
-from typing import Optional
+
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
+
 from app.core.config import settings
 
 logger = logging.getLogger("linguamaxima.storage")
@@ -50,7 +49,7 @@ class StorageService:
         )
         return f"https://{settings.r2_bucket_name}.{settings.r2_account_id}.r2.cloudflarestorage.com/{key}"
 
-    async def audio_exists(self, filename: str) -> Optional[str]:
+    async def audio_exists(self, filename: str) -> str | None:
         """
         Checks if an audio file already exists in the configured storage.
         Returns the resolved URL if found, else None.
@@ -81,7 +80,7 @@ class StorageService:
 
         return self._check_local_exists(filename)
 
-    def _check_local_exists(self, filename: str) -> Optional[str]:
+    def _check_local_exists(self, filename: str) -> str | None:
         file_path = settings.audio_dir / filename
         if file_path.exists() and file_path.stat().st_size > 0:
             return f"/api/v1/media/audio/{filename}"
@@ -92,7 +91,7 @@ class StorageService:
         filename: str,
         data: bytes,
         content_type: str = "audio/mpeg"
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Persists audio bytes to the configured storage backend (local disk or Cloudflare R2).
         Returns the accessible URL.
@@ -127,11 +126,11 @@ class StorageService:
 
         return await self._save_local_audio(filename, data)
 
-    async def _save_local_audio(self, filename: str, data: bytes) -> Optional[str]:
+    async def _save_local_audio(self, filename: str, data: bytes) -> str | None:
         try:
             settings.audio_dir.mkdir(parents=True, exist_ok=True)
             file_path = settings.audio_dir / filename
-            
+
             def _write():
                 with open(file_path, "wb") as f:
                     f.write(data)

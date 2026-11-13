@@ -1,17 +1,19 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from app.services.storage_service import StorageService
-from app.core.config import settings
+
 
 @pytest.mark.asyncio
 async def test_storage_service_local():
     svc = StorageService()
     svc.backend = "local"
-    
+
     test_data = b"ID3\x04\x00\x00\x00\x00\x00\x00test-audio-bytes"
     url = await svc.upload_audio("test_local_audio.mp3", test_data)
     assert url == "/api/v1/media/audio/test_local_audio.mp3"
-    
+
     exists_url = await svc.audio_exists("test_local_audio.mp3")
     assert exists_url == "/api/v1/media/audio/test_local_audio.mp3"
 

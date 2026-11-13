@@ -1,7 +1,15 @@
+from datetime import UTC, datetime, timedelta
+
+import litellm
 import pytest
-from datetime import datetime, timezone
-from app.models import CEFRLevel
+from sqlalchemy import select
+
+from app.core.config import settings
+from app.core.rate_limit import generation_rate_limiter
+from app.models import CEFRLevel, UserProgress
+from app.repositories import _calculate_streak_days
 from app.services.srs_service import calculate_sm2
+
 
 @pytest.mark.asyncio
 async def test_health_check(client):
@@ -166,8 +174,8 @@ async def test_story_generation(client):
     assert len(new_story["quizzes"]) > 0
 
 def test_srs_sm2_algorithm():
-    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
-    
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+
     # 1. First review with Perfect (5)
     r1 = calculate_sm2(quality=5, current_ease_factor=2.5, current_interval=0, current_repetitions=0, now=now)
     assert r1.repetitions == 1
@@ -191,7 +199,7 @@ async def test_languages_endpoints(client):
     assert lang_res.status_code == 200
     languages = lang_res.json()
     assert len(languages) >= 5
-    codes = [l["code"] for l in languages]
+    codes = [lang["code"] for lang in languages]
     assert "de" in codes
     assert "id" in codes
     assert "en" in codes
@@ -268,7 +276,7 @@ def test_gender_detection_and_voice_matching():
 @pytest.mark.asyncio
 async def test_monologue_story_bundle_fallback():
     from app.services.ai_service import ai_service
-    bundle, model, provider = await ai_service.generate_story(
+    bundle, _model, _provider = await ai_service.generate_story(
         cefr_level=CEFRLevel.A1,
         category="travel",
         target_lang="German",
@@ -357,3 +365,208 @@ async def test_save_word_flashcard(client):
     words_after = (await client.get("/api/v1/words?lang=de&pos=conjunction")).json()
     saved_word = next(w for w in words_after["items"] if w["id"] == word_id)
     assert saved_word["is_saved_as_flashcard"] is True
+
+
+@pytest.mark.asyncio
+async def test_stories_pagination_headers_and_uncompleted_filter(client):
+    res_page1 = await client.get("/api/v1/stories?page=1&limit=2")
+    assert res_page1.status_code == 200
+    assert int(res_page1.headers["x-total-count"]) >= 3
+    assert res_page1.headers["x-page"] == "1"
+    assert res_page1.headers["x-limit"] == "2"
+    page1_ids = [item["id"] for item in res_page1.json()]
+    assert len(page1_ids) == 2
+
+    # Stories without a UserProgress row should still appear for is_completed=false
+    uncompleted_res = await client.get("/api/v1/stories?is_completed=false&limit=50")
+    assert uncompleted_res.status_code == 200
+    uncompleted_ids = {item["id"] for item in uncompleted_res.json()}
+    assert page1_ids[0] in uncompleted_ids
+
+    # Mark first story completed explicitly
+    complete_res = await client.post(f"/api/v1/stories/{page1_ids[0]}/complete")
+    assert complete_res.status_code == 200
+    assert complete_res.json()["is_completed"] is True
+
+    # Verify it moves from is_completed=false to is_completed=true
+    uncompleted_after = await client.get("/api/v1/stories?is_completed=false&limit=50")
+    assert page1_ids[0] not in {item["id"] for item in uncompleted_after.json()}
+    completed_after = await client.get("/api/v1/stories?is_completed=true&limit=50")
+    assert page1_ids[0] in {item["id"] for item in completed_after.json()}
+
+
+@pytest.mark.asyncio
+async def test_quiz_check_inline_and_deterministic_option_order(client):
+    stories_res = await client.get("/api/v1/stories")
+    story_id = stories_res.json()[0]["id"]
+
+    first_detail = (await client.get(f"/api/v1/stories/{story_id}")).json()
+    second_detail = (await client.get(f"/api/v1/stories/{story_id}")).json()
+
+    first_options = [q["options"] for q in first_detail["quizzes"]]
+    second_options = [q["options"] for q in second_detail["quizzes"]]
+    assert first_options == second_options
+
+    first_q = first_detail["quizzes"][0]
+    check_res = await client.post(
+        f"/api/v1/quizzes/{story_id}/check",
+        json={"question_id": first_q["id"], "selected_answer": first_q["options"][0]},
+    )
+    assert check_res.status_code == 200
+    payload = check_res.json()
+    assert payload["question_id"] == first_q["id"]
+    assert isinstance(payload["is_correct"], bool)
+    assert payload["correct_answer"]
+
+
+@pytest.mark.asyncio
+async def test_flashcards_language_scope_and_delete(client):
+    stories_res = await client.get("/api/v1/stories?target_language_code=de")
+    story_de_meta = stories_res.json()[0]
+    de_detail = (await client.get(f"/api/v1/stories/{story_de_meta['id']}")).json()
+
+    # Generate an English target story to test cross-language filtering
+    en_story = (
+        await client.post(
+            "/api/v1/stories/generate",
+            json={
+                "cefr_level": "A1",
+                "category": "daily-life",
+                "origin_language_code": "id",
+                "target_language_code": "en",
+            },
+        )
+    ).json()
+
+    fc_de = (
+        await client.post(
+            "/api/v1/flashcards",
+            json={"vocabulary_id": de_detail["vocabulary"][0]["id"]},
+        )
+    ).json()
+    fc_en = (
+        await client.post(
+            "/api/v1/flashcards",
+            json={"vocabulary_id": en_story["vocabulary"][0]["id"]},
+        )
+    ).json()
+
+    scoped_all = (
+        await client.get("/api/v1/flashcards?target_language_code=de")
+    ).json()
+    scoped_all_ids = {c["id"] for c in scoped_all}
+    assert fc_de["id"] in scoped_all_ids
+    assert fc_en["id"] not in scoped_all_ids
+
+    scoped_due = (
+        await client.get("/api/v1/flashcards/due?target_language_code=de")
+    ).json()
+    scoped_due_ids = {c["id"] for c in scoped_due}
+    assert fc_de["id"] in scoped_due_ids
+    assert fc_en["id"] not in scoped_due_ids
+
+    del_res = await client.delete(f"/api/v1/flashcards/{fc_de['id']}")
+    assert del_res.status_code == 204
+    missing_res = await client.delete(f"/api/v1/flashcards/{fc_de['id']}")
+    assert missing_res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_progress_language_scope_and_timezone_streak(client, db_session):
+    stories_res = await client.get("/api/v1/stories?target_language_code=de")
+    de_id = stories_res.json()[0]["id"]
+
+    en_story = (
+        await client.post(
+            "/api/v1/stories/generate",
+            json={
+                "cefr_level": "A1",
+                "category": "daily-life",
+                "origin_language_code": "id",
+                "target_language_code": "en",
+            },
+        )
+    ).json()
+
+    now_utc = datetime.now(UTC)
+    for sid, completed_at, quiz_score in [
+        (de_id, now_utc, 80),
+        (en_story["id"], now_utc - timedelta(days=1), 60),
+    ]:
+        existing = (
+            await db_session.execute(
+                select(UserProgress).where(UserProgress.story_id == sid)
+            )
+        ).scalar_one_or_none()
+        if existing:
+            existing.completed_at = completed_at
+            existing.quiz_score = quiz_score
+            existing.last_accessed_at = completed_at
+        else:
+            db_session.add(
+                UserProgress(
+                    story_id=sid,
+                    completed_at=completed_at,
+                    quiz_score=quiz_score,
+                    last_accessed_at=completed_at,
+                )
+            )
+    await db_session.commit()
+
+    de_summary = (
+        await client.get("/api/v1/progress?origin_language_code=id&target_language_code=de")
+    ).json()
+    assert de_summary["total_stories_read"] == 1
+    assert de_summary["average_quiz_score"] == 80.0
+
+    # Global progress captures consecutive active days -> streak >= 2
+    global_summary = (await client.get("/api/v1/progress?tz_offset_minutes=0")).json()
+    assert global_summary["total_stories_read"] == 2
+    assert global_summary["current_streak_days"] >= 2
+
+    # Direct verification of timezone boundary handling on streak dates
+    ref_today_utc = datetime.now(UTC)
+    yesterday_late_utc = datetime(
+        ref_today_utc.year, ref_today_utc.month, ref_today_utc.day, tzinfo=UTC
+    ) - timedelta(minutes=30)
+    prev_day_late_utc = yesterday_late_utc - timedelta(days=1)
+    assert _calculate_streak_days([yesterday_late_utc, prev_day_late_utc], tz_offset_minutes=0) == 2
+    assert _calculate_streak_days([yesterday_late_utc, prev_day_late_utc], tz_offset_minutes=60) == 2
+
+    two_days_ago_early = datetime(
+        ref_today_utc.year, ref_today_utc.month, ref_today_utc.day, tzinfo=UTC
+    ) - timedelta(days=2) + timedelta(minutes=30)
+    assert _calculate_streak_days([two_days_ago_early], tz_offset_minutes=0) == 0
+
+
+@pytest.mark.asyncio
+async def test_story_generation_strict_503_and_rate_limit(client, monkeypatch):
+    async def fail_acompletion(*args, **kwargs):
+        raise RuntimeError("Upstream provider down")
+
+    monkeypatch.setattr(litellm, "acompletion", fail_acompletion)
+    monkeypatch.setattr(settings, "allow_ai_mock_fallback", False)
+
+    res_503 = await client.post(
+        "/api/v1/stories/generate",
+        json={"cefr_level": "A1", "category": "daily-life", "topic_hint": "Cafe"},
+    )
+    assert res_503.status_code == 503
+
+    # Re-enable mock fallback and reset rate limiter to verify exact quota limit -> 429
+    generation_rate_limiter.reset()
+    monkeypatch.setattr(settings, "allow_ai_mock_fallback", True)
+    monkeypatch.setattr(settings, "generation_rate_limit", 2)
+
+    for _ in range(2):
+        ok_res = await client.post(
+            "/api/v1/stories/generate",
+            json={"cefr_level": "A1", "category": "daily-life", "topic_hint": "Bakery"},
+        )
+        assert ok_res.status_code == 200
+
+    res_429 = await client.post(
+        "/api/v1/stories/generate",
+        json={"cefr_level": "A1", "category": "daily-life", "topic_hint": "Bakery"},
+    )
+    assert res_429.status_code == 429
