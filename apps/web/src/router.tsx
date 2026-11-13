@@ -3,6 +3,7 @@ import {
   Link,
   createRouter as createTanStackRouter,
 } from "@tanstack/react-router";
+import type { ErrorComponentProps } from "@tanstack/react-router";
 import { AlertTriangle, Compass, Home } from "lucide-react";
 
 import Loader from "./components/loader";
@@ -32,7 +33,10 @@ function RouterNotFound() {
   );
 }
 
-function RouterError({ error, reset }: { error: Error; reset: () => void }) {
+function RouterError({ error, reset }: ErrorComponentProps) {
+  const message =
+    error instanceof Error ? error.message : "An unexpected error occurred.";
+
   return (
     <div className="container mx-auto max-w-2xl px-4 py-20 text-center space-y-5">
       <div className="mx-auto size-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
@@ -42,7 +46,7 @@ function RouterError({ error, reset }: { error: Error; reset: () => void }) {
         <h1 className="text-2xl font-extrabold tracking-tight text-white">
           Something went wrong
         </h1>
-        <p className="text-sm text-neutral-400">{error.message}</p>
+        <p className="text-sm text-neutral-400">{message}</p>
       </div>
       <div className="flex items-center justify-center gap-3">
         <Button onClick={reset} variant="outline">
