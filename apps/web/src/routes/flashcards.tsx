@@ -32,7 +32,17 @@ import {
 } from "../lib/queries";
 import type { Flashcard } from "../types/api";
 
+const MASTERY_FILTERS = ["learning", "reviewing", "mastered"] as const;
+
 const flashcardsSearchSchema = z.object({
+  mastery: z.preprocess(
+    (v) =>
+      typeof v === "string" &&
+      (MASTERY_FILTERS as readonly string[]).includes(v)
+        ? v
+        : undefined,
+    z.enum(MASTERY_FILTERS).optional()
+  ),
   scope: z.preprocess(
     (v) => (v === "pair" || v === "all" ? v : undefined),
     z.enum(["pair", "all"]).optional()
@@ -659,9 +669,9 @@ function FlashcardsComponent() {
   const activeTab = searchParams.tab ?? "review";
   const searchParam = searchParams.search ?? "";
   const scope = searchParams.scope ?? "pair";
+  const masteryFilter: MasteryFilter = searchParams.mastery ?? "all";
 
   const [searchInput, setSearchInput] = useState(searchParam);
-  const [masteryFilter, setMasteryFilter] = useState<MasteryFilter>("all");
 
   useEffect(() => {
     setSearchInput(searchParam);
@@ -715,6 +725,16 @@ function FlashcardsComponent() {
       search: (prev) => ({
         ...prev,
         scope: nextScope,
+      }),
+    });
+  };
+
+  const handleMasteryFilterChange = (nextMastery: MasteryFilter) => {
+    navigate({
+      replace: true,
+      search: (prev) => ({
+        ...prev,
+        mastery: nextMastery === "all" ? undefined : nextMastery,
       }),
     });
   };
@@ -805,7 +825,7 @@ function FlashcardsComponent() {
           searchInput={searchInput}
           onSearchChange={setSearchInput}
           masteryFilter={masteryFilter}
-          onFilterChange={setMasteryFilter}
+          onFilterChange={handleMasteryFilterChange}
         />
       )}
     </div>
