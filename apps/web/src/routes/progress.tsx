@@ -593,166 +593,168 @@ function ProgressComponent() {
   const isFiltered = selectedLevel !== "all";
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 py-8 space-y-8">
-      {/* Title & Tabs Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-5">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
-            <div className="size-9 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center">
-              <GraduationCap className="size-5" />
-            </div>
-            <span>{t("progress.title")}</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-            {t("progress.subtitle", { target: targetLanguage.name })}
-          </p>
-        </div>
-
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="bg-neutral-900/90 border border-neutral-800/80 p-1">
-            <TabsTrigger
-              value="overview"
-              className="text-xs font-semibold px-3 py-1.5"
-            >
-              {t("progress.overviewTab")}
-            </TabsTrigger>
-            <TabsTrigger
-              value="favorites"
-              className="text-xs font-semibold px-3 py-1.5 flex items-center gap-1.5"
-            >
-              <span>{t("common.favorites")}</span>
-              <span className="text-xs px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold">
-                {favTotal}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="completed"
-              className="text-xs font-semibold px-3 py-1.5 flex items-center gap-1.5"
-            >
-              <span>{t("common.completed")}</span>
-              <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
-                {compTotal}
-              </span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      {/* Global Learning Metrics Section */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between text-xs text-neutral-400 px-0.5">
-          <div className="flex items-center gap-1.5 font-semibold text-neutral-300">
-            <Sparkles className="size-3.5 text-sky-400" />
-            <span>{t("progress.dashboardTitle")}</span>
+    <div className="min-h-screen bg-neutral-950 text-neutral-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Title & Tabs Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-5">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+              <div className="size-9 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center">
+                <GraduationCap className="size-5" />
+              </div>
+              <span>{t("progress.title")}</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-neutral-400 mt-1">
+              {t("progress.subtitle", { target: targetLanguage.name })}
+            </p>
           </div>
-          <span className="text-neutral-500">{targetLanguage.name}</span>
-        </div>
 
-        <MetricsGrid
-          progress={progress}
-          isLoading={isLoadingProgress}
-          isError={isProgressError}
-          onRetry={() => refetchProgress()}
-        />
-      </div>
-
-      {/* CEFR Level Filter Bar with Descriptors */}
-      <div className="space-y-2 pt-2 border-t border-neutral-800/60">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 max-w-full scrollbar-none">
-          {CEFR_TABS.map((lvl) => {
-            const isSelected = selectedLevel === lvl;
-            const descriptorKey = CEFR_DESCRIPTOR_KEYS[lvl];
-            const descriptor = descriptorKey ? t(descriptorKey) : undefined;
-
-            return (
-              <button
-                key={lvl}
-                type="button"
-                onClick={() => handleLevelChange(lvl)}
-                className={`px-3 py-1.5 text-xs rounded-xl transition-all border shrink-0 flex items-center gap-1.5 cursor-pointer ${
-                  isSelected
-                    ? "bg-sky-500 border-sky-400 text-white font-bold shadow-md shadow-sky-500/20"
-                    : "bg-neutral-900/80 border-neutral-800/80 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700 font-medium"
-                }`}
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
+            <TabsList className="bg-neutral-900/90 border border-neutral-800/80 p-1">
+              <TabsTrigger
+                value="overview"
+                className="text-xs font-semibold px-3 py-1.5"
               >
-                <span>
-                  {lvl === "all"
-                    ? t("progress.allLevels")
-                    : t("progress.levelPrefix", { level: lvl })}
+                {t("progress.overviewTab")}
+              </TabsTrigger>
+              <TabsTrigger
+                value="favorites"
+                className="text-xs font-semibold px-3 py-1.5 flex items-center gap-1.5"
+              >
+                <span>{t("common.favorites")}</span>
+                <span className="text-xs px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold">
+                  {favTotal}
                 </span>
-                {descriptor && (
-                  <span
-                    className={`text-xs opacity-75 font-normal ${
-                      isSelected ? "text-sky-100" : "text-neutral-500"
-                    }`}
-                  >
-                    ({descriptor})
-                  </span>
-                )}
-              </button>
-            );
-          })}
+              </TabsTrigger>
+              <TabsTrigger
+                value="completed"
+                className="text-xs font-semibold px-3 py-1.5 flex items-center gap-1.5"
+              >
+                <span>{t("common.completed")}</span>
+                <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                  {compTotal}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
+
+        {/* Global Learning Metrics Section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-xs text-neutral-400 px-0.5">
+            <div className="flex items-center gap-1.5 font-semibold text-neutral-300">
+              <Sparkles className="size-3.5 text-sky-400" />
+              <span>{t("progress.dashboardTitle")}</span>
+            </div>
+            <span className="text-neutral-500">{targetLanguage.name}</span>
+          </div>
+
+          <MetricsGrid
+            progress={progress}
+            isLoading={isLoadingProgress}
+            isError={isProgressError}
+            onRetry={() => refetchProgress()}
+          />
+        </div>
+
+        {/* CEFR Level Filter Bar with Descriptors */}
+        <div className="space-y-2 pt-2 border-t border-neutral-800/60">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 max-w-full scrollbar-none">
+            {CEFR_TABS.map((lvl) => {
+              const isSelected = selectedLevel === lvl;
+              const descriptorKey = CEFR_DESCRIPTOR_KEYS[lvl];
+              const descriptor = descriptorKey ? t(descriptorKey) : undefined;
+
+              return (
+                <button
+                  key={lvl}
+                  type="button"
+                  onClick={() => handleLevelChange(lvl)}
+                  className={`px-3 py-1.5 text-xs rounded-xl transition-all border shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                    isSelected
+                      ? "bg-sky-500 border-sky-400 text-white font-bold shadow-md shadow-sky-500/20"
+                      : "bg-neutral-900/80 border-neutral-800/80 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700 font-medium"
+                  }`}
+                >
+                  <span>
+                    {lvl === "all"
+                      ? t("progress.allLevels")
+                      : t("progress.levelPrefix", { level: lvl })}
+                  </span>
+                  {descriptor && (
+                    <span
+                      className={`text-xs opacity-75 font-normal ${
+                        isSelected ? "text-sky-100" : "text-neutral-500"
+                      }`}
+                    >
+                      ({descriptor})
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Overview Tab: Displays Curated Previews */}
+        {activeTab === "overview" && (
+          <OverviewTabContent
+            compList={compList}
+            compTotal={compTotal}
+            favList={favList}
+            favTotal={favTotal}
+            isLoadingCompleted={isLoadingCompleted}
+            isLoadingFavorites={isLoadingFavorites}
+            onClearFilter={() => handleLevelChange("all")}
+            onViewAllCompleted={() => handleTabChange("completed")}
+            onViewAllFavorites={() => handleTabChange("favorites")}
+            selectedLevel={selectedLevel}
+            targetLanguageName={targetLanguage.name}
+          />
+        )}
+
+        {/* Dedicated Favorites Tab */}
+        {activeTab === "favorites" && (
+          <FilteredStoryTabSection
+            icon={<Heart className="size-5 text-rose-500 fill-rose-500" />}
+            heading={t("progress.favoriteStories", { count: favTotal })}
+            stories={favList}
+            isLoading={isLoadingFavorites}
+            isFiltered={isFiltered}
+            emptyIcon={<Heart className="size-6 text-rose-500/80" />}
+            filteredEmptyTitle={t("progress.noFavoritesFiltered")}
+            emptyTitle={t("progress.emptyFavoritesTab")}
+            emptyDescription={t("progress.emptyFavoritesTab")}
+            allEmptyDesc={t("progress.allFavoritesEmpty")}
+            hasNextPage={Boolean(hasNextFavorites)}
+            isFetchingNextPage={isFetchingNextFavorites}
+            onClearFilter={() => handleLevelChange("all")}
+            onLoadMore={() => fetchNextFavorites()}
+            targetLanguageName={targetLanguage.name}
+          />
+        )}
+
+        {/* Dedicated Completed Tab */}
+        {activeTab === "completed" && (
+          <FilteredStoryTabSection
+            icon={<CheckCircle2 className="size-5 text-emerald-400" />}
+            heading={t("progress.completedStories", { count: compTotal })}
+            stories={compList}
+            isLoading={isLoadingCompleted}
+            isFiltered={isFiltered}
+            emptyIcon={<CheckCircle2 className="size-6 text-emerald-400/80" />}
+            filteredEmptyTitle={t("progress.noCompletedFiltered")}
+            emptyTitle={t("progress.emptyCompletedTab")}
+            emptyDescription={t("progress.emptyCompletedTab")}
+            allEmptyDesc={t("progress.allCompletedEmpty")}
+            hasNextPage={Boolean(hasNextCompleted)}
+            isFetchingNextPage={isFetchingNextCompleted}
+            onClearFilter={() => handleLevelChange("all")}
+            onLoadMore={() => fetchNextCompleted()}
+            targetLanguageName={targetLanguage.name}
+          />
+        )}
       </div>
-
-      {/* Overview Tab: Displays Curated Previews */}
-      {activeTab === "overview" && (
-        <OverviewTabContent
-          compList={compList}
-          compTotal={compTotal}
-          favList={favList}
-          favTotal={favTotal}
-          isLoadingCompleted={isLoadingCompleted}
-          isLoadingFavorites={isLoadingFavorites}
-          onClearFilter={() => handleLevelChange("all")}
-          onViewAllCompleted={() => handleTabChange("completed")}
-          onViewAllFavorites={() => handleTabChange("favorites")}
-          selectedLevel={selectedLevel}
-          targetLanguageName={targetLanguage.name}
-        />
-      )}
-
-      {/* Dedicated Favorites Tab */}
-      {activeTab === "favorites" && (
-        <FilteredStoryTabSection
-          icon={<Heart className="size-5 text-rose-500 fill-rose-500" />}
-          heading={t("progress.favoriteStories", { count: favTotal })}
-          stories={favList}
-          isLoading={isLoadingFavorites}
-          isFiltered={isFiltered}
-          emptyIcon={<Heart className="size-6 text-rose-500/80" />}
-          filteredEmptyTitle={t("progress.noFavoritesFiltered")}
-          emptyTitle={t("progress.emptyFavoritesTab")}
-          emptyDescription={t("progress.emptyFavoritesTab")}
-          allEmptyDesc={t("progress.allFavoritesEmpty")}
-          hasNextPage={Boolean(hasNextFavorites)}
-          isFetchingNextPage={isFetchingNextFavorites}
-          onClearFilter={() => handleLevelChange("all")}
-          onLoadMore={() => fetchNextFavorites()}
-          targetLanguageName={targetLanguage.name}
-        />
-      )}
-
-      {/* Dedicated Completed Tab */}
-      {activeTab === "completed" && (
-        <FilteredStoryTabSection
-          icon={<CheckCircle2 className="size-5 text-emerald-400" />}
-          heading={t("progress.completedStories", { count: compTotal })}
-          stories={compList}
-          isLoading={isLoadingCompleted}
-          isFiltered={isFiltered}
-          emptyIcon={<CheckCircle2 className="size-6 text-emerald-400/80" />}
-          filteredEmptyTitle={t("progress.noCompletedFiltered")}
-          emptyTitle={t("progress.emptyCompletedTab")}
-          emptyDescription={t("progress.emptyCompletedTab")}
-          allEmptyDesc={t("progress.allCompletedEmpty")}
-          hasNextPage={Boolean(hasNextCompleted)}
-          isFetchingNextPage={isFetchingNextCompleted}
-          onClearFilter={() => handleLevelChange("all")}
-          onLoadMore={() => fetchNextCompleted()}
-          targetLanguageName={targetLanguage.name}
-        />
-      )}
     </div>
   );
 }

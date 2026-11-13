@@ -794,91 +794,93 @@ function WordsExplorerComponent() {
   }, [filterMeta]);
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8 space-y-8">
-      <WordsHeroSection
-        activeLangCode={activeLangCode}
-        frameworkLabel={frameworkLabel}
-        languages={languages}
-        onLanguageChange={handleLanguageChange}
-        totalWords={filterMeta?.total_words}
-      />
+    <div className="min-h-screen bg-neutral-950 text-neutral-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <WordsHeroSection
+          activeLangCode={activeLangCode}
+          frameworkLabel={frameworkLabel}
+          languages={languages}
+          onLanguageChange={handleLanguageChange}
+          totalWords={filterMeta?.total_words}
+        />
 
-      <WordFiltersBar
-        filterMeta={filterMeta}
-        level={level}
-        onLevelChange={handleLevelChange}
-        onPosChange={handlePosChange}
-        onReset={handleResetFilters}
-        onSearchChange={setSearchInput}
-        pos={pos}
-        search={search}
-        searchInput={searchInput}
-      />
+        <WordFiltersBar
+          filterMeta={filterMeta}
+          level={level}
+          onLevelChange={handleLevelChange}
+          onPosChange={handlePosChange}
+          onReset={handleResetFilters}
+          onSearchChange={setSearchInput}
+          pos={pos}
+          search={search}
+          searchInput={searchInput}
+        />
 
-      <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-400 font-medium px-1">
-        <span>
-          {t("dictionary.showingCount", {
-            count: allWords.length,
-            language: currentLanguageName,
-            total: totalWordsCount,
-          })}
-        </span>
-        {totalWordsCount > 0 && (
-          <span className="text-xs text-neutral-500 font-medium">
-            {Math.min(
-              100,
-              Math.round((allWords.length / totalWordsCount) * 100)
-            )}
-            %
+        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-400 font-medium px-1">
+          <span>
+            {t("dictionary.showingCount", {
+              count: allWords.length,
+              language: currentLanguageName,
+              total: totalWordsCount,
+            })}
           </span>
-        )}
-      </div>
-
-      <WordsGrid
-        activeLangCode={activeLangCode}
-        isLoading={isLoading}
-        onPlayAudio={handlePlayAudio}
-        onReset={handleResetFilters}
-        onSaveFlashcard={(id) => saveWordFlashcard.mutate(id)}
-        isSaving={saveWordFlashcard.isPending}
-        playingWordId={playingWordId}
-        words={allWords}
-      />
-
-      {/* Infinite scroll sentinel and status */}
-      <div
-        ref={loadMoreRef}
-        className="py-8 flex flex-col items-center justify-center gap-3 min-h-16"
-      >
-        {isFetchingNextPage && (
-          <div className="flex items-center gap-2.5 text-xs font-semibold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-4 py-2.5 rounded-full animate-pulse shadow-sm">
-            <Loader2 className="size-4 animate-spin text-sky-400" />
-            <span>{t("dictionary.loadingMore")}</span>
-          </div>
-        )}
-
-        {!isFetchingNextPage && hasNextPage && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => fetchNextPage()}
-            className="border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white hover:bg-neutral-800 rounded-xl text-xs h-9 px-4 cursor-pointer"
-          >
-            {t("dictionary.loadMore")}
-          </Button>
-        )}
-
-        {!hasNextPage && allWords.length > 0 && !isLoading && (
-          <div className="flex items-center gap-2 text-xs text-neutral-500 font-medium py-2 px-3.5 rounded-full bg-neutral-900/50 border border-neutral-800/60">
-            <Check className="size-3.5 text-emerald-500" />
-            <span>
-              {t("dictionary.allLoaded", {
-                total: totalWordsCount.toLocaleString(),
-              })}
+          {totalWordsCount > 0 && (
+            <span className="text-xs text-neutral-500 font-medium">
+              {Math.min(
+                100,
+                Math.round((allWords.length / totalWordsCount) * 100)
+              )}
+              %
             </span>
-          </div>
-        )}
+          )}
+        </div>
+
+        <WordsGrid
+          activeLangCode={activeLangCode}
+          isLoading={isLoading}
+          onPlayAudio={handlePlayAudio}
+          onReset={handleResetFilters}
+          onSaveFlashcard={(id) => saveWordFlashcard.mutate(id)}
+          isSaving={saveWordFlashcard.isPending}
+          playingWordId={playingWordId}
+          words={allWords}
+        />
+
+        {/* Infinite scroll sentinel and status */}
+        <div
+          ref={loadMoreRef}
+          className="py-8 flex flex-col items-center justify-center gap-3 min-h-16"
+        >
+          {isFetchingNextPage && (
+            <div className="flex items-center gap-2.5 text-xs font-semibold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-4 py-2.5 rounded-full animate-pulse shadow-sm">
+              <Loader2 className="size-4 animate-spin text-sky-400" />
+              <span>{t("dictionary.loadingMore")}</span>
+            </div>
+          )}
+
+          {!isFetchingNextPage && hasNextPage && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fetchNextPage()}
+              className="border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white hover:bg-neutral-800 rounded-xl text-xs h-9 px-4 cursor-pointer"
+            >
+              {t("dictionary.loadMore")}
+            </Button>
+          )}
+
+          {!hasNextPage && allWords.length > 0 && !isLoading && (
+            <div className="flex items-center gap-2 text-xs text-neutral-500 font-medium py-2 px-3.5 rounded-full bg-neutral-900/50 border border-neutral-800/60">
+              <Check className="size-3.5 text-emerald-500" />
+              <span>
+                {t("dictionary.allLoaded", {
+                  total: totalWordsCount.toLocaleString(),
+                })}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
