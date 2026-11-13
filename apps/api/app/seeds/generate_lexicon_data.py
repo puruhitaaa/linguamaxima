@@ -3,8 +3,6 @@ Generates the comprehensive, graded multilingual dataset for apps/api/app/seeds/
 Containing over 1,500+ curated items across all 13 languages and 6 CEFR tiers.
 """
 
-from pathlib import Path
-import json
 
 # Comprehensive data map for core languages
 # Let's define the generator logic to create high-quality, authentic lexical dictionaries

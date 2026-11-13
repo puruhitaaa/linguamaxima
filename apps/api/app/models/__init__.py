@@ -1,6 +1,8 @@
-from datetime import datetime, timezone
 import enum
+from datetime import UTC, datetime
+
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     DateTime,
@@ -10,16 +12,17 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    JSON,
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
+
 from app.core.database import Base
 
-def utcnow():
-    return datetime.now(timezone.utc)
 
-class CEFRLevel(str, enum.Enum):
+def utcnow():
+    return datetime.now(UTC)
+
+class CEFRLevel(enum.StrEnum):
     A1 = "A1"
     A2 = "A2"
     B1 = "B1"
@@ -27,7 +30,7 @@ class CEFRLevel(str, enum.Enum):
     C1 = "C1"
     C2 = "C2"
 
-class ProficiencyFramework(str, enum.Enum):
+class ProficiencyFramework(enum.StrEnum):
     CEFR = "cefr"
     JLPT = "jlpt"
     HSK = "hsk"

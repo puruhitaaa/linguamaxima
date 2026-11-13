@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (Ruff + Pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv & Python 3.12
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install API dependencies
+        run: uv sync --directory apps/api --locked --dev || uv sync --directory apps/api --dev
+
+      - name: Lint API (Ruff)
+        run: uv run --directory apps/api ruff check .
+
+      - name: Run API tests (Pytest)
+        run: uv run --directory apps/api pytest -v
+
+  frontend:
+    name: Frontend (Ultracite + Build + Typecheck + Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint & format check (Ultracite)
+        run: pnpm check
+
+      - name: Build web app (generates TanStack Router tree)
+        run: pnpm --filter web build
+
+      - name: Typecheck workspaces
+        run: pnpm check-types
+
+      - name: Run web unit tests (Vitest)
+        run: pnpm --filter web test

@@ -1,7 +1,9 @@
 from datetime import datetime
-from typing import List, Optional, Any, Dict
+
 from pydantic import BaseModel, ConfigDict, Field
+
 from app.models import CEFRLevel, ProficiencyFramework
+
 
 # ----------------- Base / Common -----------------
 class ORMModel(BaseModel):
@@ -12,7 +14,7 @@ class LanguageResponse(ORMModel):
     id: int
     code: str
     name: str
-    native_name: Optional[str] = None
+    native_name: str | None = None
     proficiency_framework: ProficiencyFramework = ProficiencyFramework.CEFR
 
 class LanguagePairResponse(ORMModel):
@@ -30,31 +32,31 @@ class CategoryResponse(ORMModel):
     id: int
     name: str
     slug: str
-    icon: Optional[str] = None
+    icon: str | None = None
 
 # ----------------- Words / Dictionary -----------------
 class WordBase(BaseModel):
     lemma: str
     normalized_level: CEFRLevel
-    native_level: Optional[str] = None
+    native_level: str | None = None
     part_of_speech: str
-    gender: Optional[str] = None
-    phonetic: Optional[str] = None
+    gender: str | None = None
+    phonetic: str | None = None
     translation: str
-    definition: Optional[str] = None
-    example_sentence: Optional[str] = None
-    example_translation: Optional[str] = None
-    audio_url: Optional[str] = None
-    frequency_rank: Optional[int] = None
+    definition: str | None = None
+    example_sentence: str | None = None
+    example_translation: str | None = None
+    audio_url: str | None = None
+    frequency_rank: int | None = None
 
 class WordResponse(WordBase, ORMModel):
     id: int
     language_id: int
-    is_saved_as_flashcard: Optional[bool] = False
+    is_saved_as_flashcard: bool | None = False
     created_at: datetime
 
 class WordListResponse(BaseModel):
-    items: List[WordResponse]
+    items: list[WordResponse]
     total: int
     page: int
     page_size: int
@@ -72,8 +74,8 @@ class WordFilterMetaResponse(BaseModel):
     language_name: str
     proficiency_framework: ProficiencyFramework
     total_words: int
-    levels: List[FilterCountItem]
-    parts_of_speech: List[FilterCountItem]
+    levels: list[FilterCountItem]
+    parts_of_speech: list[FilterCountItem]
 
 class WordSaveFlashcardRequest(BaseModel):
     word_id: int
@@ -82,25 +84,26 @@ class WordSaveFlashcardRequest(BaseModel):
 class VocabularyBase(BaseModel):
     word: str
     translation: str
-    part_of_speech: Optional[str] = None
-    gender: Optional[str] = None
-    example_sentence: Optional[str] = None
-    example_translation: Optional[str] = None
-    pronunciation_url: Optional[str] = None
+    part_of_speech: str | None = None
+    gender: str | None = None
+    example_sentence: str | None = None
+    example_translation: str | None = None
+    pronunciation_url: str | None = None
     difficulty_rank: int = 1
 
 class VocabularyResponse(VocabularyBase, ORMModel):
     id: int
     story_id: int
-    is_saved_as_flashcard: Optional[bool] = False
+    is_saved_as_flashcard: bool | None = False
+    story_language_code: str | None = None
 
 # ----------------- Grammar Tips -----------------
 class GrammarTipBase(BaseModel):
     title: str
     explanation: str
-    explanation_translated: Optional[str] = None
-    example: Optional[str] = None
-    example_translation: Optional[str] = None
+    explanation_translated: str | None = None
+    example: str | None = None
+    example_translation: str | None = None
     sort_order: int = 0
 
 class GrammarTipResponse(GrammarTipBase, ORMModel):
@@ -111,10 +114,10 @@ class GrammarTipResponse(GrammarTipBase, ORMModel):
 class QuizBase(BaseModel):
     question_type: str
     question: str
-    question_translated: Optional[str] = None
+    question_translated: str | None = None
     correct_answer: str
-    wrong_answers: Optional[List[str]] = Field(default_factory=list)
-    explanation: Optional[str] = None
+    wrong_answers: list[str] | None = Field(default_factory=list)
+    explanation: str | None = None
     sort_order: int = 0
 
 class QuizResponse(ORMModel):
@@ -122,9 +125,9 @@ class QuizResponse(ORMModel):
     story_id: int
     question_type: str
     question: str
-    question_translated: Optional[str] = None
-    options: List[str] = Field(default_factory=list)
-    explanation: Optional[str] = None
+    question_translated: str | None = None
+    options: list[str] = Field(default_factory=list)
+    explanation: str | None = None
     sort_order: int = 0
 
 class QuizSubmissionItem(BaseModel):
@@ -132,7 +135,7 @@ class QuizSubmissionItem(BaseModel):
     selected_answer: str
 
 class QuizSubmissionRequest(BaseModel):
-    answers: List[QuizSubmissionItem]
+    answers: list[QuizSubmissionItem]
 
 class QuestionResult(BaseModel):
     question_id: int
@@ -140,7 +143,7 @@ class QuestionResult(BaseModel):
     selected_answer: str
     correct_answer: str
     is_correct: bool
-    explanation: Optional[str] = None
+    explanation: str | None = None
 
 class QuizSubmissionResponse(BaseModel):
     story_id: int
@@ -148,17 +151,17 @@ class QuizSubmissionResponse(BaseModel):
     correct_answers: int
     score_percentage: int
     passed: bool
-    results: List[QuestionResult]
+    results: list[QuestionResult]
 
 # ----------------- Progress -----------------
 class UserProgressResponse(ORMModel):
     id: int
     story_id: int
-    completed_at: Optional[datetime] = None
-    quiz_score: Optional[int] = None
+    completed_at: datetime | None = None
+    quiz_score: int | None = None
     quiz_attempts: int = 0
     is_favorite: bool = False
-    last_accessed_at: Optional[datetime] = None
+    last_accessed_at: datetime | None = None
 
 class ProgressSummaryResponse(BaseModel):
     total_stories_read: int
@@ -172,23 +175,28 @@ class FavoriteToggleResponse(BaseModel):
     story_id: int
     is_favorite: bool
 
+class StoryCompleteResponse(BaseModel):
+    story_id: int
+    is_completed: bool
+    completed_at: datetime
+
 # ----------------- Flashcards -----------------
 class FlashcardResponse(ORMModel):
     id: int
-    vocabulary_id: Optional[int] = None
-    vocabulary: Optional[VocabularyResponse] = None
-    word_id: Optional[int] = None
-    word: Optional[WordResponse] = None
+    vocabulary_id: int | None = None
+    vocabulary: VocabularyResponse | None = None
+    word_id: int | None = None
+    word: WordResponse | None = None
     ease_factor: float
     interval_days: int
     repetitions: int
     next_review: datetime
-    last_reviewed: Optional[datetime] = None
+    last_reviewed: datetime | None = None
     created_at: datetime
 
 class FlashcardCreateRequest(BaseModel):
-    vocabulary_id: Optional[int] = None
-    word_id: Optional[int] = None
+    vocabulary_id: int | None = None
+    word_id: int | None = None
 
 class FlashcardReviewRequest(BaseModel):
     # Quality rating: 0 (Again/Blackout), 3 (Hard), 4 (Good), 5 (Easy)
@@ -206,86 +214,86 @@ class FlashcardReviewResponse(BaseModel):
 class StoryListItemResponse(ORMModel):
     id: int
     title: str
-    title_translated: Optional[str] = None
-    summary: Optional[str] = None
+    title_translated: str | None = None
+    summary: str | None = None
     cefr_level: CEFRLevel
-    category: Optional[CategoryResponse] = None
-    language_pair: Optional[LanguagePairResponse] = None
-    image_url: Optional[str] = None
-    audio_url: Optional[str] = None
+    category: CategoryResponse | None = None
+    language_pair: LanguagePairResponse | None = None
+    image_url: str | None = None
+    audio_url: str | None = None
     estimated_reading_minutes: int
     word_count: int
     is_favorite: bool = False
     is_completed: bool = False
-    quiz_score: Optional[int] = None
+    quiz_score: int | None = None
     created_at: datetime
 
 class StoryDetailResponse(ORMModel):
     id: int
     title: str
-    title_translated: Optional[str] = None
+    title_translated: str | None = None
     content: str
-    content_translated: Optional[str] = None
-    summary: Optional[str] = None
+    content_translated: str | None = None
+    summary: str | None = None
     cefr_level: CEFRLevel
-    category: Optional[CategoryResponse] = None
-    language_pair: Optional[LanguagePairResponse] = None
-    image_url: Optional[str] = None
-    audio_url: Optional[str] = None
+    category: CategoryResponse | None = None
+    language_pair: LanguagePairResponse | None = None
+    image_url: str | None = None
+    audio_url: str | None = None
     estimated_reading_minutes: int
     word_count: int
-    ai_model: Optional[str] = None
-    ai_provider: Optional[str] = None
+    ai_model: str | None = None
+    ai_provider: str | None = None
     is_favorite: bool = False
     is_completed: bool = False
-    quiz_score: Optional[int] = None
-    vocabulary: List[VocabularyResponse] = Field(default_factory=list)
-    grammar_tips: List[GrammarTipResponse] = Field(default_factory=list)
-    quizzes: List[QuizResponse] = Field(default_factory=list)
+    quiz_score: int | None = None
+    vocabulary: list[VocabularyResponse] = Field(default_factory=list)
+    grammar_tips: list[GrammarTipResponse] = Field(default_factory=list)
+    quizzes: list[QuizResponse] = Field(default_factory=list)
     created_at: datetime
 
 class StoryGenerateRequest(BaseModel):
     cefr_level: CEFRLevel = CEFRLevel.A1
     category_slug: str = "travel"
-    topic_hint: Optional[str] = None
+    topic_hint: str | None = Field(default=None, max_length=200)
     target_language_code: str = "de"
     origin_language_code: str = "id"
-    story_type: Optional[str] = "auto"  # "auto", "dialogue", "monologue"
+    story_type: str | None = "auto"  # "auto", "dialogue", "monologue"
 
 # ----------------- AI Structured Output Schemas -----------------
 class GeneratedVocabularyItem(BaseModel):
     word: str
     translation: str
-    part_of_speech: Optional[str] = "noun"
-    gender: Optional[str] = None  # "der", "die", "das" for German nouns
-    example_sentence: Optional[str] = None
-    example_translation: Optional[str] = None
+    part_of_speech: str | None = "noun"
+    gender: str | None = None  # "der", "die", "das" for German nouns
+    example_sentence: str | None = None
+    example_translation: str | None = None
     difficulty_rank: int = 1
-    pronunciation_url: Optional[str] = None
+    pronunciation_url: str | None = None
 
 class GeneratedGrammarTip(BaseModel):
     title: str
     explanation: str
-    explanation_translated: Optional[str] = None
-    example: Optional[str] = None
-    example_translation: Optional[str] = None
+    explanation_translated: str | None = None
+    example: str | None = None
+    example_translation: str | None = None
 
 class GeneratedQuizQuestion(BaseModel):
     question_type: str = "multiple_choice"  # multiple_choice, article, fill_blank, true_false
     question: str
-    question_translated: Optional[str] = None
+    question_translated: str | None = None
     correct_answer: str
-    wrong_answers: List[str] = Field(default_factory=list)
-    explanation: Optional[str] = None
+    wrong_answers: list[str] = Field(default_factory=list)
+    explanation: str | None = None
 
 class GeneratedStoryBundle(BaseModel):
     title: str
     title_translated: str
-    speaker_name: Optional[str] = None
-    speaker_gender: Optional[str] = None  # "male", "female", or None
+    speaker_name: str | None = None
+    speaker_gender: str | None = None  # "male", "female", or None
     content: str
     content_translated: str
     summary: str
-    vocabulary: List[GeneratedVocabularyItem] = Field(default_factory=list)
-    grammar_tips: List[GeneratedGrammarTip] = Field(default_factory=list)
-    quiz_questions: List[GeneratedQuizQuestion] = Field(default_factory=list)
+    vocabulary: list[GeneratedVocabularyItem] = Field(default_factory=list)
+    grammar_tips: list[GeneratedGrammarTip] = Field(default_factory=list)
+    quiz_questions: list[GeneratedQuizQuestion] = Field(default_factory=list)

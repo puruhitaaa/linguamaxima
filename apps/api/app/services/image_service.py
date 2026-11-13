@@ -1,6 +1,7 @@
 import logging
-from typing import Optional
+
 import httpx
+
 from app.core.config import settings
 
 logger = logging.getLogger("linguamaxima.images")
@@ -24,13 +25,13 @@ class ImageService:
     async def fetch_story_image(
         self,
         category_slug: str,
-        query: Optional[str] = None
+        query: str | None = None
     ) -> str:
         """
         Fetches an illustration/photo from Pixabay or returns a curated fallback.
         """
         fallback_url = FALLBACK_CATEGORY_IMAGES.get(category_slug, FALLBACK_CATEGORY_IMAGES["default"])
-        
+
         if not settings.pixabay_api_key:
             return fallback_url
 

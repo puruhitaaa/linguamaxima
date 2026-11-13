@@ -4,15 +4,17 @@ Ingests thousands of verified dictionary words with POS, CEFR frequency ranking,
 IPA phonetics, grammatical gender, definitions, and usage examples across ALL languages.
 """
 
-import sys
+import asyncio
 import gzip
 import json
 import logging
+import sys
 import urllib.request
-import asyncio
+
 from sqlalchemy import select
-from app.models import CEFRLevel, Language, Word
+
 from app.core.database import get_session_maker
+from app.models import CEFRLevel, Language, Word
 
 # Ensure utf-8 stdout
 if sys.platform == "win32":
@@ -53,42 +55,29 @@ KAIKKI_URLS = {
     "ar": "https://kaikki.org/dictionary/Arabic/kaikki.org-dictionary-Arabic.jsonl.gz",
 }
 
+_FRAMEWORK_LABELS: dict[str, tuple[str, str, str, str, str, str]] = {
+    "jlpt": ("JLPT N5", "JLPT N4", "JLPT N3", "JLPT N2", "JLPT N1", "JLPT N1+"),
+    "hsk": ("HSK 1", "HSK 2", "HSK 3", "HSK 4", "HSK 5", "HSK 6"),
+    "bipa": ("BIPA 1", "BIPA 2", "BIPA 3", "BIPA 4", "BIPA 5", "BIPA 6"),
+    "torfl": ("TORFL Basic", "TORFL Prelim", "TORFL 1", "TORFL 2", "TORFL 3", "TORFL 4"),
+    "cefr": ("A1", "A2", "B1", "B2", "C1", "C2"),
+}
+
+_RANK_BANDS: tuple[tuple[int, CEFRLevel, int], ...] = (
+    (1000, CEFRLevel.A1, 0),
+    (3000, CEFRLevel.A2, 1),
+    (7000, CEFRLevel.B1, 2),
+    (15000, CEFRLevel.B2, 3),
+    (30000, CEFRLevel.C1, 4),
+)
+
+
 def rank_to_cefr(rank: int, framework: str = "cefr") -> tuple[CEFRLevel, str]:
-    if framework == "jlpt":
-        if rank <= 1000: return CEFRLevel.A1, "JLPT N5"
-        elif rank <= 3000: return CEFRLevel.A2, "JLPT N4"
-        elif rank <= 7000: return CEFRLevel.B1, "JLPT N3"
-        elif rank <= 15000: return CEFRLevel.B2, "JLPT N2"
-        elif rank <= 30000: return CEFRLevel.C1, "JLPT N1"
-        else: return CEFRLevel.C2, "JLPT N1+"
-    elif framework == "hsk":
-        if rank <= 1000: return CEFRLevel.A1, "HSK 1"
-        elif rank <= 3000: return CEFRLevel.A2, "HSK 2"
-        elif rank <= 7000: return CEFRLevel.B1, "HSK 3"
-        elif rank <= 15000: return CEFRLevel.B2, "HSK 4"
-        elif rank <= 30000: return CEFRLevel.C1, "HSK 5"
-        else: return CEFRLevel.C2, "HSK 6"
-    elif framework == "bipa":
-        if rank <= 1000: return CEFRLevel.A1, "BIPA 1"
-        elif rank <= 3000: return CEFRLevel.A2, "BIPA 2"
-        elif rank <= 7000: return CEFRLevel.B1, "BIPA 3"
-        elif rank <= 15000: return CEFRLevel.B2, "BIPA 4"
-        elif rank <= 30000: return CEFRLevel.C1, "BIPA 5"
-        else: return CEFRLevel.C2, "BIPA 6"
-    elif framework == "torfl":
-        if rank <= 1000: return CEFRLevel.A1, "TORFL Basic"
-        elif rank <= 3000: return CEFRLevel.A2, "TORFL Prelim"
-        elif rank <= 7000: return CEFRLevel.B1, "TORFL 1"
-        elif rank <= 15000: return CEFRLevel.B2, "TORFL 2"
-        elif rank <= 30000: return CEFRLevel.C1, "TORFL 3"
-        else: return CEFRLevel.C2, "TORFL 4"
-    else:
-        if rank <= 1000: return CEFRLevel.A1, "A1"
-        elif rank <= 3000: return CEFRLevel.A2, "A2"
-        elif rank <= 7000: return CEFRLevel.B1, "B1"
-        elif rank <= 15000: return CEFRLevel.B2, "B2"
-        elif rank <= 30000: return CEFRLevel.C1, "C1"
-        else: return CEFRLevel.C2, "C2"
+    labels = _FRAMEWORK_LABELS.get(framework, _FRAMEWORK_LABELS["cefr"])
+    for max_rank, cefr_level, idx in _RANK_BANDS:
+        if rank <= max_rank:
+            return cefr_level, labels[idx]
+    return CEFRLevel.C2, labels[5]
 
 def fetch_frequency_map(lang_code: str) -> dict[str, int]:
     url = FREQUENCY_URLS.get(lang_code)

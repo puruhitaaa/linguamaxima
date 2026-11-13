@@ -99,7 +99,7 @@ export const ja: TranslationDictionary = {
   },
   audio: {
     errorDesc:
-      "音声の再生に問題がある場合は、VPNをオンにするか、Cloudflare Warpなどのサービスを使用してDNSを変更してみてください。",
+      "現在音声を再生できません。接続を確認するか、「再試行」をクリックしてください。",
     errorTitle: "音声再生の問題",
     mute: "ミュート",
     pause: "一時停止",
@@ -108,11 +108,11 @@ export const ja: TranslationDictionary = {
     rewindTooltip: "5秒巻き戻し",
     speed: "再生速度",
     timeoutWarningDesc:
-      "音声の再生に問題がある場合は、VPNをオンにするか、Cloudflare Warpなどのサービスを使用してDNSを変更してみてください。",
+      "音声の生成に通常より時間がかかっています。しばらく待つか、「再試行」をクリックしてください。",
     timeoutWarningTitle: "音声の読み込みに時間がかかっています",
     unmute: "ミュート解除",
     vpnRecommendation:
-      "音声の再生に問題がある場合は、VPNをオンにするか、Cloudflare Warpなどのサービスを使用してDNSを変更してみてください。",
+      "現在音声をストリーミングできません。接続を確認するか、「再試行」をクリックしてください。",
   },
   home: {
     allCategories: "すべてのカテゴリー",
@@ -131,7 +131,9 @@ export const ja: TranslationDictionary = {
       "段階別インタラクティブストーリーとニューラル音声で、語彙を増やし、{origin}での文脈文法をマスターし、リスニング理解力を高めましょう。",
     heroTitle: "段階別インタラクティブストーリーで{target}を学ぶ",
     learningBadge: "{originFlag} {origin}から{targetFlag} {target}を学習中",
+    loadMoreStories: "さらにストーリーを読み込む",
     searchPlaceholder: "{target}のストーリーを検索...",
+    showingStoriesCount: "{total}件中 {count}件のストーリーを表示",
     storiesRead: "読んだストーリー",
     streakCount: "{days}日",
     targetStoriesTab: "{target}のストーリー",
@@ -222,7 +224,10 @@ export const ja: TranslationDictionary = {
     practiceAgain: "デッキ全体を練習",
     ratePrompt: "記憶の定着度を選択してください:",
     readMoreStories: "もっとストーリーを読む",
+    removeCard: "カードを削除",
     repsCount: "復習回数: {reps}",
+    scopeAll: "すべての言語",
+    scopePair: "{target} デッキ",
     searchPlaceholder: "語彙を検索...",
     sessionCompleted: "セッション完了！",
     sessionSummary:
@@ -316,11 +321,19 @@ export const ja: TranslationDictionary = {
     highlightOutline: "段落の発光",
     dictatingIndicator: "再生中",
     clickToPlaySection: "ここから再生",
+    lookupEmpty: "「{word}」の辞書エントリが見つかりませんでした。",
+    lookupLoading: "単語を検索中...",
+    markAsRead: "読了にする",
+    markedCompleted: "完了済み",
+    playFromHere: "ここから音声を再生",
+    turnLabel: "ターン {turn}",
   },
   quiz: {
     answerReview: "解答の確認",
     articlePractice: "冠詞の練習",
     checkAnswer: "回答を確認",
+    checkCorrect: "正解！",
+    checkIncorrect: "不正解 — 正解: {answer}",
     comprehension: "読解理解",
     correctAnswer: "正解:",
     correctOutOf: "{correct} / {total}",
@@ -340,6 +353,9 @@ export const ja: TranslationDictionary = {
     questionTypeFallback: "クイズ問題",
     retakeQuiz: "クイズをやり直す",
     scoreStat: "スコア",
+    shortcutsHint: "(1-{count}キーまたはEnter)",
+    submitError:
+      "クイズを送信できませんでした。接続を確認して再試行してください。",
     submitQuiz: "クイズを提出",
     trueFalse: "正誤問題",
     yourAnswer: "あなたの解答:",

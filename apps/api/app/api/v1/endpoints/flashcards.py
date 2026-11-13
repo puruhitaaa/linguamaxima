@@ -1,6 +1,7 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import get_db
 from app.schemas import (
     FlashcardCreateRequest,
@@ -12,16 +13,31 @@ from app.services import flashcard_service
 
 router = APIRouter(prefix="/flashcards", tags=["Flashcards"])
 
-@router.get("", response_model=List[FlashcardResponse])
+@router.get("", response_model=list[FlashcardResponse])
 async def list_all_flashcards(
-    search: Optional[str] = Query(None, description="Search vocabulary word or translation"),
+    search: str | None = Query(None, description="Search vocabulary word or translation"),
+    origin_language_code: str | None = Query(None, description="Filter by origin language code"),
+    target_language_code: str | None = Query(None, description="Filter by target language code"),
     db: AsyncSession = Depends(get_db),
 ):
-    return await flashcard_service.get_all_flashcards(db, search=search)
+    return await flashcard_service.get_all_flashcards(
+        db,
+        search=search,
+        origin_language_code=origin_language_code,
+        target_language_code=target_language_code,
+    )
 
-@router.get("/due", response_model=List[FlashcardResponse])
-async def list_due_flashcards(db: AsyncSession = Depends(get_db)):
-    return await flashcard_service.get_due_flashcards(db)
+@router.get("/due", response_model=list[FlashcardResponse])
+async def list_due_flashcards(
+    origin_language_code: str | None = Query(None, description="Filter by origin language code"),
+    target_language_code: str | None = Query(None, description="Filter by target language code"),
+    db: AsyncSession = Depends(get_db),
+):
+    return await flashcard_service.get_due_flashcards(
+        db,
+        origin_language_code=origin_language_code,
+        target_language_code=target_language_code,
+    )
 
 @router.post("", response_model=FlashcardResponse)
 async def save_flashcard(
@@ -37,3 +53,11 @@ async def review_flashcard(
     db: AsyncSession = Depends(get_db),
 ):
     return await flashcard_service.review_flashcard(db, flashcard_id, req.quality)
+
+@router.delete("/{flashcard_id}", status_code=204)
+async def delete_flashcard(
+    flashcard_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    await flashcard_service.delete_flashcard(db, flashcard_id)
+    return Response(status_code=204)

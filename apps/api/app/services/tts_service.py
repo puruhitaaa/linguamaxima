@@ -1,16 +1,16 @@
-import asyncio
 import hashlib
 import logging
 import re
-from typing import Dict, List, Optional, Tuple
+
 import edge_tts
+
 from app.core.config import settings
 from app.services.storage_service import storage_service
 
 logger = logging.getLogger("linguamaxima.tts")
 
 # Multi-voice mapping per language code, separated by male and female actor pools
-LANGUAGE_VOICE_POOLS: Dict[str, Dict[str, List[str]]] = {
+LANGUAGE_VOICE_POOLS: dict[str, dict[str, list[str]]] = {
     "de": {
         "female": ["de-DE-KatjaNeural", "de-DE-AmalaNeural", "de-DE-LouisaNeural", "de-DE-MajaNeural"],
         "male": ["de-DE-KillianNeural", "de-DE-ConradNeural", "de-DE-ChristophNeural", "de-DE-KlausNeural"],
@@ -171,14 +171,14 @@ def detect_speaker_gender_from_content(text: str) -> str:
 class TTSService:
     def _get_filename(self, text: str, voice: str) -> str:
         # Create stable hash for audio file caching
-        content_hash = hashlib.sha256(f"{voice}:{text}".encode("utf-8")).hexdigest()[:16]
+        content_hash = hashlib.sha256(f"{voice}:{text}".encode()).hexdigest()[:16]
         return f"{content_hash}.mp3"
 
-    def get_voice_pools_for_language(self, language: str) -> Dict[str, List[str]]:
+    def get_voice_pools_for_language(self, language: str) -> dict[str, list[str]]:
         lang_code = language.lower().split("-")[0].split("_")[0]
         return LANGUAGE_VOICE_POOLS.get(lang_code, LANGUAGE_VOICE_POOLS["de"])
 
-    def get_voice_for_language(self, language: str, gender: Optional[str] = None) -> str:
+    def get_voice_for_language(self, language: str, gender: str | None = None) -> str:
         pools = self.get_voice_pools_for_language(language)
         if gender == "female":
             female_voices = pools.get("female", [])
@@ -198,14 +198,14 @@ class TTSService:
             return female_voices[0]
         return settings.default_target_voice or "de-DE-KillianNeural"
 
-    def parse_dialogue_turns(self, text: str) -> List[Tuple[str, str]]:
+    def parse_dialogue_turns(self, text: str) -> list[tuple[str, str]]:
         """
         Parses text paragraphs into speaker dialogue turns.
         Returns a list of (speaker_name, dialogue_text) tuples.
         If a paragraph has no speaker prefix, speaker is an empty string "".
         """
         paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
-        turns: List[Tuple[str, str]] = []
+        turns: list[tuple[str, str]] = []
         for p in paragraphs:
             match = SPEAKER_LINE_REGEX.match(p)
             if match:
@@ -217,8 +217,8 @@ class TTSService:
         return turns
 
     def assign_voices_to_speakers(
-        self, unique_speakers: List[str], language: str
-    ) -> Dict[str, str]:
+        self, unique_speakers: list[str], language: str
+    ) -> dict[str, str]:
         """
         Assigns accurate male / female neural voices to speakers based on character names.
         """
@@ -228,7 +228,7 @@ class TTSService:
 
         female_idx = 0
         male_idx = 0
-        speaker_voice_map: Dict[str, str] = {}
+        speaker_voice_map: dict[str, str] = {}
 
         for spk in unique_speakers:
             gender = detect_speaker_gender(spk)
@@ -251,7 +251,7 @@ class TTSService:
 
         return speaker_voice_map
 
-    async def _synthesize_bytes(self, text: str, voice: str) -> Optional[bytes]:
+    async def _synthesize_bytes(self, text: str, voice: str) -> bytes | None:
         """Synthesize raw audio stream for text using edge-tts."""
         try:
             communicate = edge_tts.Communicate(text.strip(), voice)
@@ -268,9 +268,9 @@ class TTSService:
     async def generate_audio(
         self,
         text: str,
-        voice: Optional[str] = None,
+        voice: str | None = None,
         language: str = "de"
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Generates TTS audio for text using edge-tts.
         Persists using storage_service (local filesystem or Cloudflare R2).
@@ -303,9 +303,9 @@ class TTSService:
         self,
         text: str,
         language: str = "de",
-        speaker_gender: Optional[str] = None,
-        speaker_name: Optional[str] = None,
-    ) -> Optional[str]:
+        speaker_gender: str | None = None,
+        speaker_name: str | None = None,
+    ) -> str | None:
         """
         Generates multi-voice audio if story contains a multi-character dialogue,
         or gender-matched narrator voice audio if it is a monologue/solo reflection.
@@ -338,7 +338,7 @@ class TTSService:
                 return existing_url
 
             # Synthesize each turn with assigned actor's voice
-            turn_audio_segments: List[bytes] = []
+            turn_audio_segments: list[bytes] = []
             for spk, line in turns:
                 voice = speaker_voice_map.get(spk, default_voice)
                 audio_bytes = await self._synthesize_bytes(line, voice)
@@ -357,7 +357,7 @@ class TTSService:
             return uploaded_url
 
         # Monologue or single speaker: determine effective speaker gender
-        effective_gender: Optional[str] = None
+        effective_gender: str | None = None
 
         if speaker_gender and speaker_gender.strip().lower() in ("male", "female"):
             effective_gender = speaker_gender.strip().lower()

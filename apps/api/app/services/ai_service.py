@@ -1,13 +1,14 @@
 import json
 import logging
 import os
-import re
-from typing import Optional, Tuple
-from pydantic import ValidationError
+
 import litellm
+from fastapi import HTTPException
+from pydantic import ValidationError
+
 from app.core.config import settings
 from app.models import CEFRLevel
-from app.schemas import GeneratedStoryBundle, GeneratedVocabularyItem, GeneratedGrammarTip, GeneratedQuizQuestion
+from app.schemas import GeneratedGrammarTip, GeneratedQuizQuestion, GeneratedStoryBundle, GeneratedVocabularyItem
 
 logger = logging.getLogger("linguamaxima.ai")
 
@@ -50,11 +51,11 @@ class AIService:
         self,
         cefr_level: CEFRLevel,
         category: str,
-        topic_hint: Optional[str] = None,
+        topic_hint: str | None = None,
         target_lang: str = "German",
         origin_lang: str = "Indonesian",
         story_type: str = "auto",
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         guidelines = CEFR_GUIDELINES.get(cefr_level, CEFR_GUIDELINES[CEFRLevel.A1])
         topic_clause = f" specifically about '{topic_hint}'" if topic_hint else ""
 
@@ -180,11 +181,11 @@ Respond with valid JSON only matching the schema:
         self,
         cefr_level: CEFRLevel = CEFRLevel.A1,
         category: str = "travel",
-        topic_hint: Optional[str] = None,
+        topic_hint: str | None = None,
         target_lang: str = "German",
         origin_lang: str = "Indonesian",
         story_type: str = "auto",
-    ) -> Tuple[GeneratedStoryBundle, str, str]:
+    ) -> tuple[GeneratedStoryBundle, str, str]:
         """
         Generates a structured story bundle using LiteLLM.
         Returns (bundle, model_used, provider_used).
@@ -224,19 +225,54 @@ Respond with valid JSON only matching the schema:
                     ],
                     response_format={"type": "json_object"},
                     temperature=0.7,
+                    timeout=settings.ai_timeout_seconds,
                 )
 
                 content_raw = response.choices[0].message.content
                 cleaned_json = self._clean_json_response(content_raw)
-                data = json.loads(cleaned_json)
-                bundle = GeneratedStoryBundle.model_validate(data)
+                try:
+                    data = json.loads(cleaned_json)
+                    bundle = GeneratedStoryBundle.model_validate(data)
+                except (json.JSONDecodeError, ValidationError) as parse_err:
+                    logger.warning(
+                        f"Malformed JSON from {model_name}, retrying once with repair prompt: {parse_err}"
+                    )
+                    repair_response = await litellm.acompletion(
+                        model=model_name,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                            {"role": "assistant", "content": content_raw or ""},
+                            {
+                                "role": "user",
+                                "content": (
+                                    f"Your previous JSON failed schema validation ({parse_err}). "
+                                    "Return ONLY a valid JSON object matching the exact schema."
+                                ),
+                            },
+                        ],
+                        response_format={"type": "json_object"},
+                        temperature=0.2,
+                        timeout=settings.ai_timeout_seconds,
+                    )
+                    repaired_raw = repair_response.choices[0].message.content
+                    repaired_data = json.loads(self._clean_json_response(repaired_raw))
+                    bundle = GeneratedStoryBundle.model_validate(repaired_data)
+
                 logger.info(f"Story generation succeeded with {model_name} ({bundle.title})")
                 return bundle, model_name, provider
             except Exception as e:
                 logger.warning(f"Generation attempt with {model_name} failed: {e}")
                 last_error = e
 
-        # If LLM API keys are not set or unavailable, return a rich mock story bundle
+        if not settings.allow_ai_mock_fallback:
+            logger.error(f"All LLM providers failed and mock fallback is disabled: {last_error}")
+            raise HTTPException(
+                status_code=503,
+                detail="Story generation is temporarily unavailable. Please verify AI provider configuration or try again shortly.",
+            )
+
+        # Explicitly enabled fallback for offline tests/local demo mode
         logger.warning(f"All LLM providers failed or unconfigured. Falling back to default template. Error: {last_error}")
         fallback_bundle = self._get_curated_fallback(cefr_level, category, topic_hint, target_lang, origin_lang, story_type)
         return fallback_bundle, "template/fallback-engine", "internal"
@@ -245,7 +281,7 @@ Respond with valid JSON only matching the schema:
         self,
         cefr_level: CEFRLevel,
         category: str,
-        topic_hint: Optional[str] = None,
+        topic_hint: str | None = None,
         target_lang: str = "German",
         origin_lang: str = "Indonesian",
         story_type: str = "auto",
@@ -341,10 +377,10 @@ Respond with valid JSON only matching the schema:
                     "Sofía: Perfecto. Yo compro las entradas por internet y tú pides los cafés."
                 ),
                 content_translated=(
-                    f"Carlos: Hello Sofia! What a lovely day in Madrid.\n\n"
-                    f"Sofia: Hello Carlos! Yes, it is very sunny today. Shall we drink coffee in Retiro Park?\n\n"
-                    f"Carlos: Great idea! Afterwards we can visit the new art museum.\n\n"
-                    f"Sofia: Perfect. I will buy the tickets online and you order the coffees."
+                    "Carlos: Hello Sofia! What a lovely day in Madrid.\n\n"
+                    "Sofia: Hello Carlos! Yes, it is very sunny today. Shall we drink coffee in Retiro Park?\n\n"
+                    "Carlos: Great idea! Afterwards we can visit the new art museum.\n\n"
+                    "Sofia: Perfect. I will buy the tickets online and you order the coffees."
                 ),
                 summary="Carlos and Sofia meet on a sunny day in Madrid to drink coffee in Retiro Park and visit an art museum.",
                 vocabulary=[
@@ -449,10 +485,10 @@ Respond with valid JSON only matching the schema:
                     "Emily: Great idea. I will book our tickets online right now."
                 ),
                 content_translated=(
-                    f"Oliver: Good morning Emily! The sun is shining brightly today.\n\n"
-                    f"Emily: Good morning Oliver! Yes, it is wonderful. Would you like to get a coffee in the park?\n\n"
-                    f"Oliver: That sounds lovely! We can also visit the modern art gallery later.\n\n"
-                    f"Emily: Great idea. I will book our tickets online right now."
+                    "Oliver: Good morning Emily! The sun is shining brightly today.\n\n"
+                    "Emily: Good morning Oliver! Yes, it is wonderful. Would you like to get a coffee in the park?\n\n"
+                    "Oliver: That sounds lovely! We can also visit the modern art gallery later.\n\n"
+                    "Emily: Great idea. I will book our tickets online right now."
                 ),
                 summary="Oliver and Emily meet on a bright morning in London, grabbing coffee in the park and booking gallery tickets.",
                 vocabulary=[

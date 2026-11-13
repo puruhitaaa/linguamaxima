@@ -99,7 +99,7 @@ export const es: TranslationDictionary = {
   },
   audio: {
     errorDesc:
-      "Si tienes problemas para reproducir el audio, intenta activar una VPN o usar servicios como Cloudflare Warp para cambiar el DNS.",
+      "No se puede reproducir el audio ahora mismo. Comprueba tu conexión o haz clic en Reintentar.",
     errorTitle: "Error de reproducción de audio",
     mute: "Silenciar",
     pause: "Pausar",
@@ -108,11 +108,11 @@ export const es: TranslationDictionary = {
     rewindTooltip: "Retroceder 5s",
     speed: "Velocidad",
     timeoutWarningDesc:
-      "Si tienes problemas para reproducir el audio, intenta activar una VPN o usar servicios como Cloudflare Warp para cambiar el DNS.",
+      "La síntesis de audio está tardando más de lo normal. Puedes esperar o hacer clic en Reintentar.",
     timeoutWarningTitle: "La reproducción de audio tarda más de lo habitual",
     unmute: "Activar sonido",
     vpnRecommendation:
-      "Si tienes problemas para reproducir el audio, intenta activar una VPN o usar servicios como Cloudflare Warp para cambiar el DNS.",
+      "No se pudo transmitir el audio. Comprueba tu conexión o pulsa Reintentar.",
   },
   home: {
     allCategories: "Todas las Categorías",
@@ -132,7 +132,9 @@ export const es: TranslationDictionary = {
     heroTitle: "Aprende {target} con Historias Interactivas Graduadas",
     learningBadge:
       "Aprendiendo {targetFlag} {target} desde {originFlag} {origin}",
+    loadMoreStories: "Cargar más historias",
     searchPlaceholder: "Buscar historias en {target}...",
+    showingStoriesCount: "Mostrando {count} de {total} historias",
     storiesRead: "Historias Leídas",
     streakCount: "{days}d",
     targetStoriesTab: "Historias en {target}",
@@ -224,7 +226,10 @@ export const es: TranslationDictionary = {
     practiceAgain: "Practicar todo el mazo",
     ratePrompt: "Califica tu recuerdo:",
     readMoreStories: "Leer más historias",
+    removeCard: "Eliminar tarjeta",
     repsCount: "Repeticiones: {reps}",
+    scopeAll: "Todos los idiomas",
+    scopePair: "Mazo de {target}",
     searchPlaceholder: "Buscar vocabulario...",
     sessionCompleted: "¡Sesión completada!",
     sessionSummary:
@@ -320,11 +325,19 @@ export const es: TranslationDictionary = {
     highlightOutline: "Iluminar Historia",
     dictatingIndicator: "Reproduciendo",
     clickToPlaySection: "Haz clic para reproducir desde aquí",
+    lookupEmpty: 'No se encontró ninguna entrada de diccionario para "{word}".',
+    lookupLoading: "Buscando palabra...",
+    markAsRead: "Marcar como leída",
+    markedCompleted: "Completada",
+    playFromHere: "Reproducir audio desde aquí",
+    turnLabel: "Turno {turn}",
   },
   quiz: {
     answerReview: "Revisión de Respuestas",
     articlePractice: "Práctica de Artículos",
     checkAnswer: "Comprobar respuesta",
+    checkCorrect: "¡Correcto!",
+    checkIncorrect: "No exactamente — respuesta correcta: {answer}",
     comprehension: "Comprensión Lectora",
     correctAnswer: "Respuesta correcta:",
     correctOutOf: "{correct} / {total}",
@@ -344,6 +357,9 @@ export const es: TranslationDictionary = {
     questionTypeFallback: "Pregunta del Cuestionario",
     retakeQuiz: "Repetir Cuestionario",
     scoreStat: "Puntuación",
+    shortcutsHint: "(Pulsa 1-{count} o Enter)",
+    submitError:
+      "No se pudo enviar el cuestionario. Revisa tu conexión e inténtalo de nuevo.",
     submitQuiz: "Enviar Cuestionario",
     trueFalse: "Verdadero o Falso",
     yourAnswer: "Tu respuesta:",

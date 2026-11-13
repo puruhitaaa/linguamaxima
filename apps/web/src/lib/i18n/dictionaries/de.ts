@@ -99,7 +99,7 @@ export const de: TranslationDictionary = {
   },
   audio: {
     errorDesc:
-      "Wenn Sie Probleme beim Abspielen des Audios haben, versuchen Sie, ein VPN zu aktivieren oder Dienste wie Cloudflare Warp zu nutzen, um das DNS zu ändern.",
+      "Audio kann derzeit nicht abgespielt werden. Prüfen Sie Ihre Verbindung oder klicken Sie auf Wiederholen.",
     errorTitle: "Audio-Wiedergabefehler",
     mute: "Stummschalten",
     pause: "Pause",
@@ -108,11 +108,11 @@ export const de: TranslationDictionary = {
     rewindTooltip: "5 Sek. zurückspulen",
     speed: "Geschwindigkeit",
     timeoutWarningDesc:
-      "Wenn Sie Probleme beim Abspielen des Audios haben, versuchen Sie, ein VPN zu aktivieren oder Dienste wie Cloudflare Warp zu nutzen, um das DNS zu ändern.",
+      "Die Audiosynthese dauert länger als gewöhnlich. Bitte warten Sie kurz oder versuchen Sie es erneut.",
     timeoutWarningTitle: "Audio-Wiedergabe dauert länger als gewöhnlich",
     unmute: "Ton aktivieren",
     vpnRecommendation:
-      "Wenn Sie Probleme beim Abspielen des Audios haben, versuchen Sie, ein VPN zu aktivieren oder Dienste wie Cloudflare Warp zu nutzen, um das DNS zu ändern.",
+      "Audio kann derzeit nicht gestreamt werden. Prüfen Sie die Verbindung oder klicken Sie auf Wiederholen.",
   },
   home: {
     allCategories: "Alle Kategorien",
@@ -132,7 +132,9 @@ export const de: TranslationDictionary = {
       "Erweitere deinen Wortschatz, meistere kontextbezogene Grammatik auf {origin} und verbessere dein Hörverständnis mit interaktiven Stufengeschichten und neuronalem Audio.",
     heroTitle: "Lerne {target} mit interaktiven Stufengeschichten",
     learningBadge: "Lerne {targetFlag} {target} von {originFlag} {origin}",
+    loadMoreStories: "Mehr Geschichten laden",
     searchPlaceholder: "{target}-Geschichten durchsuchen...",
+    showingStoriesCount: "Zeige {count} von {total} Geschichten",
     storiesRead: "Gelesene Geschichten",
     streakCount: "{days}T",
     targetStoriesTab: "{target}-Geschichten",
@@ -224,7 +226,10 @@ export const de: TranslationDictionary = {
     practiceAgain: "Gesamtes Deck üben",
     ratePrompt: "Bewerte deine Erinnerung:",
     readMoreStories: "Mehr Geschichten lesen",
+    removeCard: "Karte entfernen",
     repsCount: "Wiederholungen: {reps}",
+    scopeAll: "Alle Sprachen",
+    scopePair: "{target}-Deck",
     searchPlaceholder: "Vokabeln durchsuchen...",
     sessionCompleted: "Sitzung abgeschlossen!",
     sessionSummary:
@@ -320,11 +325,19 @@ export const de: TranslationDictionary = {
     highlightOutline: "Abschnitt leuchten",
     dictatingIndicator: "Wiedergabe",
     clickToPlaySection: "Klicken, um ab hier abzuspielen",
+    lookupEmpty: 'Kein Wörterbucheintrag für "{word}" gefunden.',
+    lookupLoading: "Wort wird nachgeschlagen...",
+    markAsRead: "Als gelesen markieren",
+    markedCompleted: "Abgeschlossen",
+    playFromHere: "Audio ab hier abspielen",
+    turnLabel: "Dialogteil {turn}",
   },
   quiz: {
     answerReview: "Antwort-Überprüfung",
     articlePractice: "Artikel-Übung",
     checkAnswer: "Antwort prüfen",
+    checkCorrect: "Richtig!",
+    checkIncorrect: "Nicht ganz — richtige Antwort: {answer}",
     comprehension: "Verständnisfragen",
     correctAnswer: "Richtige Antwort:",
     correctOutOf: "{correct} / {total}",
@@ -344,6 +357,9 @@ export const de: TranslationDictionary = {
     questionTypeFallback: "Quizfrage",
     retakeQuiz: "Quiz wiederholen",
     scoreStat: "Ergebnis",
+    shortcutsHint: "(Taste 1-{count} oder Enter)",
+    submitError:
+      "Quiz konnte nicht gesendet werden. Bitte Verbindung prüfen und erneut versuchen.",
     submitQuiz: "Quiz absenden",
     trueFalse: "Richtig oder Falsch",
     yourAnswer: "Deine Antwort:",

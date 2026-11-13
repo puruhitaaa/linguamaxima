@@ -6,15 +6,15 @@ phonetics, definitions, and natural contextual example sentences.
 """
 
 from pathlib import Path
-import json
+
 
 def build_data_file():
     output_path = Path(__file__).parent / "lexicon_data.py"
 
     # We will generate comprehensive lists
     # Let's import GERMAN_LEXICON and write the full file
-    from app.seeds.generate_lexicon_data import GERMAN_LEXICON
     from app.seeds.dictionary_seed import CURATED_WORDS
+    from app.seeds.generate_lexicon_data import GERMAN_LEXICON
 
     # Construct all datasets
     datasets = {}

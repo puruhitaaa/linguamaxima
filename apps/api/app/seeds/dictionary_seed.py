@@ -1,9 +1,11 @@
-import logging
 import asyncio
+import logging
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import CEFRLevel, Language, Word
+
 from app.core.database import get_session_maker
+from app.models import CEFRLevel, Language, Word
 
 logger = logging.getLogger("linguamaxima.dictionary_seed")
 
@@ -14,7 +16,7 @@ async def seed_dictionary(session: AsyncSession) -> None:
     logger.info("Starting bulk dictionary seeding...")
     lang_stmt = select(Language)
     langs = (await session.execute(lang_stmt)).scalars().all()
-    lang_map = {l.code: l for l in langs}
+    lang_map = {lang.code: lang for lang in langs}
 
     total_added = 0
     total_updated = 0

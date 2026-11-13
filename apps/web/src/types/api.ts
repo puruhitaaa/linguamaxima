@@ -77,6 +77,7 @@ export interface WordFilterMeta {
 export interface VocabularyItem {
   id: number;
   story_id: number;
+  story_language_code?: string | null;
   word: string;
   translation: string;
   part_of_speech?: string;
@@ -86,6 +87,19 @@ export interface VocabularyItem {
   pronunciation_url?: string;
   difficulty_rank: number;
   is_saved_as_flashcard?: boolean;
+}
+
+export interface PaginatedStoriesResult {
+  items: StoryListItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface StoryCompleteResult {
+  story_id: number;
+  is_completed: boolean;
+  completed_at: string;
 }
 
 export interface GrammarTip {
