@@ -310,6 +310,7 @@ class GeneratedStoryBundle(BaseModel):
     title_translated: str
     speaker_name: str | None = None
     speaker_gender: str | None = None  # "male", "female", or None
+    speaker_genders: dict[str, str] | None = None  # Optional {"Speaker": "male" | "female"} map for dialogues
     content: str
     content_translated: str
     summary: str
