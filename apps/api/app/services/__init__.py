@@ -222,6 +222,7 @@ class StoryService:
             language=req.target_language_code,
             speaker_gender=bundle.speaker_gender,
             speaker_name=bundle.speaker_name,
+            speaker_genders=bundle.speaker_genders,
         )
 
         # 4. Generate audio for vocabulary words (bounded concurrency to avoid edge-tts spikes)

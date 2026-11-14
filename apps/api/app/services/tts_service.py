@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import re
+import unicodedata
 
 import edge_tts
 
@@ -77,22 +78,44 @@ LANGUAGE_VOICE_POOLS: dict[str, dict[str, list[str]]] = {
     },
 }
 
-SPEAKER_LINE_REGEX = re.compile(r"^([^\n\r:]{1,40}):\s*(.+)$", re.DOTALL)
+SPEAKER_LINE_REGEX = re.compile(r"^\s*(?:[-*•]\s+|\d+\.\s+)?([^\n\r:：]{1,50})[:：]\s*(.+)$")
+
+FEMALE_TITLES = {
+    "frau", "fraulein", "fräulein", "mrs", "ms", "miss", "madam", "madame", "mme",
+    "mademoiselle", "mlle", "senora", "señora", "sra", "senorita", "señorita", "srta",
+    "signora", "signorina", "ibu", "nyonya", "nona", "mbak",
+}
+MALE_TITLES = {
+    "herr", "mr", "sir", "monsieur", "senor", "señor", "sr", "signore", "signor",
+    "bapak", "pak", "mas",
+}
 
 # Common names and gender cues for accurate voice actor matching
 FEMALE_NAMES = {
-    "anna", "anne", "hannah", "sarah", "sara", "sophia", "sophie", "emma", "mia", "emily",
-    "laura", "lisa", "julia", "elena", "maria", "marie", "clara", "eva", "leah", "lea",
+    "anna", "anne", "hannah", "sarah", "sara", "sophia", "sophie", "sofia", "emma", "mia", "emily",
+    "laura", "lisa", "julia", "elena", "maria", "marie", "clara", "klara", "eva", "leah", "lea",
     "charlotte", "luisa", "louisa", "maja", "maya", "lena", "paula", "greta", "amelie",
     "frieda", "johanna", "mathilda", "claudia", "monika", "petra", "katja", "susanne", "brigitte",
-    "elvira", "isabella", "lucia", "carmen", "rosa", "lucie", "juliette", "camille",
+    "ingrid", "astrid", "sigrid", "birgit", "dagmar", "heike", "silke", "anke", "ulrike", "sabine",
+    "katrin", "kathrin", "kerstin", "kristin", "carolin", "karolin", "jasmin", "yasmin", "marion",
+    "nadine", "veronika", "franziska", "theresa", "miriam", "esther", "ruth", "naomi", "elise",
+    "elvira", "isabella", "lucia", "carmen", "rosa", "lucie", "juliette", "camille", "celine",
+    "agnes", "noemie", "cecile", "valerie", "helene", "denise", "maelle", "ines",
     "alice", "helen", "mary", "jessica", "ashley", "amanda", "olivia", "ava", "chloe", "zoe",
-    "claire", "rachel", "elizabeth", "grace", "lucy", "victoria", "natalie",
-    "nanami", "aoi", "mayu", "sakura", "yuki", "hana", "xiaoxiao", "xiaoyi", "sunhi",
-    "gadis", "siti", "dewi", "putri", "ani", "rina", "ratna", "wulandari", "tania",
-    "frau", "mrs", "ms", "miss", "madame", "mademoiselle", "señora", "senora", "señorita",
-    "mutter", "mother", "maman", "madre", "ibu", "tochter", "daughter", "fille", "hija",
-    "kellnerin", "waitress", "serveuse", "camarera", "pelayan wanita", "dame", "lady", "girl", "mädchen",
+    "claire", "rachel", "elizabeth", "grace", "lucy", "victoria", "natalie", "jennifer", "rebecca",
+    "katherine", "catherine", "margaret", "susan", "karen", "sharon", "heather", "stephanie",
+    "melanie", "nicole", "simone", "yvonne", "elaine", "diane", "lauren", "megan", "abigail",
+    "nanami", "aoi", "mayu", "sakura", "yuki", "hana", "ayumi", "haruka", "yui", "misaki",
+    "xiaoxiao", "xiaoyi", "mei", "ling", "sunhi", "yuna", "mina", "jiyeon", "soeun",
+    "gadis", "siti", "dewi", "putri", "ani", "rina", "ratna", "wulandari", "tania", "ayu",
+    "lestari", "nurul", "indah", "kartika", "fatima", "aisha", "layla", "noor", "amira", "zainab",
+    "frau", "mrs", "ms", "miss", "madame", "mademoiselle", "senora", "senorita",
+    "mutter", "mother", "mom", "mum", "maman", "madre", "ibu", "tochter", "daughter", "fille", "hija",
+    "schwester", "sister", "tante", "aunt", "oma", "grandma", "grossmutter", "wife", "woman",
+    "kellnerin", "waitress", "serveuse", "camarera", "pelayan wanita", "dame", "lady", "girl", "madchen",
+    "kundin", "verkauferin", "lehrerin", "arztin", "rezeptionistin", "mitarbeiterin", "nachbarin",
+    "freundin", "kollegin", "schulerin", "studentin", "patientin", "besucherin", "gastin",
+    "chefin", "assistentin", "apothekerin", "backerin", "kassiererin", "kochin",
 }
 
 MALE_NAMES = {
@@ -100,14 +123,28 @@ MALE_NAMES = {
     "lukas", "lucas", "paul", "max", "felix", "elias", "jonas", "noah",
     "ben", "finn", "luca", "tim", "jan", "niklas", "michael", "alexander", "moritz",
     "sebastian", "florian", "tobias", "christoph", "klaus", "bernd", "karl", "hans", "stefan",
+    "andreas", "matthias", "philipp", "peter", "jens", "frank", "marc", "mark", "dirk", "ralf",
+    "ralph", "uwe", "holger", "jorg", "jurgen", "dieter", "helmut", "wolfgang", "manfred", "heinz",
+    "franz", "fritz", "otto", "oskar", "oscar", "erik", "eric", "patrick", "hendrik", "frederik",
+    "olaf", "sven", "nils", "lars", "ole", "jakob", "jacob", "emil", "anton", "benjamin", "julian",
+    "adrian", "fabian", "christian", "kevin", "robin", "dennis", "dominik", "yannick", "henrik",
+    "bjorn", "soren", "gunther", "martin",
     "carlos", "alvaro", "diego", "javier", "mateo", "antonio", "miguel", "pablo", "juan",
-    "henri", "louis", "pierre", "alain", "thomas", "julien", "antoine", "nicolas", "alexandre",
+    "jose", "andres", "tomas", "nicolas",
+    "henri", "louis", "pierre", "alain", "thomas", "julien", "antoine", "alexandre", "rene",
     "oliver", "john", "james", "william", "robert", "george", "charles", "edward", "harry", "jack",
-    "keita", "daichi", "naoki", "kenji", "taro", "yunxi", "yunjian", "yunyang", "injoon",
-    "ardi", "budi", "agus", "joko", "eko", "bambang", "hendra", "rizky", "bayu",
-    "herr", "mr", "sir", "monsieur", "señor", "senor", "vater", "father", "père", "pere", "padre", "bapak",
-    "sohn", "son", "fils", "hijo", "kellner", "waiter", "serveur", "camarero", "pelayan pria",
-    "mann", "man", "homme", "hombre", "pria", "junge", "boy", "garçon", "garcon", "chico",
+    "keita", "daichi", "naoki", "kenji", "taro", "ken", "hiroshi", "takeshi", "haruto", "ren", "sota",
+    "yunxi", "yunjian", "yunyang", "wei", "ming", "hao", "injoon", "minho", "jihoon", "jun",
+    "ardi", "budi", "agus", "joko", "eko", "bambang", "hendra", "rizky", "bayu", "andi", "reza",
+    "dimas", "fajar", "bagus", "wahyu", "ilham", "putra", "pratama",
+    "omar", "ali", "hassan", "ahmed", "mohammad", "yusuf", "ibrahim", "tariq",
+    "herr", "mr", "sir", "monsieur", "senor", "vater", "father", "pere", "padre", "bapak",
+    "sohn", "son", "fils", "hijo", "bruder", "brother", "onkel", "uncle", "opa", "grossvater",
+    "kellner", "waiter", "serveur", "camarero", "pelayan pria", "mann", "man", "homme", "hombre",
+    "pria", "junge", "boy", "garcon", "chico", "ehemann", "husband",
+    "verkaufer", "arzt", "apotheker", "polizist", "schaffner", "koch", "lehrer", "mitarbeiter",
+    "nachbar", "freund", "kollege", "schuler", "student", "patient", "chef", "assistent",
+    "kassierer", "rezeptionist", "backer",
 }
 
 FIRST_PERSON_INTRO_PATTERNS = [
@@ -120,33 +157,64 @@ FIRST_PERSON_INTRO_PATTERNS = [
 ]
 
 
+def _fold_accents(value: str) -> str:
+    """Folds Unicode accents/diacritics to plain ASCII equivalents for name matching."""
+    decomposed = unicodedata.normalize("NFKD", value)
+    return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+
+
+def _clean_speaker_label(name: str) -> str:
+    """Strips markdown formatting and list markers from a speaker prefix."""
+    cleaned = name.strip()
+    cleaned = re.sub(r"^(?:[-*•]\s+|\d+\.\s+)", "", cleaned)
+    cleaned = cleaned.strip("*_`[]()\"' ")
+    return re.sub(r"\s+", " ", cleaned)
+
+
 def detect_speaker_gender(name: str) -> str:
     """
     Detects if a character name is female, male, or unknown.
-    Uses exact lookup followed by linguistic morphological heuristics.
+    Checks gendered titles first, then exact/token lookups (with accent folding),
+    followed by linguistic morphological heuristics.
     """
-    clean_name = name.strip().lower()
-    # Remove leading titles/particles
-    clean_name = re.sub(r"^(herr|frau|mr\.|mrs\.|ms\.|dr\.)\s+", "", clean_name)
+    cleaned = _clean_speaker_label(name).lower()
+    if not cleaned:
+        return "unknown"
 
-    if clean_name in FEMALE_NAMES:
+    folded = _fold_accents(cleaned)
+    tokens = [tok.strip(".,;:!?()[]{}\"'") for tok in re.split(r"[\s\-_/]+", folded) if tok.strip(".,;:!?()[]{}\"'")]
+    if not tokens:
+        return "unknown"
+
+    # Check explicit gendered titles before stripping honorifics (e.g. "Frau Weber" -> female)
+    for tok in tokens:
+        if tok in FEMALE_TITLES:
+            return "female"
+        if tok in MALE_TITLES:
+            return "male"
+
+    # Strip non-gendered academic/professional honorifics
+    remaining = [tok for tok in tokens if tok not in {"dr", "prof", "professor"}] or tokens
+    joined = " ".join(remaining)
+
+    if joined in FEMALE_NAMES:
         return "female"
-    if clean_name in MALE_NAMES:
+    if joined in MALE_NAMES:
         return "male"
 
-    # Multi-word names: check first word
-    first_token = clean_name.split()[0]
-    if first_token in FEMALE_NAMES:
-        return "female"
-    if first_token in MALE_NAMES:
-        return "male"
+    for tok in remaining:
+        if tok in FEMALE_NAMES:
+            return "female"
+        if tok in MALE_NAMES:
+            return "male"
 
-    # Morphological heuristics
-    if clean_name.endswith(("in", "ine", "ette", "ia", "ie", "elle")) and clean_name not in {"ben", "robin", "kevin", "martin"}:
+    # Morphological heuristics on primary token
+    primary = remaining[0]
+    if primary.endswith(("in", "ine", "ette", "ia", "ie", "elle")) and primary not in {"ben", "robin", "kevin", "martin"}:
         return "female"
-    if clean_name.endswith("a") and clean_name not in {"luca", "noah", "joshua", "elias", "akira"}:
+    if primary.endswith("a") and primary not in {"luca", "noah", "joshua", "elias", "akira"}:
         return "female"
-    if clean_name.endswith(("o", "us", "er", "or", "ik", "el", "an", "on")):
+    if primary.endswith(("o", "us", "er", "or", "ik", "el", "an", "on")):
         return "male"
 
     return "unknown"
@@ -200,27 +268,69 @@ class TTSService:
 
     def parse_dialogue_turns(self, text: str) -> list[tuple[str, str]]:
         """
-        Parses text paragraphs into speaker dialogue turns.
+        Parses text paragraphs/lines into speaker dialogue turns.
+        Supports both blank-line-separated and single-newline dialogue turns,
+        as well as markdown bold/list formatting around speaker names.
         Returns a list of (speaker_name, dialogue_text) tuples.
-        If a paragraph has no speaker prefix, speaker is an empty string "".
         """
-        paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
         turns: list[tuple[str, str]] = []
+        paragraphs = [p.strip() for p in re.split(r"\r?\n\s*\r?\n", text.strip()) if p.strip()]
         for p in paragraphs:
-            match = SPEAKER_LINE_REGEX.match(p)
-            if match:
-                speaker = match.group(1).strip()
-                dialogue = match.group(2).strip()
-                turns.append((speaker, dialogue))
-            else:
-                turns.append(("", p))
+            lines = [ln.strip() for ln in p.splitlines() if ln.strip()]
+            current_speaker = ""
+            current_lines: list[str] = []
+
+            for line in lines:
+                match = SPEAKER_LINE_REGEX.match(line)
+                candidate_speaker = _clean_speaker_label(match.group(1)) if match else ""
+                candidate_dialogue = re.sub(r"^\*+\s*", "", match.group(2).strip()).strip() if match else ""
+
+                is_valid_speaker = (
+                    bool(match)
+                    and bool(candidate_speaker)
+                    and not candidate_speaker.isdigit()
+                    and not candidate_dialogue.startswith("//")
+                )
+                if is_valid_speaker:
+                    if current_lines:
+                        turns.append((current_speaker, " ".join(current_lines)))
+                    current_speaker = candidate_speaker
+                    current_lines = [candidate_dialogue] if candidate_dialogue else []
+                else:
+                    current_lines.append(line)
+
+            if current_lines:
+                turns.append((current_speaker, " ".join(current_lines)))
         return turns
 
+    @staticmethod
+    def _lookup_explicit_gender(
+        speaker: str,
+        speaker_genders: dict[str, str] | None,
+    ) -> str:
+        if not speaker_genders:
+            return "unknown"
+        cleaned_target = _clean_speaker_label(speaker).lower()
+        for raw_key, raw_gender in speaker_genders.items():
+            if not raw_key or not raw_gender:
+                continue
+            cleaned_key = _clean_speaker_label(raw_key).lower()
+            if cleaned_key == cleaned_target or raw_key.strip().lower() == speaker.strip().lower():
+                normalized_gender = raw_gender.strip().lower()
+                if normalized_gender in ("male", "female"):
+                    return normalized_gender
+        return "unknown"
+
     def assign_voices_to_speakers(
-        self, unique_speakers: list[str], language: str
+        self,
+        unique_speakers: list[str],
+        language: str,
+        speaker_genders: dict[str, str] | None = None,
     ) -> dict[str, str]:
         """
-        Assigns accurate male / female neural voices to speakers based on character names.
+        Assigns accurate male / female neural voices to speakers.
+        Uses explicit LLM-supplied speaker genders first, then name/title detection,
+        and balances any remaining unknown speakers across genders in a second pass.
         """
         pools = self.get_voice_pools_for_language(language)
         female_voices = pools.get("female", ["de-DE-KatjaNeural"])
@@ -229,25 +339,31 @@ class TTSService:
         female_idx = 0
         male_idx = 0
         speaker_voice_map: dict[str, str] = {}
+        unknown_speakers: list[str] = []
 
+        # Pass 1: Assign speakers with known or explicitly provided gender first
         for spk in unique_speakers:
-            gender = detect_speaker_gender(spk)
+            gender = self._lookup_explicit_gender(spk, speaker_genders)
+            if gender == "unknown":
+                gender = detect_speaker_gender(spk)
+
             if gender == "female":
-                assigned = female_voices[female_idx % len(female_voices)]
+                speaker_voice_map[spk] = female_voices[female_idx % len(female_voices)]
                 female_idx += 1
             elif gender == "male":
-                assigned = male_voices[male_idx % len(male_voices)]
+                speaker_voice_map[spk] = male_voices[male_idx % len(male_voices)]
                 male_idx += 1
             else:
-                # If gender is unknown, balance male and female allocations
-                if female_idx <= male_idx:
-                    assigned = female_voices[female_idx % len(female_voices)]
-                    female_idx += 1
-                else:
-                    assigned = male_voices[male_idx % len(male_voices)]
-                    male_idx += 1
+                unknown_speakers.append(spk)
 
-            speaker_voice_map[spk] = assigned
+        # Pass 2: Balance remaining unknown speakers against already-assigned genders
+        for spk in unknown_speakers:
+            if female_idx <= male_idx:
+                speaker_voice_map[spk] = female_voices[female_idx % len(female_voices)]
+                female_idx += 1
+            else:
+                speaker_voice_map[spk] = male_voices[male_idx % len(male_voices)]
+                male_idx += 1
 
         return speaker_voice_map
 
@@ -305,6 +421,7 @@ class TTSService:
         language: str = "de",
         speaker_gender: str | None = None,
         speaker_name: str | None = None,
+        speaker_genders: dict[str, str] | None = None,
     ) -> str | None:
         """
         Generates multi-voice audio if story contains a multi-character dialogue,
@@ -319,7 +436,11 @@ class TTSService:
 
         # If 2 or more distinct characters are speaking, generate multi-voice audio
         if len(unique_speakers) >= 2:
-            speaker_voice_map = self.assign_voices_to_speakers(unique_speakers, language)
+            speaker_voice_map = self.assign_voices_to_speakers(
+                unique_speakers,
+                language,
+                speaker_genders=speaker_genders,
+            )
             default_voice = self.get_voice_for_language(language)
 
             logger.info(

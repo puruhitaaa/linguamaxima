@@ -21,11 +21,17 @@ class TTSGenerateResponse(BaseModel):
     dependencies=[Depends(enforce_generation_rate_limit)],
 )
 async def generate_tts(req: TTSGenerateRequest):
-    url = await tts_service.generate_audio(
-        text=req.text,
-        voice=req.voice,
-        language=req.language,
-    )
+    if req.voice is None:
+        url = await tts_service.generate_story_audio(
+            text=req.text,
+            language=req.language,
+        )
+    else:
+        url = await tts_service.generate_audio(
+            text=req.text,
+            voice=req.voice,
+            language=req.language,
+        )
     if not url:
         raise HTTPException(status_code=500, detail="Audio generation failed")
     return TTSGenerateResponse(audio_url=url)

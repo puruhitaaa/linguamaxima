@@ -95,9 +95,9 @@ class AIService:
 Format & Perspective Requirement:
 - MANDATORY STORY FORMAT: **CONVERSATIONAL DIALOGUE**.
 - The story MUST be a direct, engaging dialogue between 2 or more distinct characters (e.g. 1 male, 1 female, or named roles).
-- Every single paragraph in "content" MUST start with the speaker's name: `SpeakerName: Spoken text without quotes or third-person narration`.
+- Every single paragraph in "content" MUST start with the speaker's plain name (no markdown bolding `**` or bullets): `SpeakerName: Spoken text without quotes or third-person narration`.
 - Strictly NO third-person narration, narrative summaries, or dialogue tags (e.g. do NOT write 'said Lukas' or 'she replied').
-- Set "speaker_name" and "speaker_gender" to null (each dialogue turn already has its own speaker prefix).
+- Set "speaker_name" and "speaker_gender" to null, and populate "speaker_genders" mapping each exact SpeakerName to "male" or "female" (e.g. {"Lukas": "male", "Anna": "female"}).
 - Parallel Translation: "content_translated" MUST mirror each dialogue turn with `SpeakerName: Translated text`.
 """
         elif story_type == "monologue":
@@ -122,9 +122,9 @@ Format & Perspective Requirement:
             format_instructions = """
 Format & Perspective Guidelines:
 - If the scenario involves 2 or more people communicating (conversations, ordering food, asking directions, meeting friends, travel exchanges, workplace/daily chats), format the story as a **conversational dialogue story**.
-  - In a dialogue story, every paragraph represents a dialogue turn starting with the speaker's name: `SpeakerName: Spoken text without quotes or third-person narration`.
+  - In a dialogue story, every paragraph represents a dialogue turn starting with the speaker's plain name (no markdown bolding `**`): `SpeakerName: Spoken text without quotes or third-person narration`.
   - Do NOT include third-person narration or dialogue tags (such as 'he said', 'she replied', 'said Marco') in dialogue stories. Keep it direct spoken conversational lines.
-  - Choose natural, distinct names for the characters (e.g. 1 male, 1 female or named roles like 'Kellner' / 'Gast').
+  - Choose natural, distinct names for the characters (e.g. 1 male, 1 female or named roles like 'Kellner' / 'Gast') and populate "speaker_genders" mapping each speaker to "male" or "female".
 - If the scenario is a solitary experience, monologue, journal entry, or descriptive scene, write standard first-person or descriptive narrative paragraphs without speaker prefixes, and specify the narrator's name in "speaker_name" and gender in "speaker_gender" ("male" or "female").
 - Parallel Translation: "content_translated" MUST exactly match the paragraph structure of "content" (including matching `SpeakerName: Translated text` for dialogues, or translated narrative paragraphs for monologues).
 """
@@ -144,10 +144,11 @@ Requirements:
 2. "title_translated": Story title translated into natural {origin_lang}.
 3. "speaker_name": Name of the narrator / primary character (e.g. "Leon", "Darren", "Sarah") for monologues, or null if dialogue / third-person factual.
 4. "speaker_gender": Gender of the monologue narrator ("male" or "female"), or null if dialogue / third-person factual.
-5. "content": The complete story in {target_lang}. Format into 3-6 clean paragraphs separated by double newlines (`\\n\\n`).
-6. "content_translated": The full parallel translation in {origin_lang}, matching the paragraph structure.
-7. "summary": A 1-2 sentence overview of the story in {origin_lang}.
-8. "vocabulary": A list of 6-10 key {target_lang} vocabulary words from the story. Each item must contain:
+5. "speaker_genders": Object mapping each dialogue speaker prefix to "male" or "female" (e.g. {{"Lukas": "male", "Anna": "female"}}), or null if monologue / third-person factual.
+6. "content": The complete story in {target_lang}. Format into 3-6 clean paragraphs separated by double newlines (`\\n\\n`).
+7. "content_translated": The full parallel translation in {origin_lang}, matching the paragraph structure.
+8. "summary": A 1-2 sentence overview of the story in {origin_lang}.
+9. "vocabulary": A list of 6-10 key {target_lang} vocabulary words from the story. Each item must contain:
    - "word": The word in {target_lang} (for nouns, do not include the article in this field).
    - "translation": Translation in {origin_lang}.
    - "part_of_speech": "noun", "verb", "adjective", "adverb", "preposition", or "phrase".
@@ -155,13 +156,13 @@ Requirements:
    - "example_sentence": A short {target_lang} sentence using the word.
    - "example_translation": The sentence translated into {origin_lang}.
    - "difficulty_rank": 1 (easy) to 3 (challenging).
-9. "grammar_tips": 2-3 contextual grammar explanations relevant to structures found in this story.
+10. "grammar_tips": 2-3 contextual grammar explanations relevant to structures found in this story.
    - "title": Short title explaining the target language rule in {origin_lang}.
    - "explanation": Clear, accessible grammar rule explained in {origin_lang}.
    - "explanation_translated": Same explanation summary in {origin_lang}.
    - "example": Sentence from or related to the story in {target_lang}.
    - "example_translation": Example translated into {origin_lang}.
-10. "quiz_questions": 4-5 comprehension and grammar questions. Must include a mix of:
+11. "quiz_questions": 4-5 comprehension and grammar questions. Must include a mix of:
    - "multiple_choice": Comprehension questions about the story events (questions in {target_lang}, explanation in {origin_lang}).
    - "article": Practice identifying grammatical gender/article for a noun if {target_lang} has grammatical gender, or a core grammar question if not.
    - "fill_blank": Sentence with a missing word in {target_lang}.
@@ -180,6 +181,7 @@ Respond with valid JSON only matching the schema:
   "title_translated": "...",
   "speaker_name": "...",
   "speaker_gender": "male" or "female",
+  "speaker_genders": {{"Lukas": "male", "Anna": "female"}},
   "content": "...",
   "content_translated": "...",
   "summary": "...",

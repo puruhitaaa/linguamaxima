@@ -256,6 +256,38 @@ def test_gender_detection_and_voice_matching():
     assert "Katja" in voices_map["Anna"]  # Female German voice
     assert "Killian" in voices_map["Leo"]  # Male German voice
 
+    # Test gendered titles, accented names, and markdown prefixes
+    assert detect_speaker_gender("Frau Weber") == "female"
+    assert detect_speaker_gender("Herr Weber") == "male"
+    assert detect_speaker_gender("Mrs. Miller") == "female"
+    assert detect_speaker_gender("Mr. Smith") == "male"
+    assert detect_speaker_gender("José") == "male"
+    assert detect_speaker_gender("Chloé") == "female"
+    assert detect_speaker_gender("**Lukas**") == "male"
+
+    # Test two-pass unknown speaker balancing avoids giving two speakers the same gender
+    balanced_map = tts_service.assign_voices_to_speakers(["Gast", "Anna"], "de")
+    assert "Katja" in balanced_map["Anna"]
+    assert "Killian" in balanced_map["Gast"]
+
+    # Test explicit speaker_genders map override
+    explicit_map = tts_service.assign_voices_to_speakers(
+        ["Customer", "Barista"],
+        "de",
+        speaker_genders={"Customer": "female", "Barista": "male"},
+    )
+    assert "Katja" in explicit_map["Customer"]
+    assert "Killian" in explicit_map["Barista"]
+
+    # Test single-newline, markdown-formatted dialogue parsing and timestamp safety
+    parsed = tts_service.parse_dialogue_turns(
+        "**Frau Weber:** Guten Tag!\n- Herr Weber: Wir treffen uns um 14:30 Uhr."
+    )
+    assert parsed == [
+        ("Frau Weber", "Guten Tag!"),
+        ("Herr Weber", "Wir treffen uns um 14:30 Uhr."),
+    ]
+
     # Test language voice resolution by gender
     male_voice = tts_service.get_voice_for_language("de", gender="male")
     female_voice = tts_service.get_voice_for_language("de", gender="female")
@@ -570,3 +602,41 @@ async def test_story_generation_strict_503_and_rate_limit(client, monkeypatch):
         json={"cefr_level": "A1", "category": "daily-life", "topic_hint": "Bakery"},
     )
     assert res_429.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_dialogue_tts_endpoint_uses_multi_voice(client, monkeypatch):
+    from app.services.storage_service import storage_service
+    from app.services.tts_service import tts_service
+
+    generation_rate_limiter.reset()
+    synthesized_calls: list[tuple[str, str]] = []
+
+    async def fake_audio_exists(filename: str) -> str | None:
+        return None
+
+    async def fake_synthesize_bytes(text: str, voice: str) -> bytes | None:
+        synthesized_calls.append((text, voice))
+        return b"FAKE_MP3_" + voice.encode("utf-8")
+
+    async def fake_upload_audio(filename: str, data: bytes, content_type: str = "audio/mpeg") -> str | None:
+        return f"/api/v1/media/audio/{filename}"
+
+    monkeypatch.setattr(storage_service, "audio_exists", fake_audio_exists)
+    monkeypatch.setattr(tts_service, "_synthesize_bytes", fake_synthesize_bytes)
+    monkeypatch.setattr(storage_service, "upload_audio", fake_upload_audio)
+
+    res = await client.post(
+        "/api/v1/tts/generate",
+        json={
+            "text": "Anna: Guten Morgen Lukas!\nLukas: Guten Morgen Anna!",
+            "language": "de",
+        },
+    )
+    assert res.status_code == 200
+    assert res.json()["audio_url"].startswith("/api/v1/media/audio/dialogue_")
+    assert len(synthesized_calls) == 2
+    assert synthesized_calls[0][0] == "Guten Morgen Lukas!"
+    assert "Katja" in synthesized_calls[0][1]
+    assert synthesized_calls[1][0] == "Guten Morgen Anna!"
+    assert "Killian" in synthesized_calls[1][1]
