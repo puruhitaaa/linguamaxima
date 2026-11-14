@@ -26,12 +26,15 @@ import {
   SelectValue,
 } from "@linguamaxima/ui/components/select";
 import { Skeleton } from "@linguamaxima/ui/components/skeleton";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowRight,
+  ArrowUpDown,
   Bookmark,
   CheckCircle2,
   Compass,
+  Globe,
+  ListFilter,
   Pin,
   PinOff,
   Plus,
@@ -42,6 +45,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { LearningJourneyModal } from "../components/learning-journey-modal";
 import { useTranslation } from "../lib/i18n";
@@ -52,15 +56,60 @@ import {
   useJourneys,
   useToggleJourneyPin,
 } from "../lib/queries";
-import type {
-  CEFRLevel,
-  JourneyListItem,
-  JourneySortBy,
-  JourneyStatus,
-} from "../types/api";
+import type { CEFRLevel, JourneyListItem, JourneySortBy } from "../types/api";
+
+const JOURNEY_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
+const JOURNEY_STATUS_FILTERS = [
+  "pinned",
+  "in_progress",
+  "not_started",
+  "completed",
+] as const;
+const JOURNEY_SORT_OPTIONS = [
+  "recent",
+  "progress_desc",
+  "progress_asc",
+  "newest",
+  "oldest",
+  "level_asc",
+  "level_desc",
+  "title_asc",
+] as const;
+
+const journeysSearchSchema = z.object({
+  lang: z.string().optional(),
+  level: z.preprocess(
+    (v) =>
+      typeof v === "string" && (JOURNEY_LEVELS as readonly string[]).includes(v)
+        ? v
+        : undefined,
+    z.enum(JOURNEY_LEVELS).optional()
+  ),
+  search: z.string().optional(),
+  sort: z.preprocess(
+    (v) =>
+      typeof v === "string" &&
+      (JOURNEY_SORT_OPTIONS as readonly string[]).includes(v)
+        ? v
+        : undefined,
+    z.enum(JOURNEY_SORT_OPTIONS).optional()
+  ),
+  status: z.preprocess(
+    (v) =>
+      typeof v === "string" &&
+      (JOURNEY_STATUS_FILTERS as readonly string[]).includes(v)
+        ? v
+        : undefined,
+    z.enum(JOURNEY_STATUS_FILTERS).optional()
+  ),
+});
 
 export const Route = createFileRoute("/journeys/")({
   component: JourneysHubPage,
+  validateSearch: (search: Record<string, unknown>) => {
+    const parsed = journeysSearchSchema.safeParse(search);
+    return parsed.success ? parsed.data : {};
+  },
 });
 
 const CEFR_FILTERS: readonly ("all" | CEFRLevel)[] = [
@@ -73,7 +122,7 @@ const CEFR_FILTERS: readonly ("all" | CEFRLevel)[] = [
   "C2",
 ];
 
-type StatusFilter = "all" | "pinned" | JourneyStatus;
+type StatusFilter = "all" | (typeof JOURNEY_STATUS_FILTERS)[number];
 
 const LEVEL_BADGE_CLASSES: Record<CEFRLevel, string> = {
   A1: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
@@ -129,26 +178,245 @@ function JourneysEmptyState({
   );
 }
 
+function JourneysFilterBar({
+  availableLanguages,
+  getLanguageFlag,
+  hasActiveFilters,
+  levelFilter,
+  onClearFilters,
+  onClearSearch,
+  onLevelChange,
+  onSearchChange,
+  onSortChange,
+  onStatusChange,
+  onTargetLangChange,
+  searchInput,
+  sortBy,
+  statusFilter,
+  t,
+  targetLangFilter,
+}: {
+  availableLanguages: { code: string; name: string }[];
+  getLanguageFlag: (code: string) => string;
+  hasActiveFilters: boolean;
+  levelFilter: "all" | CEFRLevel;
+  onClearFilters: () => void;
+  onClearSearch: () => void;
+  onLevelChange: (level: "all" | CEFRLevel) => void;
+  onSearchChange: (value: string) => void;
+  onSortChange: (sort: JourneySortBy) => void;
+  onStatusChange: (status: StatusFilter) => void;
+  onTargetLangChange: (lang: string) => void;
+  searchInput: string;
+  sortBy: JourneySortBy;
+  statusFilter: StatusFilter;
+  t: ReturnType<typeof useTranslation>["t"];
+  targetLangFilter: string;
+}) {
+  const statusOptions: { label: string; value: StatusFilter }[] = [
+    { label: t("journeys.allStatuses"), value: "all" },
+    { label: t("journeys.pinnedBadge"), value: "pinned" },
+    { label: t("journeys.inProgressBadge"), value: "in_progress" },
+    { label: t("journeys.notStartedBadge"), value: "not_started" },
+    { label: t("journeys.completedBadge"), value: "completed" },
+  ];
+
+  const sortOptions: { label: string; value: JourneySortBy }[] = [
+    { label: t("journeys.sortRecent"), value: "recent" },
+    { label: t("journeys.sortProgressHigh"), value: "progress_desc" },
+    { label: t("journeys.sortProgressLow"), value: "progress_asc" },
+    { label: t("journeys.sortNewest"), value: "newest" },
+    { label: "Oldest First", value: "oldest" },
+    { label: "CEFR A1 → C2", value: "level_asc" },
+    { label: "CEFR C2 → A1", value: "level_desc" },
+    { label: t("journeys.sortTitle"), value: "title_asc" },
+  ];
+
+  const selectedTargetLang = availableLanguages.find(
+    (lang) => lang.code === targetLangFilter
+  );
+  let targetLangLabel = "All Target Languages";
+  if (selectedTargetLang) {
+    targetLangLabel = `${getLanguageFlag(selectedTargetLang.code)} ${selectedTargetLang.name}`;
+  } else if (targetLangFilter !== "all") {
+    targetLangLabel = targetLangFilter.toUpperCase();
+  }
+
+  const statusLabel =
+    statusOptions.find((option) => option.value === statusFilter)?.label ??
+    t("journeys.allStatuses");
+  const sortLabel =
+    sortOptions.find((option) => option.value === sortBy)?.label ??
+    t("journeys.sortRecent");
+
+  return (
+    <section className="rounded-2xl border border-neutral-800 bg-neutral-900/70 p-4 space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_repeat(3,minmax(0,1fr))] gap-3">
+        {/* Search */}
+        <div className="relative">
+          <Search className="size-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Input
+            value={searchInput}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder={t("journeys.searchPlaceholder")}
+            aria-label={t("journeys.searchPlaceholder")}
+            className="h-9 pl-9 pr-8 bg-neutral-950 border-neutral-800 text-white placeholder:text-neutral-500"
+          />
+          {searchInput && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={onClearSearch}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Target Language */}
+        <Select
+          value={targetLangFilter}
+          onValueChange={(v) => onTargetLangChange(v ?? "all")}
+        >
+          <SelectTrigger
+            aria-label="Filter by target language"
+            className="w-full h-9 bg-neutral-950 border-neutral-800 text-neutral-100 hover:border-neutral-700 cursor-pointer"
+          >
+            <span className="flex items-center gap-2 min-w-0">
+              <Globe className="size-3.5 text-neutral-400 shrink-0" />
+              <SelectValue className="truncate">{targetLangLabel}</SelectValue>
+            </span>
+          </SelectTrigger>
+          <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-100">
+            <SelectItem value="all">All Target Languages</SelectItem>
+            {availableLanguages.map((lang) => (
+              <SelectItem key={lang.code} value={lang.code}>
+                {getLanguageFlag(lang.code)} {lang.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Status Filter */}
+        <Select
+          value={statusFilter}
+          onValueChange={(v) => onStatusChange((v ?? "all") as StatusFilter)}
+        >
+          <SelectTrigger
+            aria-label="Filter by status"
+            className="w-full h-9 bg-neutral-950 border-neutral-800 text-neutral-100 hover:border-neutral-700 cursor-pointer"
+          >
+            <span className="flex items-center gap-2 min-w-0">
+              <ListFilter className="size-3.5 text-neutral-400 shrink-0" />
+              <SelectValue className="truncate">{statusLabel}</SelectValue>
+            </span>
+          </SelectTrigger>
+          <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-100">
+            {statusOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Sort By */}
+        <Select
+          value={sortBy}
+          onValueChange={(v) => onSortChange((v ?? "recent") as JourneySortBy)}
+        >
+          <SelectTrigger
+            aria-label="Sort journeys"
+            className="w-full h-9 bg-neutral-950 border-neutral-800 text-neutral-100 hover:border-neutral-700 cursor-pointer"
+          >
+            <span className="flex items-center gap-2 min-w-0">
+              <ArrowUpDown className="size-3.5 text-neutral-400 shrink-0" />
+              <SelectValue className="truncate">{sortLabel}</SelectValue>
+            </span>
+          </SelectTrigger>
+          <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-100">
+            {sortOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* CEFR Level Quick Pills */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {CEFR_FILTERS.map((lvl) => (
+            <button
+              key={lvl}
+              type="button"
+              onClick={() => onLevelChange(lvl)}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                levelFilter === lvl
+                  ? "bg-sky-500 text-white border-sky-400"
+                  : "bg-neutral-950 text-neutral-300 border-neutral-800 hover:border-neutral-700 hover:text-white"
+              }`}
+            >
+              {lvl === "all" ? t("journeys.allLevels") : lvl}
+            </button>
+          ))}
+        </div>
+
+        {hasActiveFilters && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClearFilters}
+            className="text-xs text-neutral-400 hover:text-white h-7 px-2 cursor-pointer"
+          >
+            Reset filters
+          </Button>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function JourneysHubPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const navigate = Route.useNavigate();
+  const searchParams = Route.useSearch();
   const { availableLanguages, getLanguageFlag } = useLanguagePair();
 
-  const [searchInput, setSearchInput] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [targetLangFilter, setTargetLangFilter] = useState<string>("all");
-  const [levelFilter, setLevelFilter] = useState<"all" | CEFRLevel>("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [sortBy, setSortBy] = useState<JourneySortBy>("recent");
+  const searchParam = searchParams.search ?? "";
+  const targetLangFilter = searchParams.lang ?? "all";
+  const levelFilter: "all" | CEFRLevel = searchParams.level ?? "all";
+  const statusFilter: StatusFilter = searchParams.status ?? "all";
+  const sortBy: JourneySortBy = searchParams.sort ?? "recent";
+
+  const [searchInput, setSearchInput] = useState(searchParam);
+  const [prevSearchParam, setPrevSearchParam] = useState(searchParam);
   const [journeyToDelete, setJourneyToDelete] =
     useState<JourneyListItem | null>(null);
 
+  if (searchParam !== prevSearchParam) {
+    setPrevSearchParam(searchParam);
+    setSearchInput(searchParam);
+  }
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(searchInput.trim());
+      const normalized = searchInput.trim();
+      if (normalized !== searchParam) {
+        navigate({
+          replace: true,
+          search: (prev) => ({
+            ...prev,
+            search: normalized || undefined,
+          }),
+        });
+      }
     }, 250);
     return () => clearTimeout(timer);
-  }, [searchInput]);
+  }, [searchInput, searchParam, navigate]);
 
   const {
     data: journeys,
@@ -157,7 +425,7 @@ function JourneysHubPage() {
   } = useJourneys({
     cefr_level: levelFilter !== "all" ? levelFilter : undefined,
     is_pinned: statusFilter === "pinned" ? true : undefined,
-    search: debouncedSearch || undefined,
+    search: searchParam || undefined,
     sort_by: sortBy,
     status:
       statusFilter !== "all" && statusFilter !== "pinned"
@@ -197,17 +465,19 @@ function JourneysHubPage() {
   };
 
   const hasActiveFilters =
-    Boolean(debouncedSearch) ||
+    Boolean(searchParam) ||
     targetLangFilter !== "all" ||
     levelFilter !== "all" ||
     statusFilter !== "all";
 
   const clearFilters = () => {
     setSearchInput("");
-    setDebouncedSearch("");
-    setTargetLangFilter("all");
-    setLevelFilter("all");
-    setStatusFilter("all");
+    navigate({
+      replace: true,
+      search: (prev) => ({
+        sort: prev.sort,
+      }),
+    });
   };
 
   const renderJourneysContent = () => {
@@ -369,7 +639,7 @@ function JourneysHubPage() {
                 </div>
               </CardContent>
 
-              <CardFooter className="pt-0">
+              <CardFooter className="border-neutral-800/80 pt-4">
                 <Button
                   type="button"
                   onClick={() => {
@@ -418,138 +688,65 @@ function JourneysHubPage() {
         </section>
 
         {/* Filter & Sort Controls */}
-        <section className="rounded-2xl border border-neutral-800 bg-neutral-900/70 p-4 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Search */}
-            <div className="relative">
-              <Search className="size-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <Input
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder={t("journeys.searchPlaceholder")}
-                aria-label={t("journeys.searchPlaceholder")}
-                className="pl-9 pr-8 bg-neutral-950 border-neutral-800 text-white placeholder:text-neutral-500"
-              />
-              {searchInput && (
-                <button
-                  type="button"
-                  aria-label="Clear search"
-                  onClick={() => setSearchInput("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Target Language */}
-            <Select
-              value={targetLangFilter}
-              onValueChange={(v) => setTargetLangFilter(v ?? "all")}
-            >
-              <SelectTrigger className="bg-neutral-950 border-neutral-800 text-neutral-100">
-                <SelectValue placeholder="All Target Languages" />
-              </SelectTrigger>
-              <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-100">
-                <SelectItem value="all">All Target Languages</SelectItem>
-                {availableLanguages.map((lang) => (
-                  <SelectItem key={lang.code} value={lang.code}>
-                    {getLanguageFlag(lang.code)} {lang.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Status Filter */}
-            <Select
-              value={statusFilter}
-              onValueChange={(v) =>
-                setStatusFilter((v ?? "all") as StatusFilter)
-              }
-            >
-              <SelectTrigger className="bg-neutral-950 border-neutral-800 text-neutral-100">
-                <SelectValue placeholder={t("journeys.allStatuses")} />
-              </SelectTrigger>
-              <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-100">
-                <SelectItem value="all">{t("journeys.allStatuses")}</SelectItem>
-                <SelectItem value="pinned">
-                  {t("journeys.pinnedBadge")}
-                </SelectItem>
-                <SelectItem value="in_progress">
-                  {t("journeys.inProgressBadge")}
-                </SelectItem>
-                <SelectItem value="not_started">
-                  {t("journeys.notStartedBadge")}
-                </SelectItem>
-                <SelectItem value="completed">
-                  {t("journeys.completedBadge")}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Sort By */}
-            <Select
-              value={sortBy}
-              onValueChange={(v) => setSortBy((v ?? "recent") as JourneySortBy)}
-            >
-              <SelectTrigger className="bg-neutral-950 border-neutral-800 text-neutral-100">
-                <SelectValue placeholder={t("journeys.sortRecent")} />
-              </SelectTrigger>
-              <SelectContent className="bg-neutral-900 border-neutral-800 text-neutral-100">
-                <SelectItem value="recent">
-                  {t("journeys.sortRecent")}
-                </SelectItem>
-                <SelectItem value="progress_desc">
-                  {t("journeys.sortProgressHigh")}
-                </SelectItem>
-                <SelectItem value="progress_asc">
-                  {t("journeys.sortProgressLow")}
-                </SelectItem>
-                <SelectItem value="newest">
-                  {t("journeys.sortNewest")}
-                </SelectItem>
-                <SelectItem value="oldest">Oldest First</SelectItem>
-                <SelectItem value="level_asc">CEFR A1 → C2</SelectItem>
-                <SelectItem value="level_desc">CEFR C2 → A1</SelectItem>
-                <SelectItem value="title_asc">
-                  {t("journeys.sortTitle")}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* CEFR Level Quick Pills */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {CEFR_FILTERS.map((lvl) => (
-                <button
-                  key={lvl}
-                  type="button"
-                  onClick={() => setLevelFilter(lvl)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
-                    levelFilter === lvl
-                      ? "bg-sky-500 text-white border-sky-400"
-                      : "bg-neutral-950 text-neutral-300 border-neutral-800 hover:border-neutral-700 hover:text-white"
-                  }`}
-                >
-                  {lvl === "all" ? t("journeys.allLevels") : lvl}
-                </button>
-              ))}
-            </div>
-
-            {hasActiveFilters && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="text-xs text-neutral-400 hover:text-white h-7 px-2 cursor-pointer"
-              >
-                Reset filters
-              </Button>
-            )}
-          </div>
-        </section>
+        <JourneysFilterBar
+          availableLanguages={availableLanguages}
+          getLanguageFlag={getLanguageFlag}
+          hasActiveFilters={hasActiveFilters}
+          levelFilter={levelFilter}
+          onClearFilters={clearFilters}
+          onClearSearch={() => {
+            setSearchInput("");
+            navigate({
+              replace: true,
+              search: (prev) => ({
+                ...prev,
+                search: undefined,
+              }),
+            });
+          }}
+          onLevelChange={(lvl) =>
+            navigate({
+              replace: true,
+              search: (prev) => ({
+                ...prev,
+                level: lvl === "all" ? undefined : lvl,
+              }),
+            })
+          }
+          onSearchChange={setSearchInput}
+          onSortChange={(nextSort) =>
+            navigate({
+              replace: true,
+              search: (prev) => ({
+                ...prev,
+                sort: nextSort === "recent" ? undefined : nextSort,
+              }),
+            })
+          }
+          onStatusChange={(nextStatus) =>
+            navigate({
+              replace: true,
+              search: (prev) => ({
+                ...prev,
+                status: nextStatus === "all" ? undefined : nextStatus,
+              }),
+            })
+          }
+          onTargetLangChange={(nextLang) =>
+            navigate({
+              replace: true,
+              search: (prev) => ({
+                ...prev,
+                lang: nextLang === "all" ? undefined : nextLang,
+              }),
+            })
+          }
+          searchInput={searchInput}
+          sortBy={sortBy}
+          statusFilter={statusFilter}
+          t={t}
+          targetLangFilter={targetLangFilter}
+        />
 
         {renderJourneysContent()}
       </div>

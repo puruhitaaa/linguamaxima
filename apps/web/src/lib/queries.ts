@@ -16,7 +16,9 @@ import type {
   JourneyPromptPreviewPayload,
   JourneySortBy,
   JourneyStatus,
+  PaginatedStoriesResult,
   ProgressSummary,
+  QuestionResult,
   QuizAnswerSubmission,
   QuizSubmissionResult,
   StoryDetail,
@@ -26,11 +28,40 @@ import type {
 } from "../types/api";
 import { api } from "./api";
 
+type StoryCacheEntry =
+  | InfiniteData<PaginatedStoriesResult>
+  | StoryListItem[]
+  | undefined;
+
+interface StoryFilters {
+  category_slug?: string;
+  cefr_level?: string;
+  include_journey_stories?: boolean;
+  is_completed?: boolean;
+  is_favorite?: boolean;
+  limit?: number;
+  origin_language_code?: string;
+  page?: number;
+  search?: string;
+  target_language_code?: string;
+}
+
+interface FlashcardScopeFilters {
+  origin_language_code?: string;
+  target_language_code?: string;
+}
+
 export const queryKeys = {
   categories: ["categories"] as const,
-  dueFlashcards: ["flashcards", "due"] as const,
-  flashcards: (filters?: { search?: string }) =>
-    ["flashcards", filters] as const,
+  dueFlashcards: (filters?: FlashcardScopeFilters) =>
+    ["flashcards", "due", filters] as const,
+  flashcards: (
+    filters?: FlashcardScopeFilters & {
+      search?: string;
+    }
+  ) => ["flashcards", "all", filters] as const,
+  infiniteStories: (filters?: Omit<StoryFilters, "page">) =>
+    ["stories", "infinite", filters] as const,
   journey: (id: number | string) => ["journey", String(id)] as const,
   journeys: (filters?: {
     cefr_level?: string;
@@ -43,19 +74,8 @@ export const queryKeys = {
   }) => ["journeys", filters] as const,
   languagePairs: ["languagePairs"] as const,
   languages: ["languages"] as const,
-  progress: ["progress"] as const,
-  stories: (filters?: {
-    category_slug?: string;
-    cefr_level?: string;
-    include_journey_stories?: boolean;
-    is_completed?: boolean;
-    is_favorite?: boolean;
-    limit?: number;
-    origin_language_code?: string;
-    page?: number;
-    search?: string;
-    target_language_code?: string;
-  }) => ["stories", filters] as const,
+  progress: (filters?: FlashcardScopeFilters) => ["progress", filters] as const,
+  stories: (filters?: StoryFilters) => ["stories", "list", filters] as const,
   story: (id: number | string) => ["story", String(id)] as const,
   word: (id: number | string) => ["word", String(id)] as const,
   wordFilters: (lang?: string) => ["wordFilters", lang ?? "de"] as const,
@@ -69,21 +89,76 @@ export const queryKeys = {
   }) => ["words", filters] as const,
 };
 
-export function useStories(filters?: {
-  category_slug?: string;
-  cefr_level?: string;
-  include_journey_stories?: boolean;
-  is_completed?: boolean;
-  is_favorite?: boolean;
-  limit?: number;
-  origin_language_code?: string;
-  page?: number;
-  search?: string;
-  target_language_code?: string;
-}) {
+function updateStoriesCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  storyId: number,
+  updater: (item: StoryListItem) => StoryListItem
+): [readonly unknown[], StoryCacheEntry][] {
+  const previousStories = queryClient.getQueriesData<
+    InfiniteData<PaginatedStoriesResult> | StoryListItem[]
+  >({
+    queryKey: ["stories"],
+  });
+
+  for (const [key, data] of previousStories) {
+    if (Array.isArray(data)) {
+      queryClient.setQueryData<StoryListItem[]>(
+        key,
+        data.map((item) => (item.id === storyId ? updater(item) : item))
+      );
+    } else if (data && typeof data === "object" && "pages" in data) {
+      queryClient.setQueryData<InfiniteData<PaginatedStoriesResult>>(key, {
+        ...data,
+        pages: data.pages.map((page) => ({
+          ...page,
+          items: page.items.map((item) =>
+            item.id === storyId ? updater(item) : item
+          ),
+        })),
+      });
+    }
+  }
+
+  return previousStories;
+}
+
+function updateProgressCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  updater: (summary: ProgressSummary) => ProgressSummary
+): [readonly unknown[], ProgressSummary | undefined][] {
+  const previousProgress = queryClient.getQueriesData<ProgressSummary>({
+    queryKey: ["progress"],
+  });
+  for (const [key, data] of previousProgress) {
+    if (data) {
+      queryClient.setQueryData<ProgressSummary>(key, updater(data));
+    }
+  }
+  return previousProgress;
+}
+
+export function useStories(filters?: StoryFilters) {
   return useQuery({
     queryFn: () => api.getStories(filters),
     queryKey: queryKeys.stories(filters),
+  });
+}
+
+export function useInfiniteStories(filters?: Omit<StoryFilters, "page">) {
+  const limit = filters?.limit ?? 12;
+  return useInfiniteQuery({
+    getNextPageParam: (lastPage: PaginatedStoriesResult) => {
+      const loaded = lastPage.page * lastPage.limit;
+      return loaded < lastPage.total ? lastPage.page + 1 : undefined;
+    },
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      api.getStoriesPaginated({
+        ...filters,
+        limit,
+        page: pageParam,
+      }),
+    queryKey: queryKeys.infiniteStories(filters),
   });
 }
 
@@ -129,21 +204,23 @@ export function useCategories() {
   });
 }
 
-export function useProgress() {
+export function useProgress(filters?: FlashcardScopeFilters) {
   return useQuery({
-    queryFn: () => api.getProgress(),
-    queryKey: queryKeys.progress,
+    queryFn: () => api.getProgress(filters),
+    queryKey: queryKeys.progress(filters),
   });
 }
 
-export function useDueFlashcards() {
+export function useDueFlashcards(filters?: FlashcardScopeFilters) {
   return useQuery({
-    queryFn: () => api.getDueFlashcards(),
-    queryKey: queryKeys.dueFlashcards,
+    queryFn: () => api.getDueFlashcards(filters),
+    queryKey: queryKeys.dueFlashcards(filters),
   });
 }
 
-export function useAllFlashcards(filters?: { search?: string }) {
+export function useAllFlashcards(
+  filters?: FlashcardScopeFilters & { search?: string }
+) {
   return useQuery({
     queryFn: () => api.getAllFlashcards(filters),
     queryKey: queryKeys.flashcards(filters),
@@ -157,7 +234,7 @@ export function useToggleFavorite() {
     Error,
     number,
     {
-      previousStories?: [readonly unknown[], StoryListItem[] | undefined][];
+      previousStories?: [readonly unknown[], StoryCacheEntry][];
       previousStory?: StoryDetail;
       storyId?: number;
     }
@@ -181,25 +258,17 @@ export function useToggleFavorite() {
       await queryClient.cancelQueries({ queryKey: ["stories"] });
       await queryClient.cancelQueries({ queryKey: queryKeys.story(storyId) });
 
-      const previousStories = queryClient.getQueriesData<StoryListItem[]>({
-        queryKey: ["stories"],
-      });
+      const previousStories = updateStoriesCaches(
+        queryClient,
+        storyId,
+        (item) => ({
+          ...item,
+          is_favorite: !item.is_favorite,
+        })
+      );
       const previousStory = queryClient.getQueryData<StoryDetail>(
         queryKeys.story(storyId)
       );
-
-      for (const [key, data] of previousStories) {
-        if (data) {
-          queryClient.setQueryData<StoryListItem[]>(
-            key,
-            data.map((item) =>
-              item.id === storyId
-                ? { ...item, is_favorite: !item.is_favorite }
-                : item
-            )
-          );
-        }
-      }
 
       if (previousStory) {
         queryClient.setQueryData<StoryDetail>(queryKeys.story(storyId), {
@@ -213,12 +282,76 @@ export function useToggleFavorite() {
     onSettled: (_, __, storyId) => {
       queryClient.invalidateQueries({ queryKey: ["stories"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.story(storyId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.progress });
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
     },
     onSuccess: (data) => {
       toast.success(
         data.is_favorite ? "Added to favorites!" : "Removed from favorites"
       );
+    },
+  });
+}
+
+export function useMarkStoryCompleted(storyId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.markStoryCompleted(storyId),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.story(storyId) });
+      await queryClient.cancelQueries({ queryKey: ["stories"] });
+      await queryClient.cancelQueries({ queryKey: ["progress"] });
+
+      const previousStory = queryClient.getQueryData<StoryDetail>(
+        queryKeys.story(storyId)
+      );
+      if (previousStory) {
+        queryClient.setQueryData<StoryDetail>(queryKeys.story(storyId), {
+          ...previousStory,
+          is_completed: true,
+        });
+      }
+
+      const previousStories = updateStoriesCaches(
+        queryClient,
+        storyId,
+        (item) => ({
+          ...item,
+          is_completed: true,
+        })
+      );
+      const previousProgress =
+        previousStory && !previousStory.is_completed
+          ? updateProgressCaches(queryClient, (summary) => ({
+              ...summary,
+              total_stories_read: summary.total_stories_read + 1,
+            }))
+          : undefined;
+
+      return { previousProgress, previousStories, previousStory };
+    },
+    onError: (error: Error, _vars, context) => {
+      if (context?.previousStory !== undefined) {
+        queryClient.setQueryData(
+          queryKeys.story(storyId),
+          context.previousStory
+        );
+      }
+      if (context?.previousStories) {
+        for (const [key, data] of context.previousStories) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      if (context?.previousProgress) {
+        for (const [key, data] of context.previousProgress) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      toast.error(error.message || "Failed to mark story as completed");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.story(storyId) });
+      queryClient.invalidateQueries({ queryKey: ["stories"] });
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
     },
   });
 }
@@ -230,7 +363,7 @@ export function useSaveFlashcard() {
     Error,
     number,
     {
-      previousProgress?: ProgressSummary;
+      previousProgress?: [readonly unknown[], ProgressSummary | undefined][];
       previousStories?: [readonly unknown[], StoryDetail | undefined][];
     }
   >({
@@ -242,20 +375,19 @@ export function useSaveFlashcard() {
         }
       }
       if (context?.previousProgress) {
-        queryClient.setQueryData(queryKeys.progress, context.previousProgress);
+        for (const [key, data] of context.previousProgress) {
+          queryClient.setQueryData(key, data);
+        }
       }
       toast.error(error.message || "Failed to save flashcard");
     },
     onMutate: async (vocabularyId: number) => {
       await queryClient.cancelQueries({ queryKey: ["story"] });
-      await queryClient.cancelQueries({ queryKey: queryKeys.progress });
+      await queryClient.cancelQueries({ queryKey: ["progress"] });
 
       const previousStories = queryClient.getQueriesData<StoryDetail>({
         queryKey: ["story"],
       });
-      const previousProgress = queryClient.getQueryData<ProgressSummary>(
-        queryKeys.progress
-      );
 
       for (const [key, story] of previousStories) {
         if (story?.vocabulary) {
@@ -268,19 +400,17 @@ export function useSaveFlashcard() {
         }
       }
 
-      if (previousProgress) {
-        queryClient.setQueryData<ProgressSummary>(queryKeys.progress, {
-          ...previousProgress,
-          total_words_learned: previousProgress.total_words_learned + 1,
-        });
-      }
+      const previousProgress = updateProgressCaches(queryClient, (summary) => ({
+        ...summary,
+        total_words_learned: summary.total_words_learned + 1,
+      }));
 
       return { previousProgress, previousStories };
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["flashcards"] });
       queryClient.invalidateQueries({ queryKey: ["story"] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.progress });
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
     },
     onSuccess: () => {
       toast.success("Saved to flashcards!");
@@ -295,9 +425,9 @@ export function useReviewFlashcard() {
     Error,
     { flashcardId: number; quality: number },
     {
-      previousAll?: Flashcard[];
-      previousDue?: Flashcard[];
-      previousProgress?: ProgressSummary;
+      previousAllQueries?: [readonly unknown[], Flashcard[] | undefined][];
+      previousDueQueries?: [readonly unknown[], Flashcard[] | undefined][];
+      previousProgress?: [readonly unknown[], ProgressSummary | undefined][];
     }
   >({
     mutationFn: ({
@@ -308,8 +438,10 @@ export function useReviewFlashcard() {
       quality: number;
     }) => api.reviewFlashcard(flashcardId, quality),
     onError: (error: Error, _, context) => {
-      if (context?.previousDue) {
-        queryClient.setQueryData(queryKeys.dueFlashcards, context.previousDue);
+      if (context?.previousDueQueries) {
+        for (const [key, data] of context.previousDueQueries) {
+          queryClient.setQueryData(key, data);
+        }
       }
       if (context?.previousAllQueries) {
         for (const [key, data] of context.previousAllQueries) {
@@ -317,29 +449,30 @@ export function useReviewFlashcard() {
         }
       }
       if (context?.previousProgress) {
-        queryClient.setQueryData(queryKeys.progress, context.previousProgress);
+        for (const [key, data] of context.previousProgress) {
+          queryClient.setQueryData(key, data);
+        }
       }
       toast.error(error.message || "Failed to submit review");
     },
     onMutate: async ({ flashcardId, quality }) => {
       await queryClient.cancelQueries({ queryKey: ["flashcards"] });
-      await queryClient.cancelQueries({ queryKey: queryKeys.progress });
+      await queryClient.cancelQueries({ queryKey: ["progress"] });
 
-      const previousDue = queryClient.getQueryData<Flashcard[]>(
-        queryKeys.dueFlashcards
-      );
-      const previousAllQueries = queryClient.getQueriesData<Flashcard[]>({
-        queryKey: ["flashcards"],
+      const previousDueQueries = queryClient.getQueriesData<Flashcard[]>({
+        queryKey: ["flashcards", "due"],
       });
-      const previousProgress = queryClient.getQueryData<ProgressSummary>(
-        queryKeys.progress
-      );
+      const previousAllQueries = queryClient.getQueriesData<Flashcard[]>({
+        queryKey: ["flashcards", "all"],
+      });
 
-      if (previousDue) {
-        queryClient.setQueryData<Flashcard[]>(
-          queryKeys.dueFlashcards,
-          previousDue.filter((fc) => fc.id !== flashcardId)
-        );
+      for (const [key, list] of previousDueQueries) {
+        if (list && Array.isArray(list)) {
+          queryClient.setQueryData<Flashcard[]>(
+            key,
+            list.filter((fc) => fc.id !== flashcardId)
+          );
+        }
       }
 
       for (const [key, list] of previousAllQueries) {
@@ -362,24 +495,65 @@ export function useReviewFlashcard() {
         }
       }
 
-      if (previousProgress) {
-        queryClient.setQueryData<ProgressSummary>(queryKeys.progress, {
-          ...previousProgress,
-          flashcards_due_today: Math.max(
-            0,
-            previousProgress.flashcards_due_today - 1
-          ),
-        });
-      }
+      const previousProgress = updateProgressCaches(queryClient, (summary) => ({
+        ...summary,
+        flashcards_due_today: Math.max(0, summary.flashcards_due_today - 1),
+      }));
 
-      return { previousAllQueries, previousDue, previousProgress };
+      return { previousAllQueries, previousDueQueries, previousProgress };
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["flashcards"] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.progress });
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
     },
     onSuccess: (data) => {
       toast.success(data.message || "Review recorded!");
+    },
+  });
+}
+
+export function useDeleteFlashcard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (flashcardId: number) => api.deleteFlashcard(flashcardId),
+    onMutate: async (flashcardId: number) => {
+      await queryClient.cancelQueries({ queryKey: ["flashcards"] });
+      const previousFlashcardQueries = queryClient.getQueriesData<Flashcard[]>({
+        queryKey: ["flashcards"],
+      });
+      for (const [key, list] of previousFlashcardQueries) {
+        if (list && Array.isArray(list)) {
+          queryClient.setQueryData<Flashcard[]>(
+            key,
+            list.filter((fc) => fc.id !== flashcardId)
+          );
+        }
+      }
+      return { previousFlashcardQueries };
+    },
+    onError: (error: Error, _vars, context) => {
+      if (context?.previousFlashcardQueries) {
+        for (const [key, data] of context.previousFlashcardQueries) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      toast.error(error.message || "Failed to delete flashcard");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["flashcards"] });
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
+      queryClient.invalidateQueries({ queryKey: ["story"] });
+      queryClient.invalidateQueries({ queryKey: ["words"] });
+    },
+  });
+}
+
+export function useCheckQuizAnswer(storyId: number) {
+  return useMutation<QuestionResult, Error, QuizAnswerSubmission>({
+    mutationFn: (submission: QuizAnswerSubmission) =>
+      api.checkQuizAnswer(storyId, submission),
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to check answer");
     },
   });
 }
@@ -391,8 +565,8 @@ export function useSubmitQuiz(storyId: number) {
     Error,
     QuizAnswerSubmission[],
     {
-      previousProgress?: ProgressSummary;
-      previousStories?: [readonly unknown[], StoryListItem[] | undefined][];
+      previousProgress?: [readonly unknown[], ProgressSummary | undefined][];
+      previousStories?: [readonly unknown[], StoryCacheEntry][];
       previousStory?: StoryDetail;
     }
   >({
@@ -411,23 +585,19 @@ export function useSubmitQuiz(storyId: number) {
         }
       }
       if (context?.previousProgress) {
-        queryClient.setQueryData(queryKeys.progress, context.previousProgress);
+        for (const [key, data] of context.previousProgress) {
+          queryClient.setQueryData(key, data);
+        }
       }
       toast.error(error.message || "Failed to submit quiz");
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.story(storyId) });
       await queryClient.cancelQueries({ queryKey: ["stories"] });
-      await queryClient.cancelQueries({ queryKey: queryKeys.progress });
+      await queryClient.cancelQueries({ queryKey: ["progress"] });
 
       const previousStory = queryClient.getQueryData<StoryDetail>(
         queryKeys.story(storyId)
-      );
-      const previousStories = queryClient.getQueriesData<StoryListItem[]>({
-        queryKey: ["stories"],
-      });
-      const previousProgress = queryClient.getQueryData<ProgressSummary>(
-        queryKeys.progress
       );
 
       if (previousStory) {
@@ -437,30 +607,29 @@ export function useSubmitQuiz(storyId: number) {
         });
       }
 
-      for (const [key, data] of previousStories) {
-        if (data) {
-          queryClient.setQueryData<StoryListItem[]>(
-            key,
-            data.map((item) =>
-              item.id === storyId ? { ...item, is_completed: true } : item
-            )
-          );
-        }
-      }
+      const previousStories = updateStoriesCaches(
+        queryClient,
+        storyId,
+        (item) => ({
+          ...item,
+          is_completed: true,
+        })
+      );
 
-      if (previousProgress && previousStory && !previousStory.is_completed) {
-        queryClient.setQueryData<ProgressSummary>(queryKeys.progress, {
-          ...previousProgress,
-          total_stories_read: previousProgress.total_stories_read + 1,
-        });
-      }
+      const previousProgress =
+        previousStory && !previousStory.is_completed
+          ? updateProgressCaches(queryClient, (summary) => ({
+              ...summary,
+              total_stories_read: summary.total_stories_read + 1,
+            }))
+          : undefined;
 
       return { previousProgress, previousStories, previousStory };
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.story(storyId) });
       queryClient.invalidateQueries({ queryKey: ["stories"] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.progress });
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
     },
     onSuccess: (data) => {
       if (data.passed) {
@@ -478,60 +647,14 @@ export function useSubmitQuiz(storyId: number) {
 
 export function useGenerateStory() {
   const queryClient = useQueryClient();
-  return useMutation<
-    StoryDetail,
-    Error,
-    StoryGeneratePayload,
-    {
-      previousStories?: [readonly unknown[], StoryListItem[] | undefined][];
-    }
-  >({
+  return useMutation<StoryDetail, Error, StoryGeneratePayload>({
     mutationFn: (payload: StoryGeneratePayload) => api.generateStory(payload),
-    onError: (error: Error, _, context) => {
-      if (context?.previousStories) {
-        for (const [key, data] of context.previousStories) {
-          queryClient.setQueryData(key, data);
-        }
-      }
+    onError: (error: Error) => {
       toast.error(error.message || "Failed to generate story");
-    },
-    onMutate: async (payload) => {
-      await queryClient.cancelQueries({ queryKey: ["stories"] });
-
-      const previousStories = queryClient.getQueriesData<StoryListItem[]>({
-        queryKey: ["stories"],
-      });
-
-      const optimisticStory: StoryListItem = {
-        cefr_level: payload.cefr_level,
-        created_at: new Date().toISOString(),
-        estimated_reading_minutes: 2,
-        id: -Date.now(),
-        is_completed: false,
-        is_favorite: false,
-        summary:
-          "AI is generating an interactive graded story with vocabulary and quiz...",
-        title:
-          payload.topic_hint ||
-          `Generating Level ${payload.cefr_level} Story...`,
-        title_translated: "Creating new story with AI...",
-        word_count: 120,
-      };
-
-      for (const [key, data] of previousStories) {
-        if (data) {
-          queryClient.setQueryData<StoryListItem[]>(key, [
-            optimisticStory,
-            ...data,
-          ]);
-        }
-      }
-
-      return { previousStories };
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["stories"] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.progress });
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
     },
     onSuccess: () => {
       toast.success("Story successfully generated by AI!");
@@ -562,14 +685,14 @@ export function useInfiniteWords(filters?: {
 }) {
   const pageSize = filters?.page_size ?? 24;
   return useInfiniteQuery({
-    getNextPageParam: (lastPage) =>
+    getNextPageParam: (lastPage: WordListResponse) =>
       lastPage.has_next || lastPage.page < lastPage.total_pages
         ? lastPage.page + 1
         : undefined,
-    getPreviousPageParam: (firstPage) =>
+    getPreviousPageParam: (firstPage: WordListResponse) =>
       firstPage.has_prev || firstPage.page > 1 ? firstPage.page - 1 : undefined,
     initialPageParam: 1,
-    queryFn: ({ pageParam = 1 }) =>
+    queryFn: ({ pageParam }) =>
       api.getWords({
         ...filters,
         page: pageParam,
@@ -605,14 +728,16 @@ export function useSaveWordFlashcard() {
         readonly unknown[],
         InfiniteData<WordListResponse> | undefined,
       ][];
-      previousProgress?: ProgressSummary;
+      previousProgress?: [readonly unknown[], ProgressSummary | undefined][];
       previousWords?: [readonly unknown[], WordListResponse | undefined][];
     }
   >({
     mutationFn: (wordId: number) => api.saveWordFlashcard(wordId),
     onError: (error: Error, _, context) => {
       if (context?.previousProgress) {
-        queryClient.setQueryData(queryKeys.progress, context.previousProgress);
+        for (const [key, data] of context.previousProgress) {
+          queryClient.setQueryData(key, data);
+        }
       }
       if (context?.previousInfiniteWords) {
         for (const [key, data] of context.previousInfiniteWords) {
@@ -628,11 +753,8 @@ export function useSaveWordFlashcard() {
     },
     onMutate: async (wordId: number) => {
       await queryClient.cancelQueries({ queryKey: ["words"] });
-      await queryClient.cancelQueries({ queryKey: queryKeys.progress });
+      await queryClient.cancelQueries({ queryKey: ["progress"] });
 
-      const previousProgress = queryClient.getQueryData<ProgressSummary>(
-        queryKeys.progress
-      );
       const previousInfiniteWords = queryClient.getQueriesData<
         InfiniteData<WordListResponse>
       >({
@@ -667,19 +789,17 @@ export function useSaveWordFlashcard() {
         }
       }
 
-      if (previousProgress) {
-        queryClient.setQueryData<ProgressSummary>(queryKeys.progress, {
-          ...previousProgress,
-          total_words_learned: previousProgress.total_words_learned + 1,
-        });
-      }
+      const previousProgress = updateProgressCaches(queryClient, (summary) => ({
+        ...summary,
+        total_words_learned: summary.total_words_learned + 1,
+      }));
 
       return { previousInfiniteWords, previousProgress, previousWords };
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["words"] });
       queryClient.invalidateQueries({ queryKey: ["flashcards"] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.progress });
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
     },
     onSuccess: () => {
       toast.success("Word saved to flashcards!");
@@ -856,7 +976,7 @@ export function useSaveJourneyVocabFlashcard() {
         queryKey: queryKeys.journey(variables.journeyId),
       });
       queryClient.invalidateQueries({ queryKey: ["flashcards"] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.progress });
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
       toast.success("Saved to your SM-2 Flashcards!");
     },
   });
@@ -880,7 +1000,7 @@ export function useSaveStepVocabsBulk() {
         queryKey: queryKeys.journey(variables.journeyId),
       });
       queryClient.invalidateQueries({ queryKey: ["flashcards"] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.progress });
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
       if (data.saved_count > 0) {
         toast.success(`Saved ${data.saved_count} word(s) to Flashcards!`);
       } else {

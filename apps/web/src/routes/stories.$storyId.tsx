@@ -11,11 +11,13 @@ import {
   BookOpen,
   Bookmark,
   Check,
+  CheckCircle2,
   GraduationCap,
   Heart,
   HelpCircle,
   Layers,
   Sparkles,
+  Type,
   Volume2,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -33,6 +35,7 @@ import { playPronunciationAudio } from "../lib/audio";
 import { useTranslation } from "../lib/i18n";
 import {
   useCompleteJourneyStep,
+  useMarkStoryCompleted,
   useSaveFlashcard,
   useStory,
   useToggleFavorite,
@@ -44,19 +47,26 @@ import type {
   VocabularyItem,
 } from "../types/api";
 
+const STORY_TABS = ["story", "vocabulary", "grammar", "quiz"] as const;
+
 const storyDetailSearchSchema = z.object({
   journeyId: z.coerce.number().int().positive().optional(),
   stepId: z.coerce.number().int().positive().optional(),
-  tab: z
-    .enum(["story", "vocabulary", "grammar", "quiz"])
-    .optional()
-    .default("story"),
+  tab: z.preprocess(
+    (v) =>
+      typeof v === "string" && (STORY_TABS as readonly string[]).includes(v)
+        ? v
+        : undefined,
+    z.enum(STORY_TABS).optional()
+  ),
 });
 
 export const Route = createFileRoute("/stories/$storyId")({
   component: StoryReadingComponent,
-  validateSearch: (search: Record<string, unknown>) =>
-    storyDetailSearchSchema.parse(search),
+  validateSearch: (search: Record<string, unknown>) => {
+    const parsed = storyDetailSearchSchema.safeParse(search);
+    return parsed.success ? parsed.data : {};
+  },
 });
 
 const LEVEL_COLORS: Record<CEFRLevel, string> = {
@@ -69,39 +79,52 @@ const LEVEL_COLORS: Record<CEFRLevel, string> = {
 };
 
 function StoryNotFound({ onBackText }: { onBackText: string }) {
+  const { t } = useTranslation();
+
   return (
-    <div className="container mx-auto max-w-lg px-4 py-16 text-center space-y-4">
-      <h2 className="text-xl font-bold text-white">Story Not Found</h2>
-      <p className="text-sm text-neutral-400">
-        The requested story could not be loaded.
-      </p>
-      <Link
-        to="/"
-        search={{
-          category: "all",
-          language_scope: "pair",
-          level: "all",
-          search: "",
-        }}
-      >
-        <Button variant="outline" className="gap-2 rounded-xl">
-          <ArrowLeft className="size-4" />
-          <span>{onBackText}</span>
-        </Button>
-      </Link>
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center p-6">
+      <div className="rounded-3xl border border-neutral-800 bg-neutral-900 p-8 text-center space-y-4 max-w-md">
+        <h2 className="text-xl font-bold text-white">
+          {t("story.notFoundTitle")}
+        </h2>
+        <p className="text-sm text-neutral-400">{t("story.notFoundDesc")}</p>
+        <Link
+          to="/"
+          search={{
+            category: "all",
+            language_scope: "pair",
+            level: "all",
+            search: "",
+          }}
+        >
+          <Button
+            variant="outline"
+            className="gap-2 rounded-xl border-neutral-700 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
+          >
+            <ArrowLeft className="size-4" />
+            <span>{onBackText}</span>
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }
 
 function StoryTopBar({
   storyId,
+  isCompleted,
   isFavorite,
-  isPending,
+  isFavoritePending,
+  isCompletePending,
+  onMarkCompleted,
   onToggleFavorite,
 }: {
   storyId: number;
+  isCompleted: boolean;
   isFavorite: boolean;
-  isPending: boolean;
+  isFavoritePending: boolean;
+  isCompletePending: boolean;
+  onMarkCompleted: () => void;
   onToggleFavorite: (id: number) => void;
 }) {
   const { t } = useTranslation();
@@ -127,13 +150,31 @@ function StoryTopBar({
           type="button"
           variant="outline"
           size="sm"
+          onClick={onMarkCompleted}
+          disabled={isCompleted || isCompletePending}
+          className={`gap-1.5 border-neutral-800 text-xs font-semibold rounded-xl h-9 px-3 transition-colors ${
+            isCompleted
+              ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/30 cursor-default"
+              : "text-neutral-300 hover:text-white cursor-pointer"
+          }`}
+        >
+          <CheckCircle2 className="size-3.5" />
+          <span>
+            {isCompleted ? t("story.markedCompleted") : t("story.markAsRead")}
+          </span>
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
           onClick={() => onToggleFavorite(storyId)}
-          disabled={isPending}
+          disabled={isFavoritePending}
           className={`gap-1.5 border-neutral-800 text-xs font-semibold rounded-xl h-9 px-3 transition-colors ${
             isFavorite
               ? "text-rose-400 bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20 hover:text-rose-300"
               : "text-neutral-300 hover:text-white"
-          } ${isPending ? "opacity-70" : ""}`}
+          } ${isFavoritePending ? "opacity-70" : ""}`}
         >
           <Heart
             className={`size-3.5 transition-transform active:scale-125 ${
@@ -143,6 +184,100 @@ function StoryTopBar({
           <span>{isFavorite ? t("story.favorited") : t("story.favorite")}</span>
         </Button>
       </div>
+    </div>
+  );
+}
+
+function StoryReadingToolbar({
+  fontSize,
+  onToggleFontSize,
+  onToggleParallel,
+  showParallelTranslation,
+}: {
+  fontSize: "normal" | "large";
+  onToggleFontSize: () => void;
+  onToggleParallel: () => void;
+  showParallelTranslation: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center gap-2 w-full sm:w-auto">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onToggleFontSize}
+        aria-pressed={fontSize === "large"}
+        aria-label="Toggle reading font size"
+        className={`gap-1.5 text-xs font-semibold rounded-xl h-9 px-3 border-neutral-700 transition-colors cursor-pointer shrink-0 ${
+          fontSize === "large"
+            ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
+            : "bg-neutral-900 text-neutral-300 hover:text-white"
+        }`}
+      >
+        <Type className="size-3.5" />
+        <span>{fontSize === "large" ? "A+" : "A"}</span>
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onToggleParallel}
+        className={`text-xs font-semibold rounded-xl h-9 px-3.5 border-neutral-700 transition-colors flex-1 sm:flex-initial justify-center cursor-pointer shrink-0 ${
+          showParallelTranslation
+            ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
+            : "bg-neutral-900 text-neutral-300 hover:text-white"
+        }`}
+      >
+        {showParallelTranslation
+          ? t("story.hideParallelTranslation")
+          : t("story.showParallelTranslation")}
+      </Button>
+    </div>
+  );
+}
+
+interface StoryJourneyBannerProps {
+  backLabel: string;
+  completeLabel: string;
+  isPending: boolean;
+  journeyId: number;
+  onComplete: () => void;
+  stepId?: number;
+}
+
+function StoryJourneyBanner({
+  backLabel,
+  completeLabel,
+  isPending,
+  journeyId,
+  onComplete,
+  stepId,
+}: StoryJourneyBannerProps) {
+  return (
+    <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <Link
+        to="/journeys/$journeyId"
+        params={{ journeyId: String(journeyId) }}
+        search={stepId ? { stepId } : {}}
+        className="inline-flex items-center gap-2 text-xs font-semibold text-sky-300 hover:text-white transition-colors"
+      >
+        <ArrowLeft className="size-4" />
+        <span>{backLabel}</span>
+      </Link>
+
+      {stepId && (
+        <Button
+          type="button"
+          size="sm"
+          onClick={onComplete}
+          disabled={isPending}
+          className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold gap-1.5 cursor-pointer"
+        >
+          <Check className="size-3.5" />
+          <span>{isPending ? "Saving..." : completeLabel}</span>
+        </Button>
+      )}
     </div>
   );
 }
@@ -157,10 +292,12 @@ function StoryReadingComponent() {
 
   const { data: story, isLoading, error } = useStory(storyId);
   const toggleFavorite = useToggleFavorite();
+  const markCompleted = useMarkStoryCompleted(Number(storyId));
   const saveFlashcard = useSaveFlashcard();
   const completeJourneyStep = useCompleteJourneyStep();
 
   const [showParallelTranslation, setShowParallelTranslation] = useState(false);
+  const [fontSize, setFontSize] = useState<"normal" | "large">("normal");
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -225,10 +362,12 @@ function StoryReadingComponent() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto max-w-4xl px-4 py-12 space-y-6">
-        <div className="h-6 w-32 bg-neutral-800 rounded animate-pulse" />
-        <div className="h-48 bg-neutral-900 rounded-3xl animate-pulse" />
-        <div className="h-96 bg-neutral-900 rounded-3xl animate-pulse" />
+      <div className="min-h-screen bg-neutral-950 text-neutral-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+          <div className="h-6 w-32 bg-neutral-800 rounded animate-pulse" />
+          <div className="h-48 bg-neutral-900 rounded-3xl animate-pulse" />
+          <div className="h-96 bg-neutral-900 rounded-3xl animate-pulse" />
+        </div>
       </div>
     );
   }
@@ -242,175 +381,185 @@ function StoryReadingComponent() {
   };
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-6 sm:py-8 space-y-6">
-      {journeyId && (
-        <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-          <Link
-            to="/journeys/$journeyId"
-            params={{ journeyId: String(journeyId) }}
-            search={stepId ? { stepId } : {}}
-            className="inline-flex items-center gap-2 text-xs font-semibold text-sky-300 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="size-4" />
-            <span>{t("journeys.backToTree")}</span>
-          </Link>
+    <div className="min-h-screen bg-neutral-950 text-neutral-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+        {journeyId && (
+          <StoryJourneyBanner
+            journeyId={journeyId}
+            stepId={stepId}
+            backLabel={t("journeys.backToTree")}
+            completeLabel={t("journeys.completeStepBtn")}
+            isPending={completeJourneyStep.isPending}
+            onComplete={handleCompleteJourneyLesson}
+          />
+        )}
 
-          {stepId && (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                handleCompleteJourneyLesson();
-              }}
-              disabled={completeJourneyStep.isPending}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold gap-1.5 cursor-pointer"
-            >
-              <Check className="size-3.5" />
-              <span>
-                {completeJourneyStep.isPending
-                  ? "Saving..."
-                  : t("journeys.completeStepBtn")}
-              </span>
-            </Button>
-          )}
-        </div>
-      )}
+        {/* Top Bar with Back Link and Actions */}
+        <StoryTopBar
+          storyId={story.id}
+          isCompleted={story.is_completed}
+          isFavorite={story.is_favorite}
+          isFavoritePending={
+            toggleFavorite.isPending && toggleFavorite.variables === story.id
+          }
+          isCompletePending={markCompleted.isPending}
+          onMarkCompleted={() => markCompleted.mutate()}
+          onToggleFavorite={(id) => toggleFavorite.mutate(id)}
+        />
 
-      {/* Top Bar with Back Link and Actions */}
-      <StoryTopBar
-        storyId={story.id}
-        isFavorite={story.is_favorite}
-        isPending={
-          toggleFavorite.isPending && toggleFavorite.variables === story.id
-        }
-        onToggleFavorite={(id) => toggleFavorite.mutate(id)}
-      />
+        {/* Story Header Banner with Integrated Audio Player */}
+        <StoryHeaderBanner
+          story={story}
+          audioPlayerRef={audioPlayerRef}
+          onTimeUpdate={setCurrentTime}
+          onDurationChange={setDuration}
+          onPlayStateChange={setIsPlaying}
+          highlightWords={highlightWords}
+          onToggleHighlightWords={() => setHighlightWords(!highlightWords)}
+          highlightStoryItem={highlightStoryItem}
+          onToggleHighlightStoryItem={() =>
+            setHighlightStoryItem(!highlightStoryItem)
+          }
+        />
 
-      {/* Story Header Banner with Integrated Audio Player */}
-      <StoryHeaderBanner
-        story={story}
-        audioPlayerRef={audioPlayerRef}
-        onTimeUpdate={setCurrentTime}
-        onDurationChange={setDuration}
-        onPlayStateChange={setIsPlaying}
-        highlightWords={highlightWords}
-        onToggleHighlightWords={() => setHighlightWords(!highlightWords)}
-        highlightStoryItem={highlightStoryItem}
-        onToggleHighlightStoryItem={() =>
-          setHighlightStoryItem(!highlightStoryItem)
-        }
-      />
+        {/* Main Content Tabs */}
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className="space-y-6"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-neutral-800 pb-3">
+            <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0">
+              <TabsList className="bg-neutral-900 border border-neutral-800 p-1 rounded-2xl h-auto min-h-10 w-max sm:w-auto flex-nowrap shrink-0">
+                <TabsTrigger
+                  value="story"
+                  className="gap-2 text-xs font-semibold px-3.5 sm:px-4 py-2 rounded-xl shrink-0 whitespace-nowrap cursor-pointer"
+                >
+                  <BookOpen className="size-4 shrink-0" />
+                  <span>{t("story.tabStory")}</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="vocabulary"
+                  className="gap-2 text-xs font-semibold px-3.5 sm:px-4 py-2 rounded-xl shrink-0 whitespace-nowrap cursor-pointer"
+                >
+                  <Layers className="size-4 shrink-0" />
+                  <span>
+                    {t("story.tabVocabulary", {
+                      count: story.vocabulary.length,
+                    })}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="grammar"
+                  className="gap-2 text-xs font-semibold px-3.5 sm:px-4 py-2 rounded-xl shrink-0 whitespace-nowrap cursor-pointer"
+                >
+                  <GraduationCap className="size-4 shrink-0" />
+                  <span>
+                    {t("story.tabGrammar", {
+                      count: story.grammar_tips.length,
+                    })}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="quiz"
+                  className="gap-2 text-xs font-semibold px-3.5 sm:px-4 py-2 rounded-xl shrink-0 whitespace-nowrap cursor-pointer"
+                >
+                  <HelpCircle className="size-4 shrink-0" />
+                  <span>
+                    {t("story.tabQuiz", { count: story.quizzes.length })}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-      {/* Main Content Tabs */}
-      <Tabs
-        value={activeTab}
-        onValueChange={handleTabChange}
-        className="space-y-6"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-neutral-800 pb-3">
-          <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0">
-            <TabsList className="bg-neutral-900 border border-neutral-800 p-1 rounded-2xl h-auto min-h-10 w-max sm:w-auto flex-nowrap shrink-0">
-              <TabsTrigger
-                value="story"
-                className="gap-2 text-xs font-semibold px-3.5 sm:px-4 py-2 rounded-xl shrink-0 whitespace-nowrap cursor-pointer"
-              >
-                <BookOpen className="size-4 shrink-0" />
-                <span>{t("story.tabStory")}</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="vocabulary"
-                className="gap-2 text-xs font-semibold px-3.5 sm:px-4 py-2 rounded-xl shrink-0 whitespace-nowrap cursor-pointer"
-              >
-                <Layers className="size-4 shrink-0" />
-                <span>
-                  {t("story.tabVocabulary", { count: story.vocabulary.length })}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="grammar"
-                className="gap-2 text-xs font-semibold px-3.5 sm:px-4 py-2 rounded-xl shrink-0 whitespace-nowrap cursor-pointer"
-              >
-                <GraduationCap className="size-4 shrink-0" />
-                <span>
-                  {t("story.tabGrammar", { count: story.grammar_tips.length })}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="quiz"
-                className="gap-2 text-xs font-semibold px-3.5 sm:px-4 py-2 rounded-xl shrink-0 whitespace-nowrap cursor-pointer"
-              >
-                <HelpCircle className="size-4 shrink-0" />
-                <span>
-                  {t("story.tabQuiz", { count: story.quizzes.length })}
-                </span>
-              </TabsTrigger>
-            </TabsList>
+            {activeTab === "story" && (
+              <StoryReadingToolbar
+                fontSize={fontSize}
+                onToggleFontSize={() =>
+                  setFontSize((prev) =>
+                    prev === "normal" ? "large" : "normal"
+                  )
+                }
+                onToggleParallel={() =>
+                  setShowParallelTranslation(!showParallelTranslation)
+                }
+                showParallelTranslation={showParallelTranslation}
+              />
+            )}
           </div>
 
-          {activeTab === "story" && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                setShowParallelTranslation(!showParallelTranslation)
+          {/* TAB 1: STORY READING */}
+          <TabsContent value="story" className="space-y-6 outline-none">
+            {/* Resolved gray-on-color contrast banner */}
+            <div className="text-xs font-medium text-sky-200 bg-sky-950/40 border border-sky-500/30 px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-sm">
+              <Sparkles className="size-4 text-sky-400 shrink-0" />
+              <span>{t("story.tapTip")}</span>
+            </div>
+
+            <InteractiveStoryText
+              content={story.content}
+              contentTranslated={story.content_translated}
+              vocabulary={story.vocabulary}
+              originLanguageName={story.language_pair?.origin_language.name}
+              targetLanguageCode={
+                story.language_pair?.target_language.code || "de"
               }
-              className={`text-xs font-semibold rounded-xl h-9 px-3.5 border-neutral-700 transition-colors w-full sm:w-auto justify-center cursor-pointer shrink-0 ${
-                showParallelTranslation
-                  ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
-                  : "bg-neutral-900 text-neutral-300 hover:text-white"
-              }`}
-            >
-              {showParallelTranslation
-                ? t("story.hideParallelTranslation")
-                : t("story.showParallelTranslation")}
-            </Button>
-          )}
-        </div>
+              showTranslation={showParallelTranslation}
+              activeParagraphIndex={activeParagraphIndex}
+              activeWordIndex={activeWordIndex}
+              highlightWords={highlightWords}
+              highlightStoryItem={highlightStoryItem}
+              isPlaying={isPlaying}
+              textSizeClass={
+                fontSize === "large"
+                  ? "text-xl sm:text-2xl"
+                  : "text-lg sm:text-xl"
+              }
+              onWordClick={handleWordClick}
+              onStoryItemClick={handleStoryItemClick}
+            />
 
-        {/* TAB 1: STORY READING */}
-        <TabsContent value="story" className="space-y-6 outline-none">
-          {/* Resolved gray-on-color contrast banner */}
-          <div className="text-xs font-medium text-sky-200 bg-sky-950/40 border border-sky-500/30 px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-sm">
-            <Sparkles className="size-4 text-sky-400 shrink-0" />
-            <span>{t("story.tapTip")}</span>
-          </div>
+            <div className="flex justify-end pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => markCompleted.mutate()}
+                disabled={story.is_completed || markCompleted.isPending}
+                className={`gap-2 rounded-xl h-10 px-5 text-xs font-semibold ${
+                  story.is_completed
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 cursor-default"
+                    : "border-neutral-700 bg-neutral-900 text-neutral-200 hover:bg-neutral-800 hover:text-white cursor-pointer"
+                }`}
+              >
+                <CheckCircle2 className="size-4" />
+                <span>
+                  {story.is_completed
+                    ? t("story.markedCompleted")
+                    : t("story.markAsRead")}
+                </span>
+              </Button>
+            </div>
+          </TabsContent>
 
-          <InteractiveStoryText
-            content={story.content}
-            contentTranslated={story.content_translated}
+          {/* TAB 2: VOCABULARY LIST */}
+          <StoryVocabularyTab
             vocabulary={story.vocabulary}
-            originLanguageName={story.language_pair?.origin_language.name}
             targetLanguageCode={
               story.language_pair?.target_language.code || "de"
             }
-            showTranslation={showParallelTranslation}
-            activeParagraphIndex={activeParagraphIndex}
-            activeWordIndex={activeWordIndex}
-            highlightWords={highlightWords}
-            highlightStoryItem={highlightStoryItem}
-            isPlaying={isPlaying}
-            onWordClick={handleWordClick}
-            onStoryItemClick={handleStoryItemClick}
+            onSaveVocab={handleSaveVocab}
+            isSaving={saveFlashcard.isPending}
           />
-        </TabsContent>
 
-        {/* TAB 2: VOCABULARY LIST */}
-        <StoryVocabularyTab
-          vocabulary={story.vocabulary}
-          targetLanguageCode={story.language_pair?.target_language.code || "de"}
-          onSaveVocab={handleSaveVocab}
-          isSaving={saveFlashcard.isPending}
-        />
+          {/* TAB 3: GRAMMAR TIPS */}
+          <StoryGrammarTab grammarTips={story.grammar_tips} />
 
-        {/* TAB 3: GRAMMAR TIPS */}
-        <StoryGrammarTab grammarTips={story.grammar_tips} />
-
-        {/* TAB 4: COMPREHENSION QUIZ */}
-        <TabsContent value="quiz" className="outline-none">
-          <QuizSection storyId={story.id} quizzes={story.quizzes} />
-        </TabsContent>
-      </Tabs>
+          {/* TAB 4: COMPREHENSION QUIZ */}
+          <TabsContent value="quiz" className="outline-none">
+            <QuizSection storyId={story.id} quizzes={story.quizzes} />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }

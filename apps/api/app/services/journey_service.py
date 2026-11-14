@@ -1,7 +1,7 @@
 import asyncio
-from datetime import datetime, timezone
 import logging
-from typing import List, Optional, Set
+from datetime import UTC, datetime
+
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -60,7 +60,7 @@ class JourneyService:
         return origin_name, target_name
 
     def _format_step(
-        self, step: JourneyStep, saved_vocab_ids: Set[int]
+        self, step: JourneyStep, saved_vocab_ids: set[int]
     ) -> JourneyStepResponse:
         vocab_items = [
             JourneyVocabularyResponse(
@@ -81,7 +81,7 @@ class JourneyService:
             for v in (step.vocabularies or [])
         ]
 
-        checkpoint_items: List[CheckpointQuestionItem] = []
+        checkpoint_items: list[CheckpointQuestionItem] = []
         if step.checkpoint_questions_json:
             for q in step.checkpoint_questions_json:
                 q_id = str(q.get("id", ""))
@@ -121,7 +121,7 @@ class JourneyService:
         )
 
     def _compute_journey_metrics(self, journey: LearningJourney) -> dict:
-        all_steps: List[JourneyStep] = []
+        all_steps: list[JourneyStep] = []
         for phase in journey.phases or []:
             all_steps.extend(phase.steps or [])
         all_steps.sort(key=lambda s: s.step_order)
@@ -174,7 +174,7 @@ class JourneyService:
         )
 
     def _format_detail(
-        self, journey: LearningJourney, saved_vocab_ids: Set[int]
+        self, journey: LearningJourney, saved_vocab_ids: set[int]
     ) -> JourneyDetailResponse:
         metrics = self._compute_journey_metrics(journey)
         clarifications = [
@@ -321,14 +321,14 @@ class JourneyService:
     async def list_journeys(
         self,
         session: AsyncSession,
-        search: Optional[str] = None,
-        target_language_code: Optional[str] = None,
-        origin_language_code: Optional[str] = None,
-        cefr_level: Optional[CEFRLevel] = None,
-        status: Optional[JourneyStatus] = None,
-        is_pinned: Optional[bool] = None,
+        search: str | None = None,
+        target_language_code: str | None = None,
+        origin_language_code: str | None = None,
+        cefr_level: CEFRLevel | None = None,
+        status: JourneyStatus | None = None,
+        is_pinned: bool | None = None,
         sort_by: str = "recent",
-    ) -> List[JourneyListItemResponse]:
+    ) -> list[JourneyListItemResponse]:
         journeys = await journey_repo.list_journeys(
             session=session,
             search=search,
@@ -454,8 +454,8 @@ class JourneyService:
         if not step:
             raise HTTPException(status_code=404, detail="Journey step not found")
 
-        results: List[CheckpointQuestionResult] = []
-        score_pct: Optional[int] = None
+        results: list[CheckpointQuestionResult] = []
+        score_pct: int | None = None
         passed = True
 
         if step.step_type == JourneyStepType.CHECKPOINT and step.checkpoint_questions_json:
@@ -487,7 +487,7 @@ class JourneyService:
 
         if passed or step.step_type != JourneyStepType.CHECKPOINT:
             step.is_completed = True
-            step.completed_at = datetime.now(timezone.utc)
+            step.completed_at = datetime.now(UTC)
             for v in step.vocabularies or []:
                 v.is_mastered = True
 
@@ -524,7 +524,7 @@ class JourneyService:
 
         saved_count = 0
         already_saved_count = 0
-        flashcard_ids: List[int] = []
+        flashcard_ids: list[int] = []
         for vocab in step.vocabularies or []:
             fc, created = await flashcard_repo.save_journey_vocabulary_to_flashcard(
                 session, vocab.id

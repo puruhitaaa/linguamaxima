@@ -1,39 +1,35 @@
-from datetime import datetime, timezone
 import math
-from typing import List, Optional, Tuple
-from sqlalchemy import func, select, update, desc, and_
+from datetime import UTC, datetime, timedelta
+
+from sqlalchemy import and_, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload, joinedload
+from sqlalchemy.orm import joinedload, selectinload
+
 from app.models import (
-    CEFRLevel,
     Category,
+    CEFRLevel,
     Flashcard,
     GrammarTip,
     JourneyVocabulary,
     Language,
     LanguagePair,
-    ProficiencyFramework,
     Quiz,
     Story,
     UserProgress,
     Vocabulary,
     Word,
 )
-from app.schemas import (
-    GeneratedGrammarTip,
-    GeneratedQuizQuestion,
-    GeneratedStoryBundle,
-    GeneratedVocabularyItem,
-)
+from app.schemas import GeneratedStoryBundle
+
 
 # ----------------- Languages Repo -----------------
 class LanguageRepository:
-    async def get_all_languages(self, session: AsyncSession) -> List[Language]:
+    async def get_all_languages(self, session: AsyncSession) -> list[Language]:
         stmt = select(Language).order_by(Language.name)
         result = await session.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_by_code(self, session: AsyncSession, code: str) -> Optional[Language]:
+    async def get_by_code(self, session: AsyncSession, code: str) -> Language | None:
         stmt = select(Language).where(Language.code == code)
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
@@ -43,7 +39,7 @@ class LanguageRepository:
         session: AsyncSession,
         code: str,
         name: str,
-        native_name: Optional[str] = None,
+        native_name: str | None = None,
     ) -> Language:
         lang = await self.get_by_code(session, code)
         if not lang:
@@ -53,7 +49,7 @@ class LanguageRepository:
             await session.refresh(lang)
         return lang
 
-    async def get_all_pairs(self, session: AsyncSession) -> List[LanguagePair]:
+    async def get_all_pairs(self, session: AsyncSession) -> list[LanguagePair]:
         stmt = select(LanguagePair).options(
             joinedload(LanguagePair.origin_language),
             joinedload(LanguagePair.target_language),
@@ -63,7 +59,7 @@ class LanguageRepository:
 
     async def get_pair_by_codes(
         self, session: AsyncSession, origin_code: str, target_code: str
-    ) -> Optional[LanguagePair]:
+    ) -> LanguagePair | None:
         stmt = (
             select(LanguagePair)
             .join(Language, LanguagePair.origin_language_id == Language.id)
@@ -109,12 +105,12 @@ class LanguageRepository:
 
 # ----------------- Category Repo -----------------
 class CategoryRepository:
-    async def get_all(self, session: AsyncSession) -> List[Category]:
+    async def get_all(self, session: AsyncSession) -> list[Category]:
         stmt = select(Category).order_by(Category.name)
         result = await session.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_by_slug(self, session: AsyncSession, slug: str) -> Optional[Category]:
+    async def get_by_slug(self, session: AsyncSession, slug: str) -> Category | None:
         stmt = select(Category).where(Category.slug == slug)
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
@@ -124,18 +120,18 @@ class StoryRepository:
     async def list_stories(
         self,
         session: AsyncSession,
-        cefr_level: Optional[CEFRLevel] = None,
-        category_slug: Optional[str] = None,
-        search: Optional[str] = None,
-        origin_language_code: Optional[str] = None,
-        target_language_code: Optional[str] = None,
-        language_pair_id: Optional[int] = None,
-        is_favorite: Optional[bool] = None,
-        is_completed: Optional[bool] = None,
+        cefr_level: CEFRLevel | None = None,
+        category_slug: str | None = None,
+        search: str | None = None,
+        origin_language_code: str | None = None,
+        target_language_code: str | None = None,
+        language_pair_id: int | None = None,
+        is_favorite: bool | None = None,
+        is_completed: bool | None = None,
         include_journey_stories: bool = False,
         limit: int = 50,
         offset: int = 0,
-    ) -> Tuple[List[Story], int]:
+    ) -> tuple[list[Story], int]:
         query = select(Story).where(Story.is_published.is_(True))
         if not include_journey_stories:
             query = query.where(Story.is_journey_story.is_(False))
@@ -176,7 +172,7 @@ class StoryRepository:
             if is_favorite is False:
                 query = query.where((UserProgress.is_favorite.is_(False)) | (UserProgress.id.is_(None)))
             if is_completed is False:
-                query = query.where(UserProgress.completed_at.is_(None))
+                query = query.where((UserProgress.completed_at.is_(None)) | (UserProgress.id.is_(None)))
 
         # Count total
         count_stmt = select(func.count()).select_from(query.subquery())
@@ -199,7 +195,7 @@ class StoryRepository:
         stories = list(res.scalars().all())
         return stories, total
 
-    async def get_story_by_id(self, session: AsyncSession, story_id: int) -> Optional[Story]:
+    async def get_story_by_id(self, session: AsyncSession, story_id: int) -> Story | None:
         stmt = (
             select(Story)
             .where(Story.id == story_id)
@@ -220,10 +216,10 @@ class StoryRepository:
         session: AsyncSession,
         bundle: GeneratedStoryBundle,
         cefr_level: CEFRLevel,
-        category_id: Optional[int],
-        language_pair_id: Optional[int],
-        image_url: Optional[str],
-        audio_url: Optional[str],
+        category_id: int | None,
+        language_pair_id: int | None,
+        image_url: str | None,
+        audio_url: str | None,
         ai_model: str,
         ai_provider: str,
         is_journey_story: bool = False,
@@ -325,7 +321,7 @@ class StoryRepository:
         stmt = select(UserProgress).where(UserProgress.story_id == story_id)
         res = await session.execute(stmt)
         progress = res.scalar_one_or_none()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         if not progress:
             progress = UserProgress(
@@ -347,17 +343,89 @@ class StoryRepository:
         await session.refresh(progress)
         return progress
 
+    async def mark_story_completed(
+        self, session: AsyncSession, story_id: int
+    ) -> UserProgress | None:
+        story_exists = (
+            await session.execute(select(Story.id).where(Story.id == story_id))
+        ).scalar_one_or_none()
+        if not story_exists:
+            return None
+
+        stmt = select(UserProgress).where(UserProgress.story_id == story_id)
+        progress = (await session.execute(stmt)).scalar_one_or_none()
+        now = datetime.now(UTC)
+
+        if not progress:
+            progress = UserProgress(
+                story_id=story_id,
+                completed_at=now,
+                last_accessed_at=now,
+            )
+            session.add(progress)
+        else:
+            if progress.completed_at is None:
+                progress.completed_at = now
+            progress.last_accessed_at = now
+
+        await session.commit()
+        await session.refresh(progress)
+        return progress
+
 # ----------------- Flashcard Repo -----------------
+def _flashcard_language_condition(
+    origin_language_code: str | None = None,
+    target_language_code: str | None = None,
+):
+    """Build an OR condition matching flashcards from either story vocabulary or target-language dictionary words."""
+    vocab_conds = []
+    if target_language_code:
+        vocab_conds.append(
+            Story.language_pair.has(
+                LanguagePair.target_language.has(Language.code == target_language_code)
+            )
+        )
+    if origin_language_code:
+        vocab_conds.append(
+            Story.language_pair.has(
+                LanguagePair.origin_language.has(Language.code == origin_language_code)
+            )
+        )
+
+    branches = []
+    if vocab_conds:
+        branches.append(
+            Flashcard.vocabulary.has(Vocabulary.story.has(and_(*vocab_conds)))
+        )
+    if target_language_code:
+        branches.append(
+            Flashcard.word.has(Word.language.has(Language.code == target_language_code))
+        )
+    elif origin_language_code:
+        branches.append(Flashcard.word_id.isnot(None))
+
+    return or_(*branches) if branches else None
+
+
 class FlashcardRepository:
     async def get_due_flashcards(
-        self, session: AsyncSession, now: Optional[datetime] = None
-    ) -> List[Flashcard]:
+        self,
+        session: AsyncSession,
+        now: datetime | None = None,
+        origin_language_code: str | None = None,
+        target_language_code: str | None = None,
+    ) -> list[Flashcard]:
         if now is None:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
+        stmt = select(Flashcard).where(Flashcard.next_review <= now)
+        lang_cond = _flashcard_language_condition(
+            origin_language_code=origin_language_code,
+            target_language_code=target_language_code,
+        )
+        if lang_cond is not None:
+            stmt = stmt.where(lang_cond)
         stmt = (
-            select(Flashcard)
-            .where(Flashcard.next_review <= now)
-            .options(
+            stmt.options(
                 joinedload(Flashcard.vocabulary).joinedload(Vocabulary.story),
                 joinedload(Flashcard.word).joinedload(Word.language),
                 joinedload(Flashcard.journey_vocabulary),
@@ -368,8 +436,12 @@ class FlashcardRepository:
         return list(res.scalars().all())
 
     async def get_all_flashcards(
-        self, session: AsyncSession, search: Optional[str] = None
-    ) -> List[Flashcard]:
+        self,
+        session: AsyncSession,
+        search: str | None = None,
+        origin_language_code: str | None = None,
+        target_language_code: str | None = None,
+    ) -> list[Flashcard]:
         stmt = (
             select(Flashcard)
             .outerjoin(Vocabulary, Flashcard.vocabulary_id == Vocabulary.id)
@@ -385,6 +457,12 @@ class FlashcardRepository:
                 | (JourneyVocabulary.word.ilike(f"%{search}%"))
                 | (JourneyVocabulary.translation.ilike(f"%{search}%"))
             )
+        lang_cond = _flashcard_language_condition(
+            origin_language_code=origin_language_code,
+            target_language_code=target_language_code,
+        )
+        if lang_cond is not None:
+            stmt = stmt.where(lang_cond)
         stmt = (
             stmt.options(
                 joinedload(Flashcard.vocabulary).joinedload(Vocabulary.story),
@@ -395,6 +473,38 @@ class FlashcardRepository:
         )
         res = await session.execute(stmt)
         return list(res.scalars().all())
+
+    async def get_saved_vocabulary_ids(
+        self, session: AsyncSession, vocab_ids: list[int]
+    ) -> set[int]:
+        if not vocab_ids:
+            return set()
+        stmt = select(Flashcard.vocabulary_id).where(
+            Flashcard.vocabulary_id.in_(vocab_ids)
+        )
+        res = await session.execute(stmt)
+        return {row for row in res.scalars().all() if row is not None}
+
+    async def get_saved_word_ids(
+        self, session: AsyncSession, word_ids: list[int]
+    ) -> set[int]:
+        if not word_ids:
+            return set()
+        stmt = select(Flashcard.word_id).where(Flashcard.word_id.in_(word_ids))
+        res = await session.execute(stmt)
+        return {row for row in res.scalars().all() if row is not None}
+
+    async def delete_by_id(self, session: AsyncSession, flashcard_id: int) -> bool:
+        flashcard = (
+            await session.execute(
+                select(Flashcard).where(Flashcard.id == flashcard_id)
+            )
+        ).scalar_one_or_none()
+        if not flashcard:
+            return False
+        await session.delete(flashcard)
+        await session.commit()
+        return True
 
     async def save_vocabulary_to_flashcard(
         self, session: AsyncSession, vocabulary_id: int
@@ -412,7 +522,7 @@ class FlashcardRepository:
             ease_factor=2.5,
             interval_days=0,
             repetitions=0,
-            next_review=datetime.now(timezone.utc),
+            next_review=datetime.now(UTC),
         )
         session.add(flashcard)
         await session.commit()
@@ -435,7 +545,7 @@ class FlashcardRepository:
             ease_factor=2.5,
             interval_days=0,
             repetitions=0,
-            next_review=datetime.now(timezone.utc),
+            next_review=datetime.now(UTC),
         )
         session.add(flashcard)
         await session.commit()
@@ -444,7 +554,7 @@ class FlashcardRepository:
 
     async def save_journey_vocabulary_to_flashcard(
         self, session: AsyncSession, journey_vocabulary_id: int
-    ) -> Tuple[Flashcard, bool]:
+    ) -> tuple[Flashcard, bool]:
         stmt = select(Flashcard).where(Flashcard.journey_vocabulary_id == journey_vocabulary_id)
         res = await session.execute(stmt)
         existing = res.scalar_one_or_none()
@@ -458,20 +568,20 @@ class FlashcardRepository:
             ease_factor=2.5,
             interval_days=0,
             repetitions=0,
-            next_review=datetime.now(timezone.utc),
+            next_review=datetime.now(UTC),
         )
         session.add(flashcard)
         await session.commit()
         await session.refresh(flashcard)
         return flashcard, True
 
-    async def get_by_id(self, session: AsyncSession, flashcard_id: int) -> Optional[Flashcard]:
+    async def get_by_id(self, session: AsyncSession, flashcard_id: int) -> Flashcard | None:
         stmt = (
             select(Flashcard)
             .where(Flashcard.id == flashcard_id)
             .options(
-                joinedload(Flashcard.vocabulary),
-                joinedload(Flashcard.word),
+                joinedload(Flashcard.vocabulary).joinedload(Vocabulary.story),
+                joinedload(Flashcard.word).joinedload(Word.language),
                 joinedload(Flashcard.journey_vocabulary),
             )
         )
@@ -486,7 +596,7 @@ class FlashcardRepository:
         interval_days: int,
         repetitions: int,
         next_review: datetime,
-    ) -> Optional[Flashcard]:
+    ) -> Flashcard | None:
         flashcard = await self.get_by_id(session, flashcard_id)
         if not flashcard:
             return None
@@ -494,7 +604,7 @@ class FlashcardRepository:
         flashcard.interval_days = interval_days
         flashcard.repetitions = repetitions
         flashcard.next_review = next_review
-        flashcard.last_reviewed = datetime.now(timezone.utc)
+        flashcard.last_reviewed = datetime.now(UTC)
         await session.commit()
         await session.refresh(flashcard)
         return flashcard
@@ -527,13 +637,13 @@ class WordRepository:
     async def list_words(
         self,
         session: AsyncSession,
-        language_code: Optional[str] = None,
-        normalized_level: Optional[CEFRLevel] = None,
-        part_of_speech: Optional[str] = None,
-        search: Optional[str] = None,
+        language_code: str | None = None,
+        normalized_level: CEFRLevel | None = None,
+        part_of_speech: str | None = None,
+        search: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> Tuple[List[Word], int]:
+    ) -> tuple[list[Word], int]:
         stmt = select(Word).join(Language, Word.language_id == Language.id)
         count_stmt = select(func.count(Word.id)).join(Language, Word.language_id == Language.id)
 
@@ -576,7 +686,7 @@ class WordRepository:
 
         return words, total
 
-    async def get_by_id(self, session: AsyncSession, word_id: int) -> Optional[Word]:
+    async def get_by_id(self, session: AsyncSession, word_id: int) -> Word | None:
         stmt = select(Word).where(Word.id == word_id).options(joinedload(Word.language))
         res = await session.execute(stmt)
         return res.scalar_one_or_none()
@@ -614,7 +724,7 @@ class WordRepository:
             .group_by(Word.part_of_speech)
         )
         pos_rows = (await session.execute(pos_stmt)).all()
-        
+
         canonical_counts: dict[str, int] = {}
         for raw_pos, cnt in pos_rows:
             if not raw_pos:
@@ -635,11 +745,11 @@ class WordRepository:
         # Fill any missing levels with 0 count
         all_levels = ["A1", "A2", "B1", "B2", "C1", "C2"]
         final_levels = []
-        for l in all_levels:
-            if l in levels_map:
-                final_levels.append(levels_map[l])
+        for lvl in all_levels:
+            if lvl in levels_map:
+                final_levels.append(levels_map[lvl])
             else:
-                final_levels.append({"key": l, "label": l, "count": 0})
+                final_levels.append({"key": lvl, "label": lvl, "count": 0})
 
         return {
             "language_code": lang.code,
@@ -651,30 +761,118 @@ class WordRepository:
         }
 
 # ----------------- Progress Repo -----------------
+def _calculate_streak_days(
+    timestamps: list[datetime], tz_offset_minutes: int = 0
+) -> int:
+    """Count consecutive active local dates ending today or yesterday."""
+    offset = timedelta(minutes=tz_offset_minutes)
+    active_dates = set()
+    for ts in timestamps:
+        if ts is None:
+            continue
+        ts_utc = ts.replace(tzinfo=UTC) if ts.tzinfo is None else ts.astimezone(UTC)
+        active_dates.add((ts_utc + offset).date())
+
+    if not active_dates:
+        return 0
+
+    today = (datetime.now(UTC) + offset).date()
+    if today in active_dates:
+        cursor = today
+    elif (today - timedelta(days=1)) in active_dates:
+        cursor = today - timedelta(days=1)
+    else:
+        return 0
+
+    streak = 0
+    while cursor in active_dates:
+        streak += 1
+        cursor -= timedelta(days=1)
+    return streak
+
+
 class ProgressRepository:
-    async def get_summary(self, session: AsyncSession):
+    async def get_summary(
+        self,
+        session: AsyncSession,
+        origin_language_code: str | None = None,
+        target_language_code: str | None = None,
+        tz_offset_minutes: int = 0,
+    ):
+        story_lang_conds = []
+        if origin_language_code:
+            story_lang_conds.append(
+                Story.language_pair.has(
+                    LanguagePair.origin_language.has(Language.code == origin_language_code)
+                )
+            )
+        if target_language_code:
+            story_lang_conds.append(
+                Story.language_pair.has(
+                    LanguagePair.target_language.has(Language.code == target_language_code)
+                )
+            )
+
         total_stories_stmt = select(func.count(Story.id)).where(Story.is_published.is_(True))
+        if story_lang_conds:
+            total_stories_stmt = total_stories_stmt.where(and_(*story_lang_conds))
         total_stories = (await session.execute(total_stories_stmt)).scalar() or 0
 
-        completed_stories_stmt = select(func.count(UserProgress.id)).where(UserProgress.completed_at.isnot(None))
+        completed_stories_stmt = select(func.count(UserProgress.id)).where(
+            UserProgress.completed_at.isnot(None)
+        )
+        if story_lang_conds:
+            completed_stories_stmt = completed_stories_stmt.join(
+                Story, UserProgress.story_id == Story.id
+            ).where(and_(*story_lang_conds))
         completed_stories = (await session.execute(completed_stories_stmt)).scalar() or 0
 
+        fc_lang_cond = _flashcard_language_condition(
+            origin_language_code=origin_language_code,
+            target_language_code=target_language_code,
+        )
+
         total_words_stmt = select(func.count(Flashcard.id))
+        if fc_lang_cond is not None:
+            total_words_stmt = total_words_stmt.where(fc_lang_cond)
         total_words = (await session.execute(total_words_stmt)).scalar() or 0
 
-        now = datetime.now(timezone.utc)
-        due_flashcards_stmt = select(func.count(Flashcard.id)).where(Flashcard.next_review <= now)
+        now = datetime.now(UTC)
+        due_flashcards_stmt = select(func.count(Flashcard.id)).where(
+            Flashcard.next_review <= now
+        )
+        if fc_lang_cond is not None:
+            due_flashcards_stmt = due_flashcards_stmt.where(fc_lang_cond)
         due_flashcards = (await session.execute(due_flashcards_stmt)).scalar() or 0
 
-        avg_score_stmt = select(func.avg(UserProgress.quiz_score)).where(UserProgress.quiz_score.isnot(None))
+        avg_score_stmt = select(func.avg(UserProgress.quiz_score)).where(
+            UserProgress.quiz_score.isnot(None)
+        )
+        if story_lang_conds:
+            avg_score_stmt = avg_score_stmt.join(
+                Story, UserProgress.story_id == Story.id
+            ).where(and_(*story_lang_conds))
         avg_score = (await session.execute(avg_score_stmt)).scalar() or 0.0
+
+        # Streak reflects user activity across completed stories and flashcard reviews
+        story_dates_stmt = select(UserProgress.completed_at).where(
+            UserProgress.completed_at.isnot(None)
+        )
+        review_dates_stmt = select(Flashcard.last_reviewed).where(
+            Flashcard.last_reviewed.isnot(None)
+        )
+        story_dates = list((await session.execute(story_dates_stmt)).scalars().all())
+        review_dates = list((await session.execute(review_dates_stmt)).scalars().all())
+        streak_days = _calculate_streak_days(
+            story_dates + review_dates, tz_offset_minutes=tz_offset_minutes
+        )
 
         return {
             "total_stories_read": completed_stories,
             "total_stories_available": total_stories,
             "total_words_learned": total_words,
             "flashcards_due_today": due_flashcards,
-            "current_streak_days": 1 if completed_stories > 0 else 0,
+            "current_streak_days": streak_days,
             "average_quiz_score": round(float(avg_score), 1),
         }
 

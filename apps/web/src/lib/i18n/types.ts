@@ -123,7 +123,9 @@ export interface TranslationDictionary {
     heroSubtitle: string;
     heroTitle: string;
     learningBadge: string;
+    loadMoreStories: string;
     searchPlaceholder: string;
+    showingStoriesCount: string;
     storiesRead: string;
     streakCount: string;
     targetStoriesTab: string;
@@ -202,7 +204,10 @@ export interface TranslationDictionary {
     practiceAgain: string;
     ratePrompt: string;
     readMoreStories: string;
+    removeCard: string;
     repsCount: string;
+    scopeAll: string;
+    scopePair: string;
     searchPlaceholder: string;
     sessionCompleted: string;
     sessionSummary: string;
@@ -289,11 +294,19 @@ export interface TranslationDictionary {
     highlightOutline: string;
     dictatingIndicator: string;
     clickToPlaySection: string;
+    lookupEmpty: string;
+    lookupLoading: string;
+    markAsRead: string;
+    markedCompleted: string;
+    playFromHere: string;
+    turnLabel: string;
   };
   quiz: {
     answerReview: string;
     articlePractice: string;
     checkAnswer: string;
+    checkCorrect: string;
+    checkIncorrect: string;
     comprehension: string;
     correctAnswer: string;
     correctOutOf: string;
@@ -312,6 +325,8 @@ export interface TranslationDictionary {
     questionTypeFallback: string;
     retakeQuiz: string;
     scoreStat: string;
+    shortcutsHint: string;
+    submitError: string;
     submitQuiz: string;
     trueFalse: string;
     yourAnswer: string;

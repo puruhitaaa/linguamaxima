@@ -1,12 +1,12 @@
 import os
 from pathlib import Path
-from typing import List, Union
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -72,7 +72,7 @@ class Settings(BaseSettings):
         return v
 
     # CORS
-    cors_origins: Union[List[str], str] = [
+    cors_origins: list[str] | str = [
         "http://localhost:3001",
         "http://127.0.0.1:3001",
         "http://localhost:3000",
@@ -81,7 +81,7 @@ class Settings(BaseSettings):
 
     @field_validator("cors_origins", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+    def assemble_cors_origins(cls, v: str | list[str]) -> list[str]:
         if isinstance(v, str) and not v.startswith("["):
             return [i.strip() for i in v.split(",") if i.strip()]
         elif isinstance(v, list):
@@ -91,6 +91,8 @@ class Settings(BaseSettings):
     # AI Configuration (via LiteLLM)
     default_ai_model: str = "gemini/gemini-3.1-flash-lite"
     fallback_ai_model: str = "groq/openai/gpt-oss-120b"
+    ai_timeout_seconds: int = 30
+    allow_ai_mock_fallback: bool = False
 
     # API Keys
     gemini_api_key: str = ""
@@ -106,7 +108,7 @@ class Settings(BaseSettings):
 
     # Storage Backend Configuration ("local" | "r2" | "s3")
     audio_storage_backend: str = "local"
-    
+
     # Cloudflare R2 / S3 Configuration
     r2_account_id: str = ""
     r2_access_key_id: str = ""

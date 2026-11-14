@@ -1,15 +1,16 @@
 import logging
 import math
-from typing import Optional, Tuple, List
+
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models import CEFRLevel
-from app.repositories import word_repo, flashcard_repo
+from app.repositories import flashcard_repo, word_repo
 from app.schemas import (
-    WordResponse,
-    WordListResponse,
-    WordFilterMetaResponse,
     FilterCountItem,
+    WordFilterMetaResponse,
+    WordListResponse,
+    WordResponse,
 )
 
 logger = logging.getLogger("linguamaxima.dictionary")
@@ -18,17 +19,17 @@ class DictionaryService:
     async def list_words(
         self,
         session: AsyncSession,
-        language_code: Optional[str] = "de",
-        level: Optional[str] = None,
-        part_of_speech: Optional[str] = None,
-        search: Optional[str] = None,
+        language_code: str | None = "de",
+        level: str | None = None,
+        part_of_speech: str | None = None,
+        search: str | None = None,
         page: int = 1,
         page_size: int = 24,
     ) -> WordListResponse:
         offset = (page - 1) * page_size
-        
+
         cefr_level = None
-        if level and level.upper() in [l.value for l in CEFRLevel]:
+        if level and level.upper() in [lvl.value for lvl in CEFRLevel]:
             cefr_level = CEFRLevel(level.upper())
 
         words, total = await word_repo.list_words(
@@ -41,9 +42,9 @@ class DictionaryService:
             offset=offset,
         )
 
-        # Check saved flashcards
-        all_flashcards = await flashcard_repo.get_all_flashcards(session)
-        saved_word_ids = {fc.word_id for fc in all_flashcards if fc.word_id is not None}
+        # Check saved flashcards only for the current page of words
+        word_ids = [w.id for w in words]
+        saved_word_ids = await flashcard_repo.get_saved_word_ids(session, word_ids)
 
         items = [
             WordResponse(
@@ -93,7 +94,7 @@ class DictionaryService:
             language_name=meta["language_name"],
             proficiency_framework=meta["proficiency_framework"],
             total_words=meta["total_words"],
-            levels=[FilterCountItem(**l) for l in meta["levels"]],
+            levels=[FilterCountItem(**lvl) for lvl in meta["levels"]],
             parts_of_speech=[FilterCountItem(**p) for p in meta["parts_of_speech"]],
         )
 
@@ -102,8 +103,7 @@ class DictionaryService:
         if not word:
             raise HTTPException(status_code=404, detail="Word not found")
 
-        all_flashcards = await flashcard_repo.get_all_flashcards(session)
-        saved_word_ids = {fc.word_id for fc in all_flashcards if fc.word_id is not None}
+        saved_word_ids = await flashcard_repo.get_saved_word_ids(session, [word.id])
 
         return WordResponse(
             id=word.id,

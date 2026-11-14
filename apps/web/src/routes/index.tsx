@@ -9,12 +9,13 @@ import {
   Flame,
   Globe,
   Layers,
+  Loader2,
   RotateCcw,
   Search,
   Sparkles,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 
 import { GenerateStoryDialog } from "../components/generate-story-dialog";
@@ -25,26 +26,178 @@ import { useTranslation } from "../lib/i18n";
 import { useLanguagePair } from "../lib/language-context";
 import {
   useCategories,
+  useInfiniteStories,
   useJourneys,
   useProgress,
-  useStories,
 } from "../lib/queries";
+import type { StoryListItem } from "../types/api";
 
 const CEFR_TABS = ["all", "A1", "A2", "B1", "B2", "C1", "C2"] as const;
 
 const storiesSearchSchema = z.object({
-  category: z.string().optional().default("all"),
+  category: z.string().optional(),
   include_journey_stories: z.coerce.boolean().optional(),
-  language_scope: z.enum(["pair", "all"]).optional().default("pair"),
-  level: z.enum(CEFR_TABS).optional().default("all"),
-  search: z.string().optional().default(""),
+  language_scope: z.preprocess(
+    (v) => (v === "pair" || v === "all" ? v : undefined),
+    z.enum(["pair", "all"]).optional()
+  ),
+  level: z.preprocess(
+    (v) =>
+      typeof v === "string" && (CEFR_TABS as readonly string[]).includes(v)
+        ? v
+        : undefined,
+    z.enum(CEFR_TABS).optional()
+  ),
+  search: z.string().optional(),
 });
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
-  validateSearch: (search: Record<string, unknown>) =>
-    storiesSearchSchema.parse(search),
+  validateSearch: (search: Record<string, unknown>) => {
+    const parsed = storiesSearchSchema.safeParse(search);
+    return parsed.success ? parsed.data : {};
+  },
 });
+
+function ActiveJourneyBanner({
+  journeys,
+  continueLabel,
+}: {
+  journeys: ReturnType<typeof useJourneys>["data"];
+  continueLabel: string;
+}) {
+  const topJourney = journeys?.[0];
+  if (!topJourney) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-2xl border border-emerald-500/25 bg-gradient-to-r from-emerald-500/10 via-neutral-900 to-neutral-900 px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="size-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-center shrink-0">
+          <Compass className="size-4" />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-xs font-bold text-white truncate">
+            <span>{topJourney.title}</span>
+            <span className="px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300 text-[10px]">
+              {topJourney.cefr_level} ·{" "}
+              {Math.round(topJourney.progress_percentage)}%
+            </span>
+          </div>
+          {topJourney.next_step_title && (
+            <p className="text-[11px] text-neutral-400 truncate">
+              Next up: {topJourney.next_step_title}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <Link
+          to="/journeys"
+          className="text-xs font-semibold text-neutral-300 hover:text-white px-2.5 py-1.5"
+        >
+          All Journeys ({journeys.length})
+        </Link>
+        <Link
+          to="/journeys/$journeyId"
+          params={{ journeyId: String(topJourney.id) }}
+        >
+          <Button
+            size="sm"
+            className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold gap-1.5 cursor-pointer"
+          >
+            <span>{continueLabel}</span>
+            <ArrowRight className="size-3.5" />
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function dedupeStoryPages(
+  pages: { items: StoryListItem[] }[] | undefined
+): StoryListItem[] {
+  if (!pages) {
+    return [];
+  }
+  const seen = new Set<number>();
+  const list: StoryListItem[] = [];
+  for (const page of pages) {
+    for (const item of page.items) {
+      if (!seen.has(item.id)) {
+        seen.add(item.id);
+        list.push(item);
+      }
+    }
+  }
+  return list;
+}
+
+function HomeCategoryRow({
+  categories,
+  selectedCategory,
+  onSelectCategory,
+  includeJourneyStories,
+  onToggleIncludeJourneyStories,
+}: {
+  categories: ReturnType<typeof useCategories>["data"];
+  selectedCategory: string;
+  onSelectCategory: (catSlug: string) => void;
+  includeJourneyStories: boolean;
+  onToggleIncludeJourneyStories: () => void;
+}) {
+  const { t, tCategory } = useTranslation();
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex items-center gap-2 text-xs w-max sm:w-auto pb-1 sm:pb-0">
+          <button
+            type="button"
+            onClick={() => onSelectCategory("all")}
+            className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
+              selectedCategory === "all"
+                ? "bg-neutral-100 text-neutral-900 font-semibold"
+                : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
+            }`}
+          >
+            {t("home.allCategories")}
+          </button>
+          {categories?.map((cat) => (
+            <button
+              key={cat.slug}
+              type="button"
+              onClick={() => onSelectCategory(cat.slug)}
+              className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
+                selectedCategory === cat.slug
+                  ? "bg-neutral-100 text-neutral-900 font-semibold"
+                  : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
+              }`}
+            >
+              {tCategory(cat.slug)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onToggleIncludeJourneyStories}
+        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+          includeJourneyStories
+            ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
+            : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
+        }`}
+      >
+        <Compass className="size-3.5" />
+        <span>{t("journeys.includeJourneyStories")}</span>
+      </button>
+    </div>
+  );
+}
 
 function HomeComponent() {
   const navigate = Route.useNavigate();
@@ -55,10 +208,14 @@ function HomeComponent() {
   const languageScope = searchParams.language_scope ?? "pair";
   const includeJourneyStories = searchParams.include_journey_stories ?? false;
 
-  const { t, tCategory } = useTranslation();
+  const { t } = useTranslation();
   const { getLanguageFlag, originLanguage, targetLanguage } = useLanguagePair();
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(searchParam);
+
+  useEffect(() => {
+    setSearchInput(searchParam);
+  }, [searchParam]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -76,24 +233,37 @@ function HomeComponent() {
   }, [searchInput, searchParam, navigate]);
 
   const { data: categories } = useCategories();
-  const { data: progress } = useProgress();
+  const { data: progress } = useProgress({
+    origin_language_code: originLanguage.code,
+    target_language_code: targetLanguage.code,
+  });
   const { data: activeJourneys } = useJourneys({ sort_by: "recent" });
-
   const {
-    data: stories,
+    data: infiniteStories,
+    fetchNextPage,
+    hasNextPage,
     isError,
+    isFetchingNextPage,
     isLoading,
     refetch,
-  } = useStories({
+  } = useInfiniteStories({
     category_slug: selectedCategory !== "all" ? selectedCategory : undefined,
     cefr_level: selectedLevel !== "all" ? selectedLevel : undefined,
     include_journey_stories: includeJourneyStories,
+    limit: 12,
     origin_language_code:
       languageScope === "pair" ? originLanguage.code : undefined,
     search: searchParam.trim() || undefined,
     target_language_code:
       languageScope === "pair" ? targetLanguage.code : undefined,
   });
+
+  const stories = useMemo(
+    () => dedupeStoryPages(infiniteStories?.pages),
+    [infiniteStories]
+  );
+
+  const totalStories = infiniteStories?.pages[0]?.total ?? stories.length;
 
   const handleSelectLevel = (lvl: (typeof CEFR_TABS)[number]) => {
     navigate({
@@ -182,12 +352,40 @@ function HomeComponent() {
       );
     }
 
-    if (stories && stories.length > 0) {
+    if (stories.length > 0) {
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {stories.map((story) => (
-            <StoryCard key={story.id} story={story} />
-          ))}
+        <div className="space-y-8">
+          <div className="flex items-center justify-between text-xs text-neutral-400 px-1">
+            <span>
+              {t("home.showingStoriesCount", {
+                count: stories.length,
+                total: totalStories,
+              })}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {stories.map((story) => (
+              <StoryCard key={story.id} story={story} />
+            ))}
+          </div>
+
+          {hasNextPage && (
+            <div className="flex justify-center pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="gap-2 border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800 hover:text-white rounded-xl h-10 px-6 text-xs font-semibold cursor-pointer"
+              >
+                {isFetchingNextPage && (
+                  <Loader2 className="size-4 animate-spin text-sky-400" />
+                )}
+                <span>{t("home.loadMoreStories")}</span>
+              </Button>
+            </div>
+          )}
         </div>
       );
     }
@@ -235,291 +433,214 @@ function HomeComponent() {
   };
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8 space-y-8">
-      {/* Hero & Progress Summary Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-sky-950/40 via-neutral-900 to-neutral-950 border border-neutral-800/80 p-6 sm:p-8">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3.5 max-w-xl">
-            {/* Active Language Badge & Switcher */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
-              <Sparkles className="size-3.5" />
-              <span>
-                {t("home.learningBadge", {
-                  origin: originLanguage.name,
-                  originFlag: getLanguageFlag(originLanguage.code),
-                  target: targetLanguage.name,
-                  targetFlag: getLanguageFlag(targetLanguage.code),
-                })}
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsLangModalOpen(true)}
-                className="ml-1 text-xs underline text-sky-300 hover:text-white font-medium"
-              >
-                {t("home.changeLanguage")}
-              </button>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              {t("home.heroTitle", { target: targetLanguage.name })}
-            </h1>
-            <p className="text-sm text-neutral-400 leading-relaxed">
-              {t("home.heroSubtitle", { origin: originLanguage.name })}
-            </p>
-
-            <div className="pt-1 flex flex-wrap items-center gap-2.5">
-              <LearningJourneyModal
-                trigger={
-                  <Button className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2 font-semibold text-xs shadow-md shadow-emerald-500/20 cursor-pointer">
-                    <Compass className="size-4" />
-                    <span>{t("header.newJourney")}</span>
-                  </Button>
-                }
-              />
-              <GenerateStoryDialog
-                trigger={
-                  <Button
-                    variant="outline"
-                    className="border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 gap-2 font-semibold text-xs cursor-pointer"
-                  >
-                    <Sparkles className="size-4" />
-                    <span>{t("generator.triggerBtn")}</span>
-                  </Button>
-                }
-              />
-            </div>
-          </div>
-
-          {/* Stat widgets */}
-          {progress && (
-            <div className="grid grid-cols-3 gap-2.5 sm:gap-4 bg-neutral-950/70 border border-neutral-800/90 p-4 rounded-2xl shrink-0">
-              <div className="text-center px-2">
-                <div className="flex items-center justify-center gap-1 text-sky-400 mb-1">
-                  <BookOpen className="size-4" />
-                </div>
-                <span className="text-xl sm:text-2xl font-black text-white block">
-                  {progress.total_stories_read}
-                </span>
-                <span className="text-xs text-neutral-400 font-medium">
-                  {t("home.storiesRead")}
-                </span>
-              </div>
-              <div className="text-center px-2 border-x border-neutral-800">
-                <div className="flex items-center justify-center gap-1 text-amber-400 mb-1">
-                  <Layers className="size-4" />
-                </div>
-                <span className="text-xl sm:text-2xl font-black text-white block">
-                  {progress.total_words_learned}
-                </span>
-                <span className="text-xs text-neutral-400 font-medium">
-                  {t("home.wordsSaved")}
-                </span>
-              </div>
-              <div className="text-center px-2">
-                <div className="flex items-center justify-center gap-1 text-orange-400 mb-1">
-                  <Flame className="size-4 fill-orange-400" />
-                </div>
-                <span className="text-xl sm:text-2xl font-black text-white block">
-                  {t("home.streakCount", {
-                    days: progress.current_streak_days,
+    <div className="min-h-screen bg-neutral-950 text-neutral-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Hero & Progress Summary Banner */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-sky-950/40 via-neutral-900 to-neutral-950 border border-neutral-800/80 p-6 sm:p-8">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-3.5 max-w-xl">
+              {/* Active Language Badge & Switcher */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
+                <Sparkles className="size-3.5" />
+                <span>
+                  {t("home.learningBadge", {
+                    origin: originLanguage.name,
+                    originFlag: getLanguageFlag(originLanguage.code),
+                    target: targetLanguage.name,
+                    targetFlag: getLanguageFlag(targetLanguage.code),
                   })}
                 </span>
-                <span className="text-xs text-neutral-400 font-medium">
-                  {t("home.dailyStreak")}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsLangModalOpen(true)}
+                  className="ml-1 text-xs underline text-sky-300 hover:text-white font-medium"
+                >
+                  {t("home.changeLanguage")}
+                </button>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                {t("home.heroTitle", { target: targetLanguage.name })}
+              </h1>
+              <p className="text-sm text-neutral-400 leading-relaxed">
+                {t("home.heroSubtitle", { origin: originLanguage.name })}
+              </p>
+
+              <div className="pt-1 flex flex-wrap items-center gap-2.5">
+                <LearningJourneyModal
+                  trigger={
+                    <Button className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2 font-semibold text-xs shadow-md shadow-emerald-500/20 cursor-pointer">
+                      <Compass className="size-4" />
+                      <span>{t("header.newJourney")}</span>
+                    </Button>
+                  }
+                />
+                <GenerateStoryDialog
+                  trigger={
+                    <Button
+                      variant="outline"
+                      className="border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 gap-2 font-semibold text-xs cursor-pointer"
+                    >
+                      <Sparkles className="size-4" />
+                      <span>{t("generator.triggerBtn")}</span>
+                    </Button>
+                  }
+                />
               </div>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Filter Controls & Search */}
-      {(() => {
-        const topJourney = activeJourneys?.[0];
-        if (!topJourney) {
-          return null;
-        }
-        return (
-          <div className="rounded-2xl border border-emerald-500/25 bg-gradient-to-r from-emerald-500/10 via-neutral-900 to-neutral-900 px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="size-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-center shrink-0">
-                <Compass className="size-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 text-xs font-bold text-white truncate">
-                  <span>{topJourney.title}</span>
-                  <span className="px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300 text-[10px]">
-                    {topJourney.cefr_level} ·{" "}
-                    {Math.round(topJourney.progress_percentage)}%
+            {/* Stat widgets */}
+            {progress && (
+              <div className="grid grid-cols-3 gap-2.5 sm:gap-4 bg-neutral-950/70 border border-neutral-800/90 p-4 rounded-2xl shrink-0">
+                <div className="text-center px-2">
+                  <div className="flex items-center justify-center gap-1 text-sky-400 mb-1">
+                    <BookOpen className="size-4" />
+                  </div>
+                  <span className="text-xl sm:text-2xl font-black text-white block">
+                    {progress.total_stories_read}
+                  </span>
+                  <span className="text-xs text-neutral-400 font-medium">
+                    {t("home.storiesRead")}
                   </span>
                 </div>
-                {topJourney.next_step_title && (
-                  <p className="text-[11px] text-neutral-400 truncate">
-                    Next up: {topJourney.next_step_title}
-                  </p>
-                )}
+                <div className="text-center px-2 border-x border-neutral-800">
+                  <div className="flex items-center justify-center gap-1 text-amber-400 mb-1">
+                    <Layers className="size-4" />
+                  </div>
+                  <span className="text-xl sm:text-2xl font-black text-white block">
+                    {progress.total_words_learned}
+                  </span>
+                  <span className="text-xs text-neutral-400 font-medium">
+                    {t("home.wordsSaved")}
+                  </span>
+                </div>
+                <div className="text-center px-2">
+                  <div className="flex items-center justify-center gap-1 text-orange-400 mb-1">
+                    <Flame className="size-4 fill-orange-400" />
+                  </div>
+                  <span className="text-xl sm:text-2xl font-black text-white block">
+                    {t("home.streakCount", {
+                      days: progress.current_streak_days,
+                    })}
+                  </span>
+                  <span className="text-xs text-neutral-400 font-medium">
+                    {t("home.dailyStreak")}
+                  </span>
+                </div>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <Link
-                to="/journeys"
-                className="text-xs font-semibold text-neutral-300 hover:text-white px-2.5 py-1.5"
-              >
-                All Journeys ({activeJourneys?.length ?? 0})
-              </Link>
-              <Link
-                to="/journeys/$journeyId"
-                params={{ journeyId: String(topJourney.id) }}
-              >
-                <Button
-                  size="sm"
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold gap-1.5 cursor-pointer"
-                >
-                  <span>{t("journeys.continueBtn")}</span>
-                  <ArrowRight className="size-3.5" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        );
-      })()}
-
-      <div className="space-y-4">
-        {/* Language Scope & CEFR Level Tabs */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 min-w-0">
-            {/* Language Scope Switcher */}
-            <div className="flex items-center bg-neutral-900 p-1 rounded-xl border border-neutral-800 text-xs shrink-0">
-              <button
-                type="button"
-                onClick={() => handleToggleScope("pair")}
-                className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                  languageScope === "pair"
-                    ? "bg-sky-500 text-white shadow-sm"
-                    : "text-neutral-400 hover:text-neutral-200"
-                }`}
-              >
-                <span>{getLanguageFlag(targetLanguage.code)}</span>
-                <span>
-                  {t("home.targetStoriesTab", { target: targetLanguage.name })}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleToggleScope("all")}
-                className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                  languageScope === "all"
-                    ? "bg-sky-500 text-white shadow-sm"
-                    : "text-neutral-400 hover:text-neutral-200"
-                }`}
-              >
-                <Globe className="size-3.5" />
-                <span>{t("home.allLanguages")}</span>
-              </button>
-            </div>
-
-            {/* CEFR Level Tabs */}
-            <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0">
-              <div className="flex items-center gap-1.5 w-max sm:w-auto">
-                {CEFR_TABS.map((lvl) => (
-                  <button
-                    key={lvl}
-                    type="button"
-                    onClick={() => handleSelectLevel(lvl)}
-                    className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all border shrink-0 whitespace-nowrap cursor-pointer ${
-                      selectedLevel === lvl
-                        ? "bg-neutral-800 border-neutral-700 text-white shadow-sm"
-                        : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
-                    }`}
-                  >
-                    {lvl === "all" ? t("home.allLevels") : lvl}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Search Bar with Clear Button */}
-          <div className="relative w-full lg:w-64 shrink-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-500 pointer-events-none" />
-            <Input
-              type="text"
-              placeholder={
-                languageScope === "pair"
-                  ? t("home.searchPlaceholder", { target: targetLanguage.name })
-                  : `${t("common.search")}...`
-              }
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 pr-8 h-9 text-xs bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 rounded-xl"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                onClick={handleClearSearch}
-                aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white p-0.5 cursor-pointer"
-              >
-                <X className="size-3.5" />
-              </button>
             )}
           </div>
         </div>
 
-        {/* Category Pills & Journey Stories Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex items-center gap-2 text-xs w-max sm:w-auto pb-1 sm:pb-0">
-              <button
-                type="button"
-                onClick={() => handleSelectCategory("all")}
-                className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
-                  selectedCategory === "all"
-                    ? "bg-neutral-100 text-neutral-900 font-semibold"
-                    : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
-                }`}
-              >
-                {t("home.allCategories")}
-              </button>
-              {categories?.map((cat) => (
+        {/* Filter Controls & Search */}
+        <ActiveJourneyBanner
+          journeys={activeJourneys}
+          continueLabel={t("journeys.continueBtn")}
+        />
+
+        <div className="space-y-4">
+          {/* Language Scope & CEFR Level Tabs */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 min-w-0">
+              {/* Language Scope Switcher */}
+              <div className="flex items-center bg-neutral-900 p-1 rounded-xl border border-neutral-800 text-xs shrink-0">
                 <button
-                  key={cat.slug}
                   type="button"
-                  onClick={() => handleSelectCategory(cat.slug)}
-                  className={`px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
-                    selectedCategory === cat.slug
-                      ? "bg-neutral-100 text-neutral-900 font-semibold"
-                      : "bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border border-neutral-800"
+                  onClick={() => handleToggleScope("pair")}
+                  className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    languageScope === "pair"
+                      ? "bg-sky-500 text-white shadow-sm"
+                      : "text-neutral-400 hover:text-neutral-200"
                   }`}
                 >
-                  {tCategory(cat.slug)}
+                  <span>{getLanguageFlag(targetLanguage.code)}</span>
+                  <span>
+                    {t("home.targetStoriesTab", {
+                      target: targetLanguage.name,
+                    })}
+                  </span>
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => handleToggleScope("all")}
+                  className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    languageScope === "all"
+                      ? "bg-sky-500 text-white shadow-sm"
+                      : "text-neutral-400 hover:text-neutral-200"
+                  }`}
+                >
+                  <Globe className="size-3.5" />
+                  <span>{t("home.allLanguages")}</span>
+                </button>
+              </div>
+
+              {/* CEFR Level Tabs */}
+              <div className="overflow-x-auto max-w-full -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0">
+                <div className="flex items-center gap-1.5 w-max sm:w-auto">
+                  {CEFR_TABS.map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => handleSelectLevel(lvl)}
+                      className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all border shrink-0 whitespace-nowrap cursor-pointer ${
+                        selectedLevel === lvl
+                          ? "bg-neutral-800 border-neutral-700 text-white shadow-sm"
+                          : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
+                      }`}
+                    >
+                      {lvl === "all" ? t("home.allLevels") : lvl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Search Bar with Clear Button */}
+            <div className="relative w-full lg:w-64 shrink-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-500 pointer-events-none" />
+              <Input
+                type="text"
+                placeholder={
+                  languageScope === "pair"
+                    ? t("home.searchPlaceholder", {
+                        target: targetLanguage.name,
+                      })
+                    : `${t("common.search")}...`
+                }
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9 pr-8 h-9 text-xs bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 rounded-xl"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  aria-label="Clear search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white p-0.5 cursor-pointer"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleToggleIncludeJourneyStories}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-              includeJourneyStories
-                ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
-                : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700"
-            }`}
-          >
-            <Compass className="size-3.5" />
-            <span>{t("journeys.includeJourneyStories")}</span>
-          </button>
+          {/* Category Pills & Journey Stories Filter */}
+          <HomeCategoryRow
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={handleSelectCategory}
+            includeJourneyStories={includeJourneyStories}
+            onToggleIncludeJourneyStories={handleToggleIncludeJourneyStories}
+          />
         </div>
+
+        {/* Stories Grid */}
+        {renderStoriesContent()}
+
+        <LanguagePairModal
+          open={isLangModalOpen}
+          onOpenChange={setIsLangModalOpen}
+        />
       </div>
-
-      {/* Stories Grid */}
-      {renderStoriesContent()}
-
-      <LanguagePairModal
-        open={isLangModalOpen}
-        onOpenChange={setIsLangModalOpen}
-      />
     </div>
   );
 }

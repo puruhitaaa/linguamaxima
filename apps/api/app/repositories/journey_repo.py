@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Set, Tuple
-from sqlalchemy import asc, desc, exists, func, or_, select
+from datetime import UTC, datetime
+
+from sqlalchemy import asc, desc, exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -10,7 +10,6 @@ from app.models import (
     JourneyPhase,
     JourneyStatus,
     JourneyStep,
-    JourneyStepType,
     JourneyVocabulary,
     Language,
     LanguagePair,
@@ -35,16 +34,16 @@ class JourneyRepository:
     async def create_journey_tree(
         self,
         session: AsyncSession,
-        language_pair_id: Optional[int],
+        language_pair_id: int | None,
         cefr_level: CEFRLevel,
         purpose_input: str,
-        clarifications: List[ClarificationAnswerItem],
+        clarifications: list[ClarificationAnswerItem],
         synthesized_prompt: str,
         curriculum: GeneratedJourneyCurriculum,
         ai_model: str,
         ai_provider: str,
     ) -> LearningJourney:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         journey = LearningJourney(
             language_pair_id=language_pair_id,
             cefr_level=cefr_level,
@@ -123,7 +122,7 @@ class JourneyRepository:
 
     async def get_journey_by_id(
         self, session: AsyncSession, journey_id: int
-    ) -> Optional[LearningJourney]:
+    ) -> LearningJourney | None:
         stmt = (
             select(LearningJourney)
             .where(LearningJourney.id == journey_id)
@@ -144,14 +143,14 @@ class JourneyRepository:
     async def list_journeys(
         self,
         session: AsyncSession,
-        search: Optional[str] = None,
-        target_language_code: Optional[str] = None,
-        origin_language_code: Optional[str] = None,
-        cefr_level: Optional[CEFRLevel] = None,
-        status: Optional[JourneyStatus] = None,
-        is_pinned: Optional[bool] = None,
+        search: str | None = None,
+        target_language_code: str | None = None,
+        origin_language_code: str | None = None,
+        cefr_level: CEFRLevel | None = None,
+        status: JourneyStatus | None = None,
+        is_pinned: bool | None = None,
         sort_by: str = "recent",
-    ) -> List[LearningJourney]:
+    ) -> list[LearningJourney]:
         stmt = select(LearningJourney).options(
             joinedload(LearningJourney.language_pair).joinedload(LanguagePair.origin_language),
             joinedload(LearningJourney.language_pair).joinedload(LanguagePair.target_language),
@@ -235,8 +234,8 @@ class JourneyRepository:
         return journeys
 
     async def get_saved_flashcard_vocab_ids(
-        self, session: AsyncSession, journey_id: Optional[int] = None
-    ) -> Set[int]:
+        self, session: AsyncSession, journey_id: int | None = None
+    ) -> set[int]:
         stmt = select(Flashcard.journey_vocabulary_id).where(
             Flashcard.journey_vocabulary_id.isnot(None)
         )
@@ -251,7 +250,7 @@ class JourneyRepository:
     async def mark_accessed(
         self, session: AsyncSession, journey: LearningJourney
     ) -> LearningJourney:
-        journey.last_accessed_at = datetime.now(timezone.utc)
+        journey.last_accessed_at = datetime.now(UTC)
         if journey.status == JourneyStatus.NOT_STARTED:
             journey.status = JourneyStatus.IN_PROGRESS
         await session.commit()
@@ -273,7 +272,7 @@ class JourneyRepository:
 
     async def get_step(
         self, session: AsyncSession, journey_id: int, step_id: int
-    ) -> Optional[JourneyStep]:
+    ) -> JourneyStep | None:
         stmt = (
             select(JourneyStep)
             .where(JourneyStep.id == step_id, JourneyStep.journey_id == journey_id)
@@ -287,7 +286,7 @@ class JourneyRepository:
 
     async def get_phase_vocab_words(
         self, session: AsyncSession, phase_id: int
-    ) -> List[str]:
+    ) -> list[str]:
         stmt = (
             select(JourneyVocabulary.word)
             .join(JourneyStep, JourneyVocabulary.step_id == JourneyStep.id)
@@ -299,7 +298,7 @@ class JourneyRepository:
 
     async def get_vocab_by_id(
         self, session: AsyncSession, vocab_id: int
-    ) -> Optional[JourneyVocabulary]:
+    ) -> JourneyVocabulary | None:
         stmt = select(JourneyVocabulary).where(JourneyVocabulary.id == vocab_id)
         res = await session.execute(stmt)
         return res.scalar_one_or_none()
@@ -313,7 +312,7 @@ class JourneyRepository:
         completed = sum(1 for s in steps if s.is_completed)
         journey.total_steps = total
         journey.completed_steps = completed
-        journey.last_accessed_at = datetime.now(timezone.utc)
+        journey.last_accessed_at = datetime.now(UTC)
         if total > 0 and completed >= total:
             journey.status = JourneyStatus.COMPLETED
         elif completed > 0:

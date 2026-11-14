@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+
 
 @dataclass
 class SRSResult:
@@ -26,7 +27,7 @@ def calculate_sm2(
     5: Perfect recall
     """
     if now is None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
     # Ensure quality is in range [0, 5]
     q = max(0, min(5, quality))

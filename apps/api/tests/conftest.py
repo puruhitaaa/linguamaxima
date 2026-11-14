@@ -1,13 +1,24 @@
-import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.core.config import settings
 from app.core.database import Base, get_db
+from app.core.rate_limit import generation_rate_limiter
 from app.main import app
 from app.seeds.seed_data import seed_database
 
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def reset_test_runtime():
+    prev_fallback = settings.allow_ai_mock_fallback
+    settings.allow_ai_mock_fallback = True
+    generation_rate_limiter.reset()
+    yield
+    settings.allow_ai_mock_fallback = prev_fallback
+    generation_rate_limiter.reset()
 
 @pytest_asyncio.fixture(scope="function")
 async def test_engine():

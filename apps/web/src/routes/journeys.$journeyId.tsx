@@ -3,6 +3,7 @@ import { Button } from "@linguamaxima/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -152,41 +153,43 @@ function JourneyTopActionBar({
             align="end"
             className="w-80 bg-neutral-900 border-neutral-800 text-neutral-100 p-1.5"
           >
-            <DropdownMenuLabel className="text-xs text-neutral-400 font-semibold">
-              Your Learning Journeys (Non-Blocking)
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-neutral-800" />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-xs text-neutral-400 font-semibold">
+                Your Learning Journeys (Non-Blocking)
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-neutral-800" />
 
-            <DropdownMenuItem className="flex items-center justify-between gap-2 rounded-lg bg-sky-500/10 text-sky-200 focus:bg-sky-500/15">
-              <div className="min-w-0">
-                <p className="text-xs font-bold truncate">{journey.title}</p>
-                <p className="text-[10px] text-sky-300">
-                  {journey.cefr_level} · Current
-                </p>
-              </div>
-              <Check className="size-4 text-sky-400 shrink-0" />
-            </DropdownMenuItem>
-
-            {otherJourneys.map((other) => (
-              <DropdownMenuItem
-                key={other.id}
-                onClick={() => onSwitchJourney(other.id)}
-                className="flex items-center justify-between gap-2 rounded-lg text-neutral-200 focus:bg-neutral-800 focus:text-white cursor-pointer"
-              >
+              <DropdownMenuItem className="flex items-center justify-between gap-2 rounded-lg bg-sky-500/10 text-sky-200 focus:bg-sky-500/15">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold truncate">
-                    {other.title}
-                  </p>
-                  <p className="text-[10px] text-neutral-400">
-                    {getLanguageFlag(
-                      other.language_pair?.target_language.code ?? "de"
-                    )}{" "}
-                    {other.cefr_level} · {Math.round(other.progress_percentage)}
-                    % complete
+                  <p className="text-xs font-bold truncate">{journey.title}</p>
+                  <p className="text-[10px] text-sky-300">
+                    {journey.cefr_level} · Current
                   </p>
                 </div>
+                <Check className="size-4 text-sky-400 shrink-0" />
               </DropdownMenuItem>
-            ))}
+
+              {otherJourneys.map((other) => (
+                <DropdownMenuItem
+                  key={other.id}
+                  onClick={() => onSwitchJourney(other.id)}
+                  className="flex items-center justify-between gap-2 rounded-lg text-neutral-200 focus:bg-neutral-800 focus:text-white cursor-pointer"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold truncate">
+                      {other.title}
+                    </p>
+                    <p className="text-[10px] text-neutral-400">
+                      {getLanguageFlag(
+                        other.language_pair?.target_language.code ?? "de"
+                      )}{" "}
+                      {other.cefr_level} ·{" "}
+                      {Math.round(other.progress_percentage)}% complete
+                    </p>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
 
